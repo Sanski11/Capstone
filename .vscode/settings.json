@@ -9,9 +9,9 @@
             "server": "localhost",
             "port": 3306,
             "driver": "MySQL",
-            "name": "Local MySQL",
             "database": "staff_portal",
-            "username": "root"
+            "username": "root",
+            "name": "MyLocalDB"
         }
     ]
 }

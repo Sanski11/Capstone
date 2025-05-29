@@ -32,6 +32,24 @@ def login():
             return render_template('login.html', error="Invalid credentials")
     return render_template('login.html')
 
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        username = request.form['username']
+        new_password = request.form['new_password']
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+        user = cursor.fetchone()
+        if user:
+            cursor.execute('UPDATE users SET password = %s WHERE username = %s', (new_password, username))
+            mysql.connection.commit()
+            return redirect(url_for('login'))
+        else:
+            return render_template('forgot_password.html', error="Username not found")
+    
+    return render_template('forgot_password.html')
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
