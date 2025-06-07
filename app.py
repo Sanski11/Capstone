@@ -8,7 +8,7 @@ app.secret_key = 'your_secret_key'
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = ''
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -54,14 +54,16 @@ def forgot_password():
 def signup():
     if request.method == 'POST':
         username = request.form['username']
+        email = request.form['email']  # New
         password = request.form['password']
+
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         try:
-            cursor.execute('INSERT INTO users (username, password) VALUES (%s, %s)', (username, password))
+            cursor.execute('INSERT INTO users (username, email, password) VALUES (%s, %s, %s)', (username, email, password))
             mysql.connection.commit()
             return redirect(url_for('login'))
         except MySQLdb.IntegrityError:
-            return render_template('signup.html', error="Username already exists")
+            return render_template('signup.html', error="Username or email already exists")
     return render_template('signup.html')
 
 @app.route('/dashboard')
@@ -77,6 +79,12 @@ def dashboard():
             "spa": 3
         }
         return render_template('dashboard.html', user=session['username'], stats=stats)
+    return redirect(url_for('login'))
+
+@app.route('/profile')
+def profile():
+    if 'username' in session:
+        return render_template('profile.html', user=session['username'])
     return redirect(url_for('login'))
 
 @app.route('/logout')

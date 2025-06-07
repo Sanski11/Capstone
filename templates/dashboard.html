@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Homepage-Staff</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -17,6 +18,14 @@
       <a href="#">Check-in/Checkout</a>
       <a href="#">Staff</a>
     </nav>
+    
+    <div class="dropdown">
+    <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
+    <div id="dropdownMenu" class="dropdown-menu">
+      <a href="/profile">Profile</a>
+      <a href="/logout">Logout</a>
+    </div>
+  </div>
   </div>
 
   <section class="chart-section">
@@ -70,6 +79,21 @@
         }]
       }
     });
+
+  function toggleDropdown() {
+    var menu = document.getElementById("dropdownMenu");
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  }
+
+  // Optional: Close dropdown if clicking outside
+  window.onclick = function(event) {
+    if (!event.target.matches('.profile-icon')) {
+      var dropdowns = document.getElementsByClassName("dropdown-menu");
+      for (var i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].style.display = "none";
+      }
+    }
+  }
   </script>
 </body>
 </html>

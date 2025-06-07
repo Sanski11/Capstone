@@ -10,8 +10,13 @@
     <form method="POST">
       <label>ID Number</label>
       <input type="text" name="username" placeholder="Username" required>
+
+      <label>Email Address</label>
+      <input type="email" name="email" placeholder="Email" required>
+
       <label>Password</label>
-      <input type="password" name="password" placeholder="Username" required>
+      <input type="password" name="password" placeholder="Password" required>
+
       <button type="submit">Create Account</button>
     </form>
     <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
