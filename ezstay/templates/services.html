@@ -67,7 +67,12 @@
     <form id="addForm" action="/addService" method="POST" style="display: none;" class="mb-4 mt-3">
       <div class="mb-3">
         <label for="service_type" class="form-label">Service Type:</label>
-        <input type="text" class="form-control" id="service_type" name="service_type" required>
+        <select id="service_type" name="service_type" required, maxlength="100", style="max-width: 1000px;">
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Food">Food</option>
+          <option value="Laundry">Laundry</option>
+          <option value="Massage">Massage</option>
+        </select>
       </div>
 
       <div class="mb-3">
@@ -77,7 +82,7 @@
 
       <div class="mb-3">
         <label for="amount" class="form-label">Amount:</label>
-        <input type="number" class="form-control" id="amount" name="amount" step="0.01" required>
+        <input type="number" class="form-control" id="amount" name="amount" step="0.01" required,  min="0" max="99999999.99">
       </div>
 
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -89,12 +94,17 @@
           <input type="hidden" id="edit_service_id" name="edit_service_id">
           <div class="mb-3">
             <label for="edit_service_type" class="form-label">Service Type:</label>
-            <input type="text" class="form-control" id="edit_service_type" name="edit_service_type" required>
-          </div>
+            <select id="edit_service_type" name="edit_service_type" required, maxlength="100", style="max-width: 1000px;">
+              <option value="Housekeeping">Housekeeping</option>
+              <option value="Food">Food</option>
+              <option value="Laundry">Laundry</option>
+              <option value="Massage">Massage</option>
+            </select>
+              </div>
     
           <div class="mb-3">
             <label for="edit_item" class="form-label">Item:</label>
-            <input type="text" class="form-control" id="edit_item" name="edit_item" required>
+            <input type="text" class="form-control" id="edit_item" name="edit_item" step="0.01" required,  min="0" max="99999999.99">
           </div>
     
           <div class="mb-3">

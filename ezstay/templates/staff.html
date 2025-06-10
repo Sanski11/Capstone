@@ -71,27 +71,36 @@
     <form id="addForm" action="/addStaff" method="POST" style="display: none;" class="mb-4 mt-3">
       <div class="mb-3">
         <label for="first_name" class="form-label">First Name:</label>
-        <input type="text" class="form-control" id="first_name" name="first_name" required>
+        <input type="text" class="form-control" id="first_name" name="first_name" required maxlength="50" style="max-width: 500px;">
       </div>
 
       <div class="mb-3">
         <label for="last_name" class="form-label">Last Name:</label>
-        <input type="text" class="form-control" id="last_name" name="last_name" required>
+        <input type="text" class="form-control" id="last_name" name="last_name" required maxlength="50" style="max-width: 500px;">
       </div>
 
       <div class="mb-3">
         <label for="role" class="form-label">Role:</label>
-        <input type="text" class="form-control" id="role" name="role" required>
+        <select id="role" name="role" required, maxlength="50">
+          <option value="Housekeeping - Manager">Housekeeping - Manager</option>
+          <option value="Housekeeping - Staff">Housekeeping - Staff</option>
+          <option value="Food/Dining - Manager">Food/Dining - Manager</option>
+          <option value="Food/Dining - Staff">Food/Dining - Staff</option>
+          <option value="Laundry - Manager">Laundry - Manager</option>
+          <option value="Laundry - Staff">Laundry - Staff</option>
+          <option value="Massage - Manager">Massage - Manager</option>
+          <option value="Massage - Staff">Massage - Staff</option>
+        </select>
       </div>
 
       <div class="mb-3">
         <label for="email" class="form-label">Email:</label>
-        <input type="email" class="form-control" id="email" name="email">
+        <input type="email" class="form-control" id="email" name="email" required maxlength="100" style="max-width: 500px;">
       </div>
 
       <div class="mb-3">
         <label for="phone" class="form-label">Phone:</label>
-        <input type="text" class="form-control" id="phone" name="phone">
+        <input type="tel" class="form-control" id="phone" name="phone" pattern="^09\d{9}$" placeholder="09XXXXXXXXX" required maxlength="11">
       </div>
 
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -103,27 +112,36 @@
             <input type="hidden" class="form-control" id="edit_staff_id" name="edit_staff_id">
             <div class="mb-3">
               <label for="edit_first_name" class="form-label">First Name:</label>
-              <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required>
+              <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required maxlength="50" style="max-width: 500px;">
             </div>
       
             <div class="mb-3">
               <label for="edit_last_name" class="form-label">Last Name:</label>
-              <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required>
+              <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required maxlength="50" style="max-width: 500px;">
             </div>
       
             <div class="mb-3">
               <label for="edit_role" class="form-label">Role:</label>
-              <input type="text" class="form-control" id="edit_role" name="edit_role" required>
+              <select id="edit_role" name="edit_role" required, maxlength="50">
+                <option value="Housekeeping - Manager">Housekeeping - Manager</option>
+                <option value="Housekeeping - Staff">Housekeeping - Staff</option>
+                <option value="Food/Dining - Manager">Food/Dining - Manager</option>
+                <option value="Food/Dining - Staff">Food/Dining - Staff</option>
+                <option value="Laundry - Manager">Laundry - Manager</option>
+                <option value="Laundry - Staff">Laundry - Staff</option>
+                <option value="Massage - Manager">Massage - Manager</option>
+                <option value="Massage - Staff">Massage - Staff</option>
+              </select>
             </div>
       
             <div class="mb-3">
               <label for="edit_email" class="form-label">Email:</label>
-              <input type="email" class="form-control" id="edit_email" name="edit_email">
+              <input type="email" class="form-control" id="edit_email" name="edit_email" required maxlength="100" style="max-width: 500px;">
             </div>
       
             <div class="mb-3">
               <label for="edit_phone" class="form-label">Phone:</label>
-              <input type="text" class="form-control" id="edit_phone" name="edit_phone">
+              <input type="tel" class="form-control" id="edit_phone" name="edit_phone" pattern="^09\d{9}$" placeholder="09XXXXXXXXX" required maxlength="11">
             </div>
       
             <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
