@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Check In / Out</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <script>
+    function showForm() {
+      document.getElementById("addForm").style.display = "block";
+    }
+    function hideForm() {
+      document.getElementById("addForm").style.display = "none";
+    }
+  </script>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Room Guest</h1>
+
+    <!-- Search and Add Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <!-- Search Form -->
+      <form class="d-flex" method="GET" action="/roomGuest">
+        <div class="input-group">
+          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Add Button -->
+      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+        <i class="bi bi-plus-circle"></i> Add
+      </a>
+    </div>
+
+    <!-- Table -->
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>Booking ID</th>
+          <th>Room ID</th>
+          <th>Guest ID</th>
+          <th>Expected Check-in</th>
+          <th>Expected Check-out</th>
+          <th>Actual Check-in</th>
+          <th>Actual Check-out</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for booking in bookings %}
+        <tr>
+          <td>{{ booking.booking_id }}</td>
+          <td>{{ booking.room_id }}</td>
+          <td>{{ booking.guest_id }}</td>
+          <td>{{ booking.exp_check_in }}</td>
+          <td>{{ booking.exp_check_out }}</td>
+          <td>{{ booking.actual_check_in }}</td>
+          <td>{{ booking.actual_check_out }}</td>
+          <td>
+            <button class="btn btn-success btn-sm" onclick="openCheckInModal({{ booking.booking_id }})">
+              <i class="bi bi-person-check"></i> Check-In
+            </button>            
+            <button class="btn btn-danger btn-sm" onclick="openCheckOutModal({{ booking.booking_id }})">
+              <i class="bi bi-person-check"></i> Check-Out
+            </button>            
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+
+    <!-- Add RoomGuest Form -->
+    <form id="addForm" action="/addRoomGuest" method="POST" style="display: none;" class="mb-4 mt-3">
+      <div class="mb-3">
+        <label for="room_id" class="form-label">Room ID:</label>
+        <input type="number" class="form-control" id="room_id" name="room_id" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="guest_id" class="form-label">Guest ID:</label>
+        <input type="number" class="form-control" id="guest_id" name="guest_id" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="checkin_date" class="form-label">Check-in Date:</label>
+        <input type="date" class="form-control" id="checkin_date" name="checkin_date" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="checkout_date" class="form-label">Check-out Date:</label>
+        <input type="date" class="form-control" id="checkout_date" name="checkout_date" required>
+      </div>
+
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+  </div>
+
+  <!-- Check-In Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="modal fade" id="checkInModal" tabindex="-1" aria-labelledby="checkInModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form action="/checkin" method="POST" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="checkInModalLabel">Check-In</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="booking_id" id="checkin_booking_id">
+          <div class="mb-3">
+            <label for="checkin_date" class="form-label">Check-In Date:</label>
+            <input type="date" class="form-control" id="actual_check_in" name="actual_check_in" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Submit</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+    <!-- Check-Out Modal -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <div class="modal fade" id="checkOutModal" tabindex="-1" aria-labelledby="checkOutModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form action="/checkout" method="POST" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="checkOutModalLabel">Check-In</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="booking_id" id="checkout_booking_id">
+          <div class="mb-3">
+            <label for="checkout_date" class="form-label">Check-Out Date:</label>
+            <input type="date" class="form-control" id="actual_check_out" name="actual_check_out" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Submit</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+ <script>
+    function openCheckInModal(bookingId) {
+      document.getElementById('checkin_booking_id').value = bookingId;
+      const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
+      modal.show();
+    }
+
+    function openCheckOutModal(bookingId) {
+    document.getElementById('checkout_booking_id').value = bookingId;
+    const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
+    modal.show();
+  }
+
+</script> 
+
+</body>
+</html>

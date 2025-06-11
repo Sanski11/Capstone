@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Total Bill</title>
+</head>
+<body>
+    <h2>Total Bill for Guest ID: {{ guest_id }}</h2>
+    <table border="1">
+        <tr>
+            <th>Request ID</th>
+            <th>Service</th>
+            <th>Quantity</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+        </tr>
+        {% for r in requests %}
+        <tr>
+            <td>{{ r.request_id }}</td>
+            <td>{{ r.item }}</td>
+            <td>{{ r.quantity }}</td>
+            <td>{{ r.unitCost }}</td>
+            <td>{{ r.totalCost }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h3>Grand Total: ₱{{ total_bill }}</h3>
+    <a href="{{ url_for('view_guests') }}">Back to Guests</a>
+</body>
+</html>

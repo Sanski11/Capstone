@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rooms</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Rooms</h1>
+
+    <!-- Search and Add Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <form class="d-flex" method="GET" action="/rooms">
+        <div class="input-group">
+          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
+      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+        <i class="bi bi-plus-circle"></i> Add
+      </a>
+    </div>
+
+    <!-- Table -->
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Number</th>
+          <th>Type</th>
+          <th>Room Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for room in rooms %}
+        <tr>
+          <td>{{ room.room_id }}</td>
+          <td>{{ room.room_number }}</td>
+          <td>{{ room.room_type }}</td>
+          <td>{{ room.room_status }}</td>
+          <td>
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ room.room_id }})">
+              <i class="bi bi-pencil-square"></i>
+            </a>
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ room.room_id }}, '{{ room.room_number }}')">
+              <i class="bi bi-trash-fill"></i>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+
+    <!-- Add Room Form -->
+    <form id="addForm" action="/addRoom" method="POST" style="display: none;" class="mb-4 mt-3">
+      <div class="mb-3">
+        <label for="room_number" class="form-label">Room Number:</label>
+        <input type="number" class="form-control" id="room_number" name="room_number" required min="1000", max="9999", style="max-width: 100px,">
+      </div>
+      <div class="mb-3">
+        <label for="room_type" class="form-label">Room Type:</label>
+        <select id="room_type" name="room_type" required>
+          <option value="Standard Twin Room">Standard Twin Room</option>
+          <option value="Standard Double Room">Standard Double Room</option>
+          <option value="Premium Twin Room">Premium Twin Room</option>
+          <option value="Premium Double Room">Premium Double Room</option>
+          <option value="Family Room">Family Room</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="room_status" class="form-label">Status:</label>
+         <select id="room_status" name="room_status" readonly>
+          <option value="Vacant">Vacant</option>
+          <option value="Occupied">Occupied</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+
+    <!-- Edit Room Form -->
+    <form id="editForm" action="/updateRoom" method="POST" style="display: none;" class="mb-4 mt-3">
+      <input type="hidden" class="form-control" id="edit_room_id" name="edit_room_id">
+      <div class="mb-3">
+        <label for="edit_room_number" class="form-label">Room Number:</label>
+        <input type="number" class="form-control" id="edit_room_number" name="edit_room_number" required min="1000", max="9999", style="max-width: 100px,">
+      </div>
+      <div class="mb-3">
+        <label for="edit_room_type" class="form-label">Room Type:</label>
+        <select id="edit_room_type" name="edit_room_type" required>
+          <option value="Standard Twin Room">Standard Twin Room</option>
+          <option value="Standard Double Room">Standard Double Room</option>
+          <option value="Premium Twin Room">Premium Twin Room</option>
+          <option value="Premium Double Room">Premium Double Room</option>
+          <option value="Family Room">Family Room</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="edit_room_status" class="form-label">Status:</label>
+         <select id="edit_room_status" name="edit_room_status">
+          <option value="Vacant">Vacant</option>
+          <option value="Occupied">Occupied</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Update</button>
+    </form>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Are you sure you want to delete Room <span id="modalRoomNumber"></span>?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Rooms JS and script -->
+  <script>
+    const rooms = [
+      {% for room in rooms %}
+        {
+          room_id: {{ room.room_id }},
+          room_number: "{{ room.room_number | escape }}",
+          room_type: "{{ room.room_type | escape }}",
+          room_status: "{{ room.room_status | escape }}"
+        }{% if not loop.last %},{% endif %}
+      {% endfor %}
+    ];
+
+    function showForm(mode, room_id = null) {
+      const addForm = document.getElementById("addForm");
+      const editForm = document.getElementById("editForm");
+
+      if (mode === "add") {
+        addForm.style.display = "block";
+        editForm.style.display = "none";
+      } else if (mode === "edit") {
+        addForm.style.display = "none";
+        editForm.style.display = "block";
+
+        const room = rooms.find(r => r.room_id === parseInt(room_id));
+        if (room) {
+          document.getElementById("edit_room_id").value = room.room_id;
+          document.getElementById("edit_room_number").value = room.room_number;
+          document.getElementById("edit_room_type").value = room.room_type;
+          document.getElementById("edit_room_status").value = room.room_status;
+        } else {
+          console.error("Room not found:", room_id);
+        }
+      }
+    }
+
+    function hideForm() {
+      document.getElementById("addForm").style.display = "none";
+      document.getElementById("editForm").style.display = "none";
+    }
+
+  function confirmDelete(room_id, room_number) {
+    document.getElementById("modalRoomNumber").innerText = room_number;
+    document.getElementById("confirmDeleteBtn").href = `/deleteRoom/${room_id}`;
+    
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+  </script>
+</body>
+</html>
