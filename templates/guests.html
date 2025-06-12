@@ -52,19 +52,17 @@
           <td>{{ guest.email }}</td>
           <td>{{ guest.phone }}</td>
           <td>
-            <!--<a href="#"><i class="bi bi-pencil-square"></i></a>-->
             <a href="#" class="btn btn-danger btn-sm confirm-delete"
-            data-id="{{ guest.guest_id }}"
-            data-name="{{ guest.last_name }}">
-            <i class="bi bi-trash-fill"></i>
+               data-id="{{ guest.guest_id }}"
+               data-name="{{ guest.last_name }}">
+               <i class="bi bi-trash-fill"></i>
             </a>
-</td>
+            <a href="{{ url_for('view_bill', guest_id=guest.guest_id) }}">View Bill</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-    <!-- Add inside your guests table row -->
-    <a href="{{ url_for('view_bill', guest_id=guest.guest_id) }}">View Bill</a>
 
     <!-- Back Button -->
     <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
@@ -156,18 +154,7 @@
 
   <!-- Rooms JS and script -->
   <script>
-    const guests = [
-      {% for guest in guests %}
-        {
-          guest_id: {{ guest.guest_id }},
-          first_name: "{{ guest.first_name | escape }}",
-          middle_name: "{{ guest.middle_name | escape }}",
-          last_name: "{{ guest.last_name | escape }}",
-          email: "{{guest.email | escape}}",
-          phone: "{{guest.phone | escape}}"
-        }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
+   const guests = '{{ guests | tojson | safe }}';
 
     function showForm(mode, guest_id = null) {
       const addForm = document.getElementById("addForm");

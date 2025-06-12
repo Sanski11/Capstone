@@ -50,10 +50,10 @@
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.status }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ booking.booking_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ booking.booking_id }})">
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ booking.booking_id }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
             
@@ -100,7 +100,11 @@
 
       <div class="mb-3">
         <label for="status" class="form-label">Status:</label>
-        <input type="text" class="form-control" id="status" name="status" value="Confirmed" readonly required>
+        <select class="form-control" id="status" name="status" required>
+          <option value="Pending" selected>Pending</option>
+          <option value="Confirmed">Confirmed</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
       </div>
 
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -176,19 +180,7 @@
 
   <!-- Booking JS and script -->
   <script>
-    const bookings = [
-      {% for booking in bookings %}
-        {
-          booking_id: {{ booking.booking_id }},
-          guest_id: "{{ booking.guest_id | escape }}",
-          room_type: "{{ booking.room_type | escape }}",
-          room_id: "{{ booking.room_id | escape }}",
-          exp_check_in: "{{ booking.exp_check_in.strftime('%Y-%m-%d') if booking.exp_check_in else '' }}",
-          exp_check_out: "{{ booking.exp_check_out.strftime('%Y-%m-%d') if booking.exp_check_out else '' }}",         
-          status: "{{ booking.status | escape }}"
-        }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
+    const bookings = '{{ bookings | tojson | safe }}';
 
     function showForm(mode, booking_id = null) {
       const addForm = document.getElementById("addForm");

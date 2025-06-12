@@ -10,7 +10,7 @@
 <body>
   <div class="navbar">
   <div class="navbar-left">
-    <h1>Homepage - Staff</h1>
+    <h1>EzStay</h1>
   </div>
 
   <div class="nav-links">
@@ -18,6 +18,8 @@
     <a href="/rooms">Rooms</a>
     <a href="/services">Services</a>
     <a href="/guests">Guests</a>
+    <a href="/roomGuest">Room Guests</a>
+    <a href="/bookings">Bookings</a>
     <a href="/checkin">Check-in/Checkout</a>
     <a href="/staff">Staff</a>
   </div>
@@ -53,13 +55,14 @@
   </section>
 
   <script>
-  const barLabels = {{ staff_data | map(attribute='staff') | list | tojson | safe }};
-  const requestsData = {{ staff_data | map(attribute='requests') | list | tojson | safe }};
-  const completedRequestsData = {{ staff_data | map(attribute='completed') | list | tojson | safe }};
+  const barLabels = "{{ staffs | map(attribute='staffs') | list | tojson | safe }}";
+  const requests = "{{ staffs | map(attribute='requests') | list | tojson | safe }}";
+  const completedRequests = "{{ staffs | map(attribute='completed') | list | tojson | safe }}";
 
-  const pieLabels = {{ service_data | map(attribute='service_type') | list | tojson | safe }};
-  const pieData = {{ service_data | map(attribute='count') | list | tojson | safe }};
-
+  const pieLabels = "{{ services | map(attribute='services') | list | tojson | safe }}";
+  const pieData = "{{ services | map(attribute='count') | list | tojson | safe }}";
+  
+  // Bar Chart for Daily Staff Activity
   const barChart = new Chart(document.getElementById('barChart'), {
     type: 'bar',
     data: {
@@ -67,12 +70,12 @@
       datasets: [
         {
           label: 'Requests',
-          data: requestsData,
+          data: requests,
           backgroundColor: 'skyblue'
         },
         {
           label: 'Completed',
-          data: completedRequestsData,
+          data: completedRequests,
           backgroundColor: 'coral'
         }
       ]

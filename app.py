@@ -141,18 +141,20 @@ def dashboard():
         """)
         staff_data = cursor.fetchall()
 
-        return render_template('dashboard.html', 
-                               user=session['username'], 
-                               stats={
-                                   "reserved": reserved,
-                                   "occupied": occupied,
-                                   "housekeeping": housekeeping,
-                                   "food": food,
-                                   "laundry": laundry,
-                                   "spa": spa
-                               },
-                               service_data=service_data,
-                               staff_data=staff_data)
+        return render_template(
+            'dashboard.html',
+            user=session['username'],
+            stats={
+                "reserved": reserved,
+                "occupied": occupied,
+                "housekeeping": housekeeping,
+                "food": food,
+                "laundry": laundry,
+                "spa": spa
+            },
+            service_data=service_data,
+            staff_data=staff_data
+        )
     return redirect(url_for('login'))
 
 @app.route('/profile')
@@ -167,11 +169,12 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/staff')
-def view_staff():
+def staff():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM Staff")
-    staff = cursor.fetchall()
-    return render_template('staff.html', staff=staff)
+    staffs = cursor.fetchall()
+    cursor.close()
+    return render_template('staff.html', staffs=staffs)
 
 @app.route('/delete/<int:guest_id>')
 def delete_guest(guest_id):
@@ -212,17 +215,18 @@ def editGuest(guest_id):
         return render_template('editGuest.html', guest=None, error="Guest not found")
     return render_template('editGuest.html', guest=guest)
 
-
-
 @app.route('/requests')
 def view_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        SELECT r.*, g.first_name, g.last_name, s.item AS service_item 
+        SELECT r.*, g.first_name, g.last_name, s.item AS service_item,
+               sa.staff_id, st.first_name AS staff_first_name, st.last_name AS staff_last_name
         FROM Requests r
         JOIN RoomGuest rg ON r.roomGuest_id = rg.roomGuest_id
         JOIN Guest g ON rg.guest_id = g.guest_id
         JOIN Services s ON r.service_id = s.service_id
+        LEFT JOIN StaffAssignments sa ON r.request_id = sa.request_id
+        LEFT JOIN Staff st ON sa.staff_id = st.staff_id
     """)
     requests = cursor.fetchall()
     cursor.execute("SELECT * FROM Staff")
@@ -230,31 +234,26 @@ def view_requests():
     cursor.close()
     return render_template('requests.html', requests=requests, staff_list=staff_list)
 
-
 @app.route('/rooms')
 def view_rooms():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM Room")
     rooms = cursor.fetchall()
     return render_template('rooms.html', rooms=rooms)
-
-    
-    
+  
 @app.route('/services')
 def view_services():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM Services")
     services = cursor.fetchall()
     return render_template('services.html', services=services)
-
-    
+ 
 @app.route('/guests')
 def view_guests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM Guest")
     guests = cursor.fetchall()
     return render_template('guests.html', guests=guests)
-
 
 @app.route('/roomGuest')
 def show_roomGuest():
@@ -296,7 +295,6 @@ def add_rooms():
     mysql.connection.commit()
     cursor.close()
     return redirect('/rooms')
-
 
 @app.route('/updateRoom', methods=['POST'])
 def updateRoom():
@@ -427,9 +425,25 @@ def updateRequest():
 
     return redirect('/requests')
 
+@app.route('/updateRequestStatus', methods=['POST'])
+def update_request_status():
+    request_id = request.form['edit_request_id']
+    status = request.form['edit_status']
+    cursor = mysql.connection.cursor()
+    cursor.execute(
+        "UPDATE Requests SET status = %s WHERE request_id = %s",
+        (status, request_id)
+    )
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/requests')
+
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])
 def deleteRequest(request_id):
     cursor = mysql.connection.cursor()
+    # Delete assignments first
+    cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
+    # Then delete the request
     cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
     mysql.connection.commit()
     cursor.close()
@@ -630,7 +644,7 @@ def checkin():
     booking_id = request.form['booking_id']
     actual_check_in = request.form['actual_check_in']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Update booking table
     cursor.execute("""
         UPDATE Bookings
@@ -655,7 +669,7 @@ def checkout():
     booking_id = request.form['booking_id']
     actual_check_out = request.form['actual_check_out']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Update booking
     cursor.execute("""
         UPDATE Bookings
@@ -679,16 +693,25 @@ def checkout():
 def assign_task():
     request_id = request.form.get('request_id')
     staff_id = request.form.get('staff_id')
-    print("Assigning request", request_id, "to staff", staff_id)  # Debug
-
     if not request_id or not staff_id:
         return "Missing request or staff ID", 400
 
     cursor = mysql.connection.cursor()
-    cursor.execute(
-        "INSERT INTO StaffAssignments (request_id, staff_id) VALUES (%s, %s)",
-        (request_id, staff_id)
-    )
+    # Check if assignment exists
+    cursor.execute("SELECT * FROM StaffAssignments WHERE request_id = %s", (request_id,))
+    assignment = cursor.fetchone()
+    if assignment:
+        # Update the existing assignment
+        cursor.execute(
+            "UPDATE StaffAssignments SET staff_id = %s WHERE request_id = %s",
+            (staff_id, request_id)
+        )
+    else:
+        # Insert new assignment
+        cursor.execute(
+            "INSERT INTO StaffAssignments (request_id, staff_id) VALUES (%s, %s)",
+            (request_id, staff_id)
+        )
     mysql.connection.commit()
     cursor.close()
     return redirect('/requests')

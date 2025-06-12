@@ -48,30 +48,40 @@
                 <td>{{ request.quantity }}</td>
                 <td>{{ request.unitCost }}</td>
                 <td>{{ request.totalCost }}</td>
-                <td>{{ request.status }}</td>
+                <td>{{ request.status|capitalize }}</td>
                 <td>{{ request.request_time }}</td>
                 <td>
-                    <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ request.request_id }})">
+                    <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ request.request_id }}')">
                         <i class="bi bi-pencil-square"></i>
                       </a>
-                              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ request.request_id }})">
+                              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ request.request_id }}')">
                         <i class="bi bi-trash"></i>
                     </a>
+                    {% if request.staff_first_name %}
+                      <div>
+                        <span class="text-success">
+                          Assigned to: {{ request.staff_first_name }} {{ request.staff_last_name }}
+                        </span>
+                      </div>
+                    {% endif %}
+                    <form action="{{ url_for('assign_task') }}" method="POST" style="display:inline;">
+                      <input type="hidden" name="request_id" value="{{ request.request_id }}">
+                      <select name="staff_id" required>
+                        <option value="">Assign Staff</option>
+                        {% for staff in staff_list %}
+                          <option value="{{ staff.staff_id }}"
+                            {% if staff.staff_id == request.staff_id %}selected{% endif %}>
+                            {{ staff.first_name }} {{ staff.last_name }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-primary btn-sm">Assign</button>
+                    </form>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <form action="{{ url_for('assign_task') }}" method="POST" style="display:inline;">
-    <input type="hidden" name="request_id" value="{{ request.request_id }}">
-    <select name="staff_id" required>
-        {% for staff in staff_list %}
-            <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
-        {% endfor %}
-    </select>
-    <button type="submit">Assign</button>
-</form>
 
     <!-- Back to Homepage -->
     <a href="/dashboard" class="btn btn-secondary mt-3">
@@ -102,7 +112,11 @@
           </div>
           <div>
             <label for="status" class="form-label">Status:</label>
-            <input type="text" class="form-control" id="status" name="status" required>
+            <select class="form-control" id="status" name="status" required>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="completed">Completed</option>
+            </select>
           </div>
           <div>
             <label for="status" class="form-label">Request Time:</label>
@@ -112,40 +126,20 @@
         <button type="submit" class="btn btn-success">Submit</button>
       </form>
 
-    <!-- Edit Request Form -->
-    <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
+    <!-- Edit Request Form (only status editable) -->
+    <form id="editForm" action="/updateRequestStatus" method="POST" style="display: none;" class="mb-4 mt-3">
         <input type="hidden" id="edit_request_id" name="edit_request_id">
         <div class="mb-3">
-          <label for="edit_roomGuest_id" class="form-label">Room Guest ID:</label>
-          <input type="text" class="form-control" id="edit_roomGuest_id" name="edit_roomGuest_id" required>
+            <label for="edit_status" class="form-label">Status:</label>
+            <select class="form-control" id="edit_status" name="edit_status" required>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="completed">Completed</option>
+            </select>
         </div>
-        <div class="mb-3">
-          <label for="edit_service_id" class="form-label">Service ID:</label>
-          <input type="text" class="form-control" id="edit_service_id" name="edit_service_id" required>
-        </div>
-        <div class="mb-3">
-          <label for="edit_quantity" class="form-label">Quantity:</label>
-          <input type="text" class="form-control" id="edit_quantity" name="edit_quantity" required>
-        </div>
-        <div class="mb-3">
-            <label for="edit_unitCost" class="form-label">Unit Cost:</label>
-            <input type="text" class="form-control" id="edit_unitCost" name="edit_unitCost" required>
-        </div>
-        <div>
-            <label for="edit_totalCost" class="form-label">Total Cost:</label>
-            <input type="text" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
-          </div>
-          <div>
-            <label for="status" class="form-label">Status:</label>
-            <input type="text" class="form-control" id="edit_status" name="edit_status" required>
-          </div>
-          <div>
-            <label for="status" class="form-label">Request Time:</label>
-            <input type="datetime-local" class="form-control" id="edit_quantityrequest_time" name="edit_request_time" required>
-          </div>
-          <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        <button type="submit" class="btn btn-success">Submit</button>
-      </form>
+        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        <button type="submit" class="btn btn-success">Update Status</button>
+    </form>
 </div>
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
@@ -171,47 +165,28 @@
        
           <!-- Rooms JS and script -->
         <script>
-            const requests = [
-            {% for request in requests %}
-                {
-                request_id: {{ request.request_id }},
-                roomGuest_id: "{{ request.roomGuest_id | escape }}",
-                service_id: "{{ request.service_id | escape }}",
-                quantity: "{{ request.quantity   | escape }}",
-                unitCost: "{{ request.unitCost   | escape }}",
-                totalCost: "{{ request.totalCost   | escape }}",
-                status: "{{ request.status   | escape }}",
-                request_time: "{{ request.request_time   | escape }}"
-                }{% if not loop.last %},{% endif %}
-            {% endfor %}
-            ];
+            const requests = '{{ requests | tojson | safe }}';
 
-            function showForm(mode, request_id = null) {
-            const addForm = document.getElementById("addForm");
-            const editForm = document.getElementById("editForm");
+function showForm(mode, request_id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
 
-            if (mode === "add") {
-                addForm.style.display = "block";
-                editForm.style.display = "none";
-            } else if (mode === "edit") {
-                addForm.style.display = "none";
-                editForm.style.display = "block";
+    if (mode === "add") {
+        addForm.style.display = "block";
+        editForm.style.display = "none";
+    } else if (mode === "edit") {
+        addForm.style.display = "none";
+        editForm.style.display = "block";
 
-                const request = requests.find(r => r.request_id === parseInt(request_id));
-                if (request) {
-                document.getElementById("edit_request_id").value = request.request_id;
-                document.getElementById("edit_roomGuest_id").value = request.roomGuest_id;
-                document.getElementById("edit_service_id").value = request.service_id;
-                document.getElementById("edit_quantity").value = request.quantity;
-                document.getElementById("edit_unitCost").value = request.unitCost;
-                document.getElementById("edit_totalCost").value = request.totalCost;
-                document.getElementById("edit_status").value = request.status;
-                document.getElementById("edit_request_time").value = request.request_time;
-                } else {
-                console.error("Request not found:", request_id);
-                }
-            }
-            }
+        const request = requests.find(r => r.request_id === parseInt(request_id));
+        if (request) {
+            document.getElementById("edit_request_id").value = request.request_id;
+            document.getElementById("edit_status").value = request.status;
+        } else {
+            console.error("Request not found:", request_id);
+        }
+    }
+}
 
             function hideForm() {
             document.getElementById("addForm").style.display = "none";
