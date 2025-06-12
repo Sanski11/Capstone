@@ -287,7 +287,7 @@ def add_rooms():
     roomType = request.form['room_type']
     roomStatus = request.form['room_status']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
         (roomNumber, roomType, roomStatus)
@@ -303,7 +303,7 @@ def updateRoom():
     room_type = request.form['edit_room_type']
     room_status = request.form['edit_room_status']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         """
         UPDATE room
@@ -325,7 +325,7 @@ def add_guests():
     email = request.form['email']
     phone = request.form['phone']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         INSERT INTO Guest (first_name, middle_name, last_name, email, phone)
         VALUES (%s, %s, %s, %s, %s)
@@ -345,7 +345,7 @@ def updateGuests():
     email = request.form['edit_email']
     phone = request.form['edit_phone']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         UPDATE Guest 
         SET first_name = %s, middle_name = %s, last_name = %s, email = %s, phone = %s 
@@ -368,7 +368,7 @@ def add_request():
 
     totalCost = quantity * unitCost
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         INSERT INTO Requests (roomGuest_id, service_id, quantity, unitCost, totalCost, status, request_time)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -395,7 +395,7 @@ def updateRequest():
     raw_time = request.form['edit_request_time']
     request_time = datetime.strptime(raw_time, "%Y-%m-%dT%H:%M")
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
     sql = """
         UPDATE Requests
@@ -429,7 +429,7 @@ def updateRequest():
 def update_request_status():
     request_id = request.form['edit_request_id']
     status = request.form['edit_status']
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         "UPDATE Requests SET status = %s WHERE request_id = %s",
         (status, request_id)
@@ -440,7 +440,7 @@ def update_request_status():
 
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])
 def deleteRequest(request_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Delete assignments first
     cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
     # Then delete the request
@@ -455,7 +455,7 @@ def add_service():
     item = request.form['item']
     amount = float(request.form['amount'])
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         "INSERT INTO Services (service_type, item, amount) VALUES (%s, %s, %s)",
         (service_type, item, amount)
@@ -473,7 +473,7 @@ def add_staff():
     email = request.form['email']
     phone = request.form['phone']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         "INSERT INTO Staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
         (first_name, last_name, role, email, phone)
@@ -492,7 +492,7 @@ def updateStaff():
     email = request.form['edit_email']
     phone = request.form['edit_phone']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         """
         UPDATE Staff 
@@ -509,7 +509,7 @@ def updateStaff():
 
 @app.route('/deleteStaff/<int:staff_id>', methods=['GET'])
 def deleteStaff(staff_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("DELETE FROM Staff WHERE staff_id = %s", (staff_id,))
     mysql.connection.commit()
     cursor.close()
@@ -522,7 +522,7 @@ def updateServices():
     item = request.form['edit_item']
     amount = float(request.form['edit_amount'])
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         """
         UPDATE Services 
@@ -538,7 +538,7 @@ def updateServices():
 
 @app.route('/deleteServices/<int:service_id>', methods=['GET'])
 def deleteServices(service_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("DELETE FROM Services WHERE service_id = %s", (service_id,))
     mysql.connection.commit()
     cursor.close()
@@ -551,7 +551,7 @@ def add_room_guest():
     checkin_date = request.form['checkin_date']
     checkout_date = request.form['checkout_date']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
         "INSERT INTO RoomGuest (room_id, guest_id, checkin_date, checkout_date) VALUES (%s, %s, %s, %s)",
         (room_id, guest_id, checkin_date, checkout_date)
@@ -562,7 +562,7 @@ def add_room_guest():
 
 @app.route('/deleteGuest/<int:guest_id>', methods=['GET'])
 def deleteGuest(guest_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("DELETE FROM Guest WHERE guest_id = %s", (guest_id,))
     mysql.connection.commit()
     cursor.close()
@@ -600,7 +600,7 @@ def add_booking():
     exp_check_out = request.form['exp_check_out']
     status = request.form['status']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         INSERT INTO Bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status)
         VALUES (%s, %s, %s, %s, %s, %s)
@@ -619,7 +619,7 @@ def updateBooking():
     exp_check_out = request.form['exp_check_out']
     status = request.form['edit_status']
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         UPDATE Bookings
         SET guest_id=%s, room_type=%s, room_id=%s, exp_check_in=%s, exp_check_out=%s, status=%s
@@ -696,7 +696,7 @@ def assign_task():
     if not request_id or not staff_id:
         return "Missing request or staff ID", 400
 
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     # Check if assignment exists
     cursor.execute("SELECT * FROM StaffAssignments WHERE request_id = %s", (request_id,))
     assignment = cursor.fetchone()
@@ -756,7 +756,7 @@ def add_user():
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
 def delete_user(user_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
