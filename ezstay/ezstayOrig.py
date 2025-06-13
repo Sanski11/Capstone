@@ -13,7 +13,7 @@ app = Flask(__name__)
 #app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 #MySQL connection string
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin@localhost/ezstay'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:admin@localhost/hotelsystem/ezstay'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 #Initialize SQLAlchemy
@@ -55,32 +55,26 @@ class Services(db.Model):
     item = db.Column(db.String)
     amount = db.Column(db.Numeric)
 
-# Bookings model
-class Bookings(db.Model):
-    __tablename__ = 'bookings'
-    booking_id = db.Column(db.Integer, primary_key=True)
-    guest_id = db.Column(db.Integer)
-    room_type = db.Column(db.String)
-    room_id = db.Column(db.Integer, nullable=True)
-    exp_check_in = db.Column(db.Date)
-    exp_check_out = db.Column(db.Date)
-    status = db.Column(db.String)
-    actual_check_in = db.Column(db.Date, nullable=True)
-    actual_check_out = db.Column(db.Date, nullable=True)
+#RoomGuest model
+class RoomGuest(db.Model):
+    __tablename__ = 'roomguest'
+    roomGuest_id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('Room.room_id'))
+    guest_id = db.Column(db.Integer, db.ForeignKey('Guest.guest_id'))
+    checkin_date = db.Column(db.DateTime)
+    checkout_date = db.Column(db.DateTime)
     
 # Requests model
 class Requests(db.Model):
     __tablename__ = 'requests'
     request_id = db.Column(db.Integer, primary_key=True)
-    booking_id = db.Column(db.Integer, db.ForeignKey('bookings.booking_id'))
-    service_id = db.Column(db.Integer, db.ForeignKey('services.service_id'))
+    roomGuest_id = db.Column(db.Integer, db.ForeignKey('RoomGuest.roomGuest_id'))
+    service_id = db.Column(db.Integer, db.ForeignKey('Services.service_id'))
     quantity = db.Column(db.Integer)
     unitCost = db.Column(db.Numeric)
     totalCost = db.Column(db.Numeric)
     status = db.Column(db.String)
     request_time = db.Column(db.DateTime)
-    staff_id = db.Column(db.Integer, db.ForeignKey('staff.staff_id'))
-    completionTime = db.Column(db.DateTime)
 
 
 #Guest list for demo purposes
@@ -128,27 +122,24 @@ def editGuest(index):
 @app.route('/requests')
 def view_requests():
     search = request.args.get('search', '')
-    current_time = datetime.now().strftime('%Y-%m-%dT%H:%M')
 
     if search:
-        requests = Requests.query.filter(
+        results = Requests.query.filter(
             or_(
                 Requests.request_id.like(f"%{search}%"),
-                Requests.booking_id.like(f"%{search}%"),
+                Requests.roomGuest_id.like(f"%{search}%"),
                 Requests.service_id.like(f"%{search}%"),
                 Requests.quantity.like(f"%{search}%"),
                 Requests.unitCost.like(f"%{search}%"),
                 Requests.totalCost.like(f"%{search}%"),
                 Requests.status.ilike(f"%{search}%"),
-                Requests.request_time.cast(db.String).like(f"%{search}%"),
-                Requests.completionTime.cast(db.String).like(f"%{search}"),
-                Requests.staff_id.ilike(f"%{search}")
+                Requests.request_time.cast(db.String).like(f"%{search}%")
             )
         ).all()
     else:
-        requests = Requests.query.all()
+        results = Requests.query.all()
 
-    return render_template('requests.html', requests=requests, current_time=current_time)
+    return render_template('requests.html', requests=results)
 
 @app.route('/rooms')
 def rooms():
@@ -180,6 +171,10 @@ def services():
 
     return render_template('services.html', services=services)
     
+@app.route('/checkin')
+def checkin():
+    return render_template('checkin.html')
+
 @app.route('/staff')
 def show_staff():
     query = request.args.get('search', '')
@@ -199,46 +194,21 @@ def show_staff():
 
 from sqlalchemy import cast, String
 
-#@app.route('/roomGuest')
-#def show_roomGuest():
-#    query = request.args.get('search', '')
-#
-#    if query:
-#        roomGuests = RoomGuest.query.filter(
-#            cast(RoomGuest.room_id, String).ilike(f"%{query}%") |
-#            cast(RoomGuest.guest_id, String).ilike(f"%{query}%") |
-#            cast(RoomGuest.checkin_date, String).like(f"%{query}%") |
-#            cast(RoomGuest.checkout_date, String).like(f"%{query}%")
-#        ).all()
-#    else:
-#        roomGuests = RoomGuest.query.all()
-#
-#    return render_template('roomGuest.html', roomGuests=roomGuests)
-
-# ROUTE FOR ROOMGUEST (NEW)
 @app.route('/roomGuest')
 def show_roomGuest():
     query = request.args.get('search', '')
 
     if query:
-        bookings = Bookings.query.filter(
-            or_(
-            cast(Bookings.booking_id, String).ilike(f"%{query}%"),
-            cast(Bookings.room_id, String).ilike(f"%{query}%"),
-            cast(Bookings.guest_id, String).ilike(f"%{query}%"),
-            cast(Bookings.exp_check_in, String).like(f"%{query}%"),
-            cast(Bookings.exp_check_out, String).like(f"%{query}%"),
-            cast(Bookings.actual_check_in, String).like(f"%{query}%"),
-            cast(Bookings.actual_check_out, String).like(f"%{query}%")
-            )
+        roomGuests = RoomGuest.query.filter(
+            cast(RoomGuest.room_id, String).ilike(f"%{query}%") |
+            cast(RoomGuest.guest_id, String).ilike(f"%{query}%") |
+            cast(RoomGuest.checkin_date, String).like(f"%{query}%") |
+            cast(RoomGuest.checkout_date, String).like(f"%{query}%")
         ).all()
     else:
-        #bookings = Bookings.query.all()
-        bookings = Bookings.query.filter(Bookings.status == "Confirmed").all()
+        roomGuests = RoomGuest.query.all()
 
-
-    return render_template('roomGuest.html', bookings=bookings)
-
+    return render_template('roomGuest.html', roomGuests=roomGuests)
 
 @app.route('/addRoom', methods=['POST'])
 def add_rooms():
@@ -304,27 +274,23 @@ def updateGuests():
 
 @app.route('/addRequest', methods=['POST'])
 def add_request():
-    booking_id = request.form['booking_id']
+    roomGuest_id = request.form['roomGuest_id']
     service_id = request.form['service_id']
     quantity = int(request.form['quantity'])
     unitCost = float(request.form['unitCost'])
     status = request.form['status']
     request_time = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
-    # staff_id = int(request.form['staff_id'])
-    # completionTime = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
 
     totalCost = quantity * unitCost
 
     new_request = Requests(
-        booking_id=booking_id,
+        roomGuest_id=roomGuest_id,
         service_id=service_id,
         quantity=quantity,
         unitCost=unitCost,
         totalCost=totalCost,
         status=status,
         request_time=request_time
-        # staff_id=staff_id,
-        # completionTime=completionTime
     )
 
     db.session.add(new_request)
@@ -338,19 +304,15 @@ def updateRequest():
     request_id = int(request.form['edit_request_id'])
     req = Requests.query.get(request_id)
 
-    req.booking_id = request.form['edit_booking_id']
+    req.roomGuest_id = request.form['edit_roomGuest_id']
     req.service_id = request.form['edit_service_id']
     req.quantity = request.form['edit_quantity']
     req.unitCost = request.form['edit_unitCost']
     req.totalCost = request.form['edit_totalCost']
     req.status = request.form['edit_status']
-    req.staff_id = request.form['edit_staff_id']
-    req.completionTime = request.form['edit_completionTime']
     
     # Convert datetime-local input format to Python datetime
     raw_time = request.form['edit_request_time']
-    req.request_time = datetime.strptime(raw_time, "%Y-%m-%dT%H:%M")
-    raw_time = request.form['edit_completionTime']
     req.request_time = datetime.strptime(raw_time, "%Y-%m-%dT%H:%M")
 
     db.session.commit()
@@ -362,38 +324,6 @@ def deleteRequest(request_id):
     request = Requests.query.get_or_404(request_id)
     db.session.delete(request)
     db.session.commit()
-    return redirect('/requests')
-
-@app.route('/assignTask', methods=['POST'])
-def assigntask():
-
-    request_id = request.form['assignTask_request_id']
-    staff_id = request.form['assignTask_staff_id']
-
-    requests = Requests.query.get(request_id)
-
-    #update request table
-    requests.staff_id = staff_id
-    
-    db.session.commit()
-
-    return redirect('/requests')
-
-@app.route('/updateStatus', methods=['POST'])
-def updateStatus():
-
-    request_id = request.form['updateStatus_request_id']
-    status = request.form['updateStatus_status']
-    completionTime = datetime.strptime(request.form['updateStatus_completionTime'], '%Y-%m-%dT%H:%M')
-
-    requests = Requests.query.get(request_id)
-
-    #update requests table
-    requests.status = status
-    requests.completionTime = completionTime
-
-    db.session.commit()
-
     return redirect('/requests')
 
 @app.route('/addService', methods=['POST'])
@@ -493,123 +423,6 @@ def deleteGuest(guest_id):
     db.session.delete(guest)
     db.session.commit()
     return redirect('/guests')
-
-# ROUTE FOR BOOKINGS
-@app.route('/bookings')
-def view_bookings():
-    search = request.args.get('search', '')
-
-    if search:
-        results = Bookings.query.filter(
-            or_(
-                Bookings.booking_id.like(f"%{search}%"),
-                Bookings.guest_id.like(f"%{search}%"),
-                Bookings.room_type.like(f"%{search}%"),
-                Bookings.room_id.like(f"%{search}%"),
-                Bookings.exp_check_in.like(f"%{search}%"),
-                Bookings.exp_check_out.like(f"%{search}%"),
-                Bookings.status.like(f"%{search}%"),
-            )
-        ).all()
-    else:
-        results = Bookings.query.all()
-
-    return render_template('Bookings.html', bookings=results)
-
-
-@app.route('/addBooking', methods=['POST'])
-def add_booking():
-    #booking_id = request.form['booking_id']
-    guest_id = request.form['guest_id']
-    room_type = request.form['room_type']
-    room_id = request.form['room_id']
-    exp_check_in = request.form['exp_check_in']
-    exp_check_out = request.form['exp_check_out']
-    status = request.form['status']
-
-    new_booking = Bookings(
-        #booking_id=booking_id,
-        guest_id=guest_id,
-        room_type=room_type,
-        room_id=room_id,
-        exp_check_in=exp_check_in,
-        exp_check_out=exp_check_out,
-        status=status
-    )
-
-    db.session.add(new_booking)
-    db.session.commit()
-    return redirect('/bookings')
-
-@app.route('/updateBooking', methods=['POST'])
-def updateBooking():
-    booking_id = int(request.form['edit_booking_id'])
-    booking = Bookings.query.get(booking_id)
-
-    booking.guest_id = request.form['edit_guest_id']
-    booking.room_type = request.form['edit_room_type']
-    booking.room_id = request.form['edit_room_id']
-    booking.exp_check_in = request.form['exp_check_in']
-    booking.exp_check_out = request.form['exp_check_out']
-    booking.status = request.form['edit_status']
-
-    db.session.commit()
-    return redirect('/bookings')
-
-@app.route('/deleteBooking/<int:booking_id>', methods=['GET'])
-def deleteBooking(booking_id):
-    booking = Bookings.query.get_or_404(booking_id)
-    db.session.delete(booking)
-    db.session.commit()
-    return redirect('/bookings')
-
-# gina - ROUTE FOR CHECKIN/OUT
-
-@app.route('/checkin', methods=['POST'])
-def checkin():
-
-    booking_id = request.form['booking_id']
-    actual_check_in = request.form['actual_check_in']
-
-    booking = Bookings.query.get(booking_id)
-
-    #update booking table
-    booking.actual_check_in = actual_check_in
-
-    #update room table
-    room = Room.query.get(booking.room_id)
-    if room:
-        room.room_status = 'Occupied'
-    else:
-        # You can log an error or raise an exception
-        return "Room not found", 404
-
-    db.session.commit()
-
-    return redirect('/roomGuest')
-
-@app.route('/checkout', methods=['POST'])
-def checkout():
-
-    booking_id = request.form['booking_id']
-    actual_check_out = request.form['actual_check_out']
-
-    booking = Bookings.query.get(booking_id)
-
-    #update booking table
-    booking.actual_check_out = actual_check_out
-
-    #update room table
-    room = Room.query.get(booking.room_id)
-    if room:
-        room.room_status = 'Vacant'
-    else:
-        # You can log an error or raise an exception
-        return "Room not found", 404
-
-    db.session.commit()
-
-    return redirect('/roomGuest')
 
 if __name__ == '__main__':
     app.run(debug=True)
