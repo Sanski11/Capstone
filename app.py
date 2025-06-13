@@ -382,47 +382,24 @@ from datetime import datetime
 from flask import request, redirect
 
 @app.route('/updateRequest', methods=['POST'])
-def updateRequest():
-    request_id = int(request.form['edit_request_id'])
-    roomGuest_id = int(request.form['edit_roomGuest_id'])
-    service_id = int(request.form['edit_service_id'])
-    quantity = int(request.form['edit_quantity'])
-    unitCost = float(request.form['edit_unitCost'])
-    totalCost = float(request.form['edit_totalCost'])
+def update_request():
+    request_id = request.form['edit_request_id']
+    roomGuest_id = request.form['edit_roomGuest_id']
+    service_id = request.form['edit_service_id']
+    quantity = request.form['edit_quantity']
+    unitCost = request.form['edit_unitCost']
+    totalCost = request.form['edit_totalCost']
     status = request.form['edit_status']
-    
-    # Convert datetime-local input to Python datetime object
-    raw_time = request.form['edit_request_time']
-    request_time = datetime.strptime(raw_time, "%Y-%m-%dT%H:%M")
+    request_time = request.form['edit_request_time']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    sql = """
+    cursor.execute("""
         UPDATE Requests
-        SET roomGuest_id = %s,
-            service_id = %s,
-            quantity = %s,
-            unitCost = %s,
-            totalCost = %s,
-            status = %s,
-            request_time = %s
-        WHERE request_id = %s
-    """
-    values = (
-        roomGuest_id,
-        service_id,
-        quantity,
-        unitCost,
-        totalCost,
-        status,
-        request_time,
-        request_id
-    )
-
-    cursor.execute(sql, values)
+        SET roomGuest_id=%s, service_id=%s, quantity=%s, unitCost=%s, totalCost=%s, status=%s, request_time=%s
+        WHERE request_id=%s
+    """, (roomGuest_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
     mysql.connection.commit()
     cursor.close()
-
     return redirect('/requests')
 
 @app.route('/updateRequestStatus', methods=['POST'])

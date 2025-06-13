@@ -126,10 +126,30 @@
         <button type="submit" class="btn btn-success">Submit</button>
       </form>
 
-    <!-- Edit Request Form (only status editable) -->
-    <form id="editForm" action="/updateRequestStatus" method="POST" style="display: none;" class="mb-4 mt-3">
+    <!-- Edit Request Form  -->
+    <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
         <input type="hidden" id="edit_request_id" name="edit_request_id">
         <div class="mb-3">
+          <label for="edit_roomGuest_id" class="form-label">Room Guest ID:</label>
+          <input type="text" class="form-control" id="edit_roomGuest_id" name="edit_roomGuest_id" required>
+        </div>
+        <div class="mb-3">
+          <label for="edit_service_id" class="form-label">Service ID:</label>
+          <input type="text" class="form-control" id="edit_service_id" name="edit_service_id" required>
+        </div>
+        <div class="mb-3">
+          <label for="edit_quantity" class="form-label">Quantity:</label>
+          <input type="text" class="form-control" id="edit_quantity" name="edit_quantity" required>
+        </div>
+        <div class="mb-3">
+            <label for="edit_unitCost" class="form-label">Unit Cost:</label>
+            <input type="text" class="form-control" id="edit_unitCost" name="edit_unitCost" required>
+        </div>
+        <div>
+            <label for="edit_totalCost" class="form-label">Total Cost:</label>
+            <input type="text" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
+          </div>
+          <div class="mb-3">
             <label for="edit_status" class="form-label">Status:</label>
             <select class="form-control" id="edit_status" name="edit_status" required>
                 <option value="pending">Pending</option>
@@ -137,9 +157,13 @@
                 <option value="completed">Completed</option>
             </select>
         </div>
-        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        <button type="submit" class="btn btn-success">Update Status</button>
-    </form>
+          <div>
+            <label for="status" class="form-label">Request Time:</label>
+            <input type="datetime-local" class="form-control" id="edit_quantityrequest_time" name="edit_request_time" required>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        <button type="submit" class="btn btn-success">Submit</button>
+      </form>
 </div>
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
