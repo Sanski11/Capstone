@@ -183,7 +183,33 @@
               </div>
             </div>
           </div>
-
+<!-- Update Status Modal -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <form action="/updateStatus" method="POST" class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="updateStatusModalLabel">Update Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" name="updateStatus_request_id" id="updateStatus_request_id">
+                <div class="mb-3">
+                  <label for="updateStatus_status" class="form-label">Status:</label>
+                  <input type="text" class="form-control" id="updateStatus_status" name="updateStatus_status" required>
+                </div>
+                <div class="mb-3">
+                  <label for="updateStatus_completionTime" class="form-label">Completion Time:</label>
+                  <input type="text" class="form-control" id="updateStatus_completionTime" name="updateStatus_completionTime" value="{{ current_time }}" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="submit" class="btn btn-success">Submit</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>           
           <!-- Bootstrap JS Bundle with Popper -->
           <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
        
@@ -205,7 +231,15 @@ function showForm(mode, request_id = null) {
         const request = requests.find(r => r.request_id === parseInt(request_id));
         if (request) {
             document.getElementById("edit_request_id").value = request.request_id;
-            document.getElementById("edit_status").value = request.status;
+                document.getElementById("edit_booking_id").value = request.booking_id;
+                document.getElementById("edit_service_id").value = request.service_id;
+                document.getElementById("edit_quantity").value = request.quantity;
+                document.getElementById("edit_unitCost").value = request.unitCost;
+                document.getElementById("edit_totalCost").value = request.totalCost;
+                document.getElementById("edit_status").value = request.status;
+                document.getElementById("edit_request_time").value = request.request_time;
+                document.getElementById("edit_staff_id").value = request.staff_id;
+                document.getElementById("edit_completionTime").value = request.completionTime;
         } else {
             console.error("Request not found:", request_id);
         }

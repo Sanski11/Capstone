@@ -145,8 +145,6 @@ def dashboard():
             'dashboard.html',
             user=session['username'],
             stats={
-                "reserved": reserved,
-                "occupied": occupied,
                 "housekeeping": housekeeping,
                 "food": food,
                 "laundry": laundry,
