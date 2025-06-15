@@ -8,6 +8,7 @@ app.secret_key = 'your_secret_key'
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
+#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_DB'] = 'staff_portal'
 
@@ -75,14 +76,6 @@ def dashboard():
     if 'username' in session:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-        # Reserved: Bookings with future expected check-in
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE exp_check_in > CURDATE()")
-        reserved = cursor.fetchone()['count']
-
-        # Occupied: Rooms currently checked in
-        cursor.execute("SELECT COUNT(*) AS count FROM RoomGuest WHERE checkin_date <= NOW() AND (checkout_date IS NULL OR checkout_date >= NOW())")
-        occupied = cursor.fetchone()['count']
-
         # Housekeeping: Count of housekeeping services requested
         cursor.execute("""
             SELECT COUNT(*) AS count 
@@ -134,8 +127,8 @@ def dashboard():
                    COUNT(r.request_id) AS requests,
                    SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
             FROM requests r
-            JOIN RoomGuest rg ON r.roomGuest_id = rg.roomGuest_id
-            JOIN Guest g ON rg.guest_id = g.guest_id
+            JOIN Bookings b ON r.booking_id = b.booking_id
+            JOIN Guest g ON b.guest_id = g.guest_id
             JOIN Staff s ON s.staff_id = g.guest_id  -- If staff submits requests directly, adjust this join logic
             GROUP BY s.first_name
         """)
@@ -214,23 +207,75 @@ def editGuest(guest_id):
     return render_template('editGuest.html', guest=guest)
 
 @app.route('/requests')
-def view_requests():
+def show_requests():
+    query = request.args.get('search', '')
+    current_time = datetime.now().strftime('%Y-%m-%dT%H:%M')
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("""
-        SELECT r.*, g.first_name, g.last_name, s.item AS service_item,
-               sa.staff_id, st.first_name AS staff_first_name, st.last_name AS staff_last_name
-        FROM Requests r
-        JOIN RoomGuest rg ON r.roomGuest_id = rg.roomGuest_id
-        JOIN Guest g ON rg.guest_id = g.guest_id
-        JOIN Services s ON r.service_id = s.service_id
-        LEFT JOIN StaffAssignments sa ON r.request_id = sa.request_id
-        LEFT JOIN Staff st ON sa.staff_id = st.staff_id
-    """)
+
+    if query:
+        search_pattern = f"%{query}%"
+        sql = """
+            SELECT 
+                r.*,
+                s.item
+            FROM requests r
+            JOIN services s ON r.service_id = s.service_id
+            WHERE 
+                CAST(r.request_id AS CHAR) LIKE %s OR
+                CAST(r.booking_id AS CHAR) LIKE %s OR
+                CAST(r.service_id AS CHAR) LIKE %s OR
+                CAST(r.quantity AS CHAR) LIKE %s OR
+                CAST(r.unitCost AS CHAR) LIKE %s OR
+                CAST(r.totalCost AS CHAR) LIKE %s OR
+                CAST(r.status AS CHAR) LIKE %s OR
+                CAST(r.request_time AS CHAR) LIKE %s OR
+                CAST(r.completionTime AS CHAR) LIKE %s OR
+                CAST(r.staff_id AS CHAR) LIKE %s OR
+                CAST(s.item AS CHAR) LIKE %s
+        """
+        cursor.execute(sql, (search_pattern,) * 11)
+    else:
+        cursor.execute("""
+            SELECT 
+                r.*,
+                s.item
+            FROM requests r
+            JOIN services s ON r.service_id = s.service_id
+        """)
+
     requests = cursor.fetchall()
-    cursor.execute("SELECT * FROM Staff")
-    staff_list = cursor.fetchall()
     cursor.close()
-    return render_template('requests.html', requests=requests, staff_list=staff_list)
+    return render_template('requests.html', requests=requests, current_time=current_time)
+
+@app.route('/assignTask', methods=['POST'])
+def assigntask():
+
+    request_id = request.form['assignTask_request_id']
+    staff_id = request.form['assignTask_staff_id']
+
+    requests = Requests.query.get(request_id)
+
+    #update request table
+    requests.staff_id = staff_id
+    
+    db.session.commit()
+
+    return redirect('/requests')
+
+@app.route('/updateStatus', methods=['POST'])
+def updateStatus():
+    request_id = request.form['updateStatus_request_id']
+    status = request.form['updateStatus_status']
+    completionTime = datetime.strptime(request.form['updateStatus_completionTime'], '%Y-%m-%dT%H:%M')
+
+    cursor = mysql.connection.cursor()
+    sql = "UPDATE requests SET status = %s, completionTime = %s WHERE request_id = %s"
+    cursor.execute(sql, (status, completionTime, request_id))
+    mysql.connection.commit()
+    cursor.close()
+
+    return redirect('/requests')
 
 @app.route('/rooms')
 def view_rooms():
@@ -314,6 +359,13 @@ def updateRoom():
     cursor.close()
     return redirect('/rooms')
 
+@app.route('/deleteRoom/<int:room_id>', methods=['GET'])
+def deleteRoom(room_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/rooms')
 
 @app.route('/addGuests', methods=['POST'])
 def add_guests():
@@ -357,7 +409,7 @@ def updateGuests():
 
 @app.route('/addRequest', methods=['POST'])
 def add_request():
-    roomGuest_id = request.form['roomGuest_id']
+    booking_id = request.form['booking_id']
     service_id = request.form['service_id']
     quantity = int(request.form['quantity'])
     unitCost = float(request.form['unitCost'])
@@ -368,9 +420,9 @@ def add_request():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        INSERT INTO Requests (roomGuest_id, service_id, quantity, unitCost, totalCost, status, request_time)
+        INSERT INTO Requests (booking_id, service_id, quantity, unitCost, totalCost, status, request_time)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (roomGuest_id, service_id, quantity, unitCost, totalCost, status, request_time))
+    """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time))
     mysql.connection.commit()
     cursor.close()
 
@@ -382,20 +434,18 @@ from flask import request, redirect
 @app.route('/updateRequest', methods=['POST'])
 def update_request():
     request_id = request.form['edit_request_id']
-    roomGuest_id = request.form['edit_roomGuest_id']
+    booking_id = request.form['edit_booking_id']
     service_id = request.form['edit_service_id']
-    quantity = request.form['edit_quantity']
-    unitCost = request.form['edit_unitCost']
-    totalCost = request.form['edit_totalCost']
-    status = request.form['edit_status']
-    request_time = request.form['edit_request_time']
+    quantity = int(request.form['edit_quantity'])
+    unitCost = float(request.form['edit_unitCost'])
+    totalCost = quantity * unitCost
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        UPDATE Requests
-        SET roomGuest_id=%s, service_id=%s, quantity=%s, unitCost=%s, totalCost=%s, status=%s, request_time=%s
+        UPDATE requests
+        SET booking_id=%s, service_id=%s, quantity=%s, unitCost=%s, totalCost=%s
         WHERE request_id=%s
-    """, (roomGuest_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
+    """, (booking_id, service_id, quantity, unitCost, totalCost, request_id))
     mysql.connection.commit()
     cursor.close()
     return redirect('/requests')
@@ -548,23 +598,62 @@ def deleteGuest(guest_id):
 @app.route('/bookings')
 def view_bookings():
     search = request.args.get('search', '')
+    selected_type = request.args.get('room_type', '')
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    if search:
-        query = """
-        SELECT * FROM Bookings
-        WHERE booking_id LIKE %s OR guest_id LIKE %s OR room_type LIKE %s 
-        OR room_id LIKE %s OR exp_check_in LIKE %s OR exp_check_out LIKE %s 
-        OR status LIKE %s
-        """
-        like = f"%{search}%"
-        cursor.execute(query, (like, like, like, like, like, like, like))
-    else:
-        cursor.execute("SELECT * FROM Bookings")
+    # Get all guests
+    cursor.execute("SELECT * FROM guest")
+    guests = cursor.fetchall()
 
-    results = cursor.fetchall()
+    # Get rooms (with optional room type filter)
+    if selected_type:
+        cursor.execute("SELECT * FROM room WHERE room_type = %s", (selected_type,))
+    else:
+        cursor.execute("SELECT * FROM room")
+    rooms = cursor.fetchall()
+
+    # Get bookings with guest name and room number using JOIN
+    if search:
+        like = f"%{search}%"
+        query = """
+            SELECT 
+                b.*, 
+                g.first_name AS guest_first_name,
+                g.last_name AS guest_last_name,
+                r.room_number AS room_number
+            FROM bookings b
+            JOIN guest g ON b.guest_id = g.guest_id
+            JOIN room r ON b.room_id = r.room_id
+            WHERE 
+                b.booking_id LIKE %s OR
+                b.guest_id LIKE %s OR
+                b.room_type LIKE %s OR
+                b.room_id LIKE %s OR
+                b.exp_check_in LIKE %s OR
+                b.exp_check_out LIKE %s OR
+                b.status LIKE %s OR
+                g.first_name LIKE %s OR
+                g.last_name LIKE %s OR
+                r.room_number LIKE %s
+        """
+        cursor.execute(query, (like,) * 10)
+    else:
+        cursor.execute("""
+            SELECT 
+                b.*, 
+                g.first_name,
+                g.last_name,
+                r.room_number
+            FROM bookings b
+            JOIN guest g ON b.guest_id = g.guest_id
+            JOIN room r ON b.room_id = r.room_id
+        """)
+    
+    bookings = cursor.fetchall()
     cursor.close()
-    return render_template('Bookings.html', bookings=results)
+
+    return render_template('bookings.html', bookings=bookings, guests=guests, rooms=rooms, selected_type=selected_type)
 
 @app.route('/addBooking', methods=['POST'])
 def add_booking():
@@ -664,33 +753,6 @@ def checkout():
     cursor.close()
     return redirect('/roomGuest')
 
-@app.route('/assign_task', methods=['POST'])
-def assign_task():
-    request_id = request.form.get('request_id')
-    staff_id = request.form.get('staff_id')
-    if not request_id or not staff_id:
-        return "Missing request or staff ID", 400
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Check if assignment exists
-    cursor.execute("SELECT * FROM StaffAssignments WHERE request_id = %s", (request_id,))
-    assignment = cursor.fetchone()
-    if assignment:
-        # Update the existing assignment
-        cursor.execute(
-            "UPDATE StaffAssignments SET staff_id = %s WHERE request_id = %s",
-            (staff_id, request_id)
-        )
-    else:
-        # Insert new assignment
-        cursor.execute(
-            "INSERT INTO StaffAssignments (request_id, staff_id) VALUES (%s, %s)",
-            (request_id, staff_id)
-        )
-    mysql.connection.commit()
-    cursor.close()
-    return redirect('/requests')
-
 @app.route('/bill/<int:guest_id>')
 def view_bill(guest_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -698,9 +760,9 @@ def view_bill(guest_id):
     cursor.execute("""
         SELECT r.*, s.item, s.amount
         FROM Requests r
-        JOIN RoomGuest rg ON r.roomGuest_id = rg.roomGuest_id
+        JOIN bookings b ON r.booking_id = b.booking_id
         JOIN Services s ON r.service_id = s.service_id
-        WHERE rg.guest_id = %s
+        WHERE b.booking_id = %s
     """, (guest_id,))
     requests = cursor.fetchall()
     total_bill = sum(r['totalCost'] for r in requests)

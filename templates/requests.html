@@ -64,7 +64,7 @@
                         </span>
                       </div>
                     {% endif %}
-                    <form action="{{ url_for('assign_task') }}" method="POST" style="display:inline;">
+                    <form action="{{ url_for('assigntask') }}" method="POST" style="display:inline;">
                       <input type="hidden" name="request_id" value="{{ request.request_id }}">
                       <select name="staff_id" required>
                         <option value="">Assign Staff</option>
