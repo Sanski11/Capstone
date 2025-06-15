@@ -52,11 +52,11 @@
           <td>{{ staff.email }}</td>
           <td>{{ staff.phone }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ staff.staff_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm(edit, '{{ staff.staff_id }}')">
                 <i class="bi bi-pencil-square"></i>
               </a>
 
-              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ staff.staff_id }}, '{{ staff.last_name }}')">
+              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ staff.staff_id }}', '{{ staff.last_name }}')">
                 <i class="bi bi-trash-fill"></i>
               </a>
     </td>
@@ -65,7 +65,7 @@
       </tbody>
     </table>
 
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add Staff Form -->
     <form id="addForm" action="/addStaff" method="POST" style="display: none;" class="mb-4 mt-3">
@@ -171,19 +171,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
       
     <script>
-        const staffs = [
-          {% for staff in staffs %}
-            {
-              staff_id: {{ staff.staff_id }},
-              first_name: "{{ staff.first_name | escape }}",
-              last_name: "{{ staff.last_name | escape }}",
-              role: "{{ staff.role | escape }}",
-              email: "{{staff.email | escape}}",
-              phone: "{{staff.phone | escape}}"
-            }{% if not loop.last %},{% endif %}
-          {% endfor %}
-        ];
-    
+  const staffs = '{{ staffs | tojson | safe }}';
+</script>
+
+    <script>
         function showForm(mode, staff_id = null) {
           const addForm = document.getElementById("addForm");
           const editForm = document.getElementById("editForm");

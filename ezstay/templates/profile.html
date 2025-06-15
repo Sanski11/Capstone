@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile - Staff</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+  <div class="navbar">
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}">Home</a>
+      <a href="/requests">Requests</a>
+      <a href="/rooms">Rooms</a>
+      <a href="/services">Services</a>
+      <a href="/guests">Guests</a>
+      <a href="/checkin-checkout">Check-in/Checkout</a>
+      <a href="/staff">Staff</a>
+    </div>
+    <div class="dropdown">
+      <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
+      <div id="dropdownMenu" class="dropdown-menu">
+        <a href="{{ url_for('profile') }}">Profile</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="profile-container">
+    <h2>Welcome, {{ user }}</h2>
+    <div class="profile-card">
+      <p><strong>Username:</strong> {{ user }}</p>
+      <p><strong>Role:</strong> {{ role|capitalize }}</p>
+      <p><strong>Status:</strong> Active</p>
+    </div>
+  </div>
+
+  <script>
+  function toggleDropdown() {
+    var menu = document.getElementById("dropdownMenu");
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  }
+
+  // Optional: Close dropdown if clicking outside
+  window.onclick = function(event) {
+    if (!event.target.matches('.profile-icon')) {
+      var dropdowns = document.getElementsByClassName("dropdown-menu");
+      for (var i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].style.display = "none";
+      }
+    }
+  }
+</script>
+</body>
+</html>

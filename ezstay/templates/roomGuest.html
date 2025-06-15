@@ -18,9 +18,9 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h1 class="mb-4">Room Guest</h1>
+    <h1 class="mb-4">Check-in / Check-out</h1>
 
-    <!-- Search and Add Buttons -->
+    <!-- Search Button -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <!-- Search Form -->
       <form class="d-flex" method="GET" action="/roomGuest">
@@ -31,11 +31,6 @@
           </button>
         </div>
       </form>
-
-      <!-- Add Button -->
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
-        <i class="bi bi-plus-circle"></i> Add
-      </a>
     </div>
 
     <!-- Table -->
@@ -63,10 +58,10 @@
           <td>{{ booking.actual_check_in }}</td>
           <td>{{ booking.actual_check_out }}</td>
           <td>
-            <button class="btn btn-success btn-sm" onclick="openCheckInModal({{ booking.booking_id }})">
+            <button class="btn btn-success btn-sm" onclick="openCheckInModal('{{ booking.booking_id }}')">
               <i class="bi bi-person-check"></i> Check-In
             </button>            
-            <button class="btn btn-danger btn-sm" onclick="openCheckOutModal({{ booking.booking_id }})">
+            <button class="btn btn-danger btn-sm" onclick="openCheckOutModal('{{ booking.booking_id }}')">
               <i class="bi bi-person-check"></i> Check-Out
             </button>            
           </td>
@@ -75,7 +70,7 @@
       </tbody>
     </table>
 
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add RoomGuest Form -->
     <form id="addForm" action="/addRoomGuest" method="POST" style="display: none;" class="mb-4 mt-3">

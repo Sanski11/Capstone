@@ -52,47 +52,46 @@
           <td>{{ guest.email }}</td>
           <td>{{ guest.phone }}</td>
           <td>
-            <!--<a href="#"><i class="bi bi-pencil-square"></i></a>-->
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ guest.guest_id }})">
-              <i class="bi bi-pencil-square"></i>
+            <a href="#" class="btn btn-danger btn-sm confirm-delete"
+               data-id="{{ guest.guest_id }}"
+               data-name="{{ guest.last_name }}">
+               <i class="bi bi-trash-fill"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ guest.guest_id }}, '{{ guest.last_name }}')">
-              <i class="bi bi-trash-fill"></i>
-            </a>
-</td>
+            <a href="{{ url_for('view_bill', guest_id=guest.guest_id) }}">View Bill</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
 
     <!-- Back Button -->
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add Guest Form -->
     <form id="addForm" action="/addGuests" method="POST" style="display: none;" class="mb-4 mt-3">
       <div class="mb-3">
         <label for="first_name" class="form-label">First Name:</label>
-        <input type="text" class="form-control" id="first_name" name="first_name" required, maxlength="50", style=max-width: 500px;>
+        <input type="text" class="form-control" id="first_name" name="first_name" required, maxlength="50", style=max-width:500px;>
       </div>
 
       <div class="mb-3">
         <label for="middle_name" class="form-label">Middle Name:</label>
-        <input type="text" class="form-control" id="middle_name" name="middle_name", maxlength="50", style=max-width: 500px;>
+        <input type="text" class="form-control" id="middle_name" name="middle_name", maxlength="50", style=max-width:500px;>
       </div>
 
       <div class="mb-3">
         <label for="last_name" class="form-label">Last Name:</label>
-        <input type="text" class="form-control" id="last_name" name="last_name" required, maxlength="50",style=max-width: 500px;>
+        <input type="text" class="form-control" id="last_name" name="last_name" required, maxlength="50",style=max-width:500px;>
       </div>
 
       <div class="mb-3">
         <label for="email" class="form-label">Email:</label>
-        <input type="email" class="form-control" id="email" name="email", required, maxlength="50", style=max-width: 500px;>
+        <input type="email" class="form-control" id="email" name="email", required, maxlength="50", style=max-width:500px;>
       </div>
 
       <div class="mb-3">
         <label for="phone" class="form-label">Phone:</label>
-        <input type="text" class="form-control" id="phone" name="phone", required, maxlength="11", style=max-width: 500px;>
+        <input type="text" class="form-control" id="phone" name="phone", required, maxlength="11", style=max-width:500px;>
       </div>
 
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -104,27 +103,27 @@
           <input type="hidden" class="form-control" id="edit_guest_id" name="edit_guest_id">
           <div class="mb-3">
             <label for="edit_first_name" class="form-label">First Name:</label>
-            <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required, maxlength="50", style=max-width: 500px;>
+            <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required, maxlength="50", style=max-width:500px;>
           </div>
     
           <div class="mb-3">
             <label for="edit_middle_name" class="form-label">Middle Name:</label>
-            <input type="text" class="form-control" id="edit_middle_name" name="edit_middle_name", maxlength="50", style=max-width: 500px;>
+            <input type="text" class="form-control" id="edit_middle_name" name="edit_middle_name", maxlength="50", style=max-width:500px;>
           </div>
     
           <div class="mb-3">
             <label for="edit_last_name" class="form-label">Last Name:</label>
-            <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required, maxlength="50",style=max-width: 500px;>
+            <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required, maxlength="50",style=max-width:500px;>
           </div>
     
           <div class="mb-3">
             <label for="edit_email" class="form-label">Email:</label>
-            <input type="email" class="form-control" id="edit_email" name="edit_email", maxlength="50", style=max-width: 500px;>
+            <input type="email" class="form-control" id="edit_email" name="edit_email", maxlength="50", style=max-width:500px;>
           </div>
     
           <div class="mb-3">
             <label for="edit_phone" class="form-label">Phone:</label>
-            <input type="text" class="form-control" id="edit_phone" name="edit_phone", maxlength="11", style=max-width: 500px;>
+            <input type="text" class="form-control" id="edit_phone" name="edit_phone", maxlength="11", style=max-width:500px;>
           </div>
     
           <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -155,18 +154,7 @@
 
   <!-- Rooms JS and script -->
   <script>
-    const guests = [
-      {% for guest in guests %}
-        {
-          guest_id: {{ guest.guest_id }},
-          first_name: "{{ guest.first_name | escape }}",
-          middle_name: "{{ guest.middle_name | escape }}",
-          last_name: "{{ guest.last_name | escape }}",
-          email: "{{guest.email | escape}}",
-          phone: "{{guest.phone | escape}}"
-        }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
+   const guests = '{{ guests | tojson | safe }}';
 
     function showForm(mode, guest_id = null) {
       const addForm = document.getElementById("addForm");

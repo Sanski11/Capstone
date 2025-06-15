@@ -46,8 +46,7 @@
             <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ room.room_id }})">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ room.room_id }}, '{{ room.room_number }}')">
-              <i class="bi bi-trash-fill"></i>
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ room.room_id }}, '{{ room.room_number | escape }}')">              <i class="bi bi-trash-fill"></i>
             </a>
           </td>
         </tr>
@@ -55,7 +54,7 @@
       </tbody>
     </table>
 
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add Room Form -->
     <form id="addForm" action="/addRoom" method="POST" style="display: none;" class="mb-4 mt-3">
@@ -136,18 +135,17 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Rooms JS and script -->
-  <script>
+<script>
     const rooms = [
-      {% for room in rooms %}
+    {% for room in rooms %}
         {
-          room_id: {{ room.room_id }},
-          room_number: "{{ room.room_number | escape }}",
-          room_type: "{{ room.room_type | escape }}",
-          room_status: "{{ room.room_status | escape }}"
+        room_id: {{ room.room_id }},
+        room_number: "{{ room.room_number | escape }}",
+        room_type: "{{ room.room_type | escape }}",
+        room_status: "{{ room.room_status   | escape }}"
         }{% if not loop.last %},{% endif %}
-      {% endfor %}
+    {% endfor %}
     ];
-
     function showForm(mode, room_id = null) {
       const addForm = document.getElementById("addForm");
       const editForm = document.getElementById("editForm");

@@ -12,7 +12,7 @@
 
     <!-- Search and Add Buttons -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <form class="d-flex" method="GET" action="/rooms">
+      <form class="d-flex" method="GET" action="/bookings">
         <div class="input-group">
           <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
           <button class="btn btn-outline-secondary" type="submit">
@@ -43,17 +43,17 @@
         {% for booking in bookings %}
         <tr>
           <td>{{ booking.booking_id }}</td>
-          <td>{{ booking.guest_id }}</td>
+          <td>{{ booking.last_name }}, {{booking.first_name}}</td>
           <td>{{ booking.room_type }}</td>
-          <td>{{ booking.room_id }}</td>
+          <td>{{ booking.room_number }}</td>
           <td>{{ booking.exp_check_in }}</td>
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.status }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ booking.booking_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ booking.booking_id }})">
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ booking.booking_id }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
             
@@ -63,49 +63,63 @@
       </tbody>
     </table>
 
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
-    <!-- Add Booking Form -->
-    <form id="addForm" action="/addBooking" method="POST" style="display: none;" class="mb-4 mt-3">
-      <div class="mb-3">
-        <label for="guest_id" class="form-label">Guest ID:</label>
-        <input type="number" class="form-control" id="guest_id" name="guest_id" required>
-      </div>
+<!-- Add Booking Form -->
+<form id="addForm" action="/addBooking" method="POST" style="display: none;" class="mb-4 mt-3">
+  <!--  <div class="mb-3">
+      <label for="guest_id" class="form-label">Guest ID:</label>
+      <input type="number" class="form-control" id="guest_id" name="guest_id" required>
+    </div> -->
 
-      <div class="mb-3">
-        <label for="room_type" class="form-label">Room Type:</label>
-        <select id="room_type" name="room_type" style="max-width: 1000px;" required>
-          <option value="Standard Twin Room">Standard Twin Room</option>
-          <option value="Standard Double Room">Standard Double Room</option>
-          <option value="Premium Twin Room">Premium Twin Room</option>
-          <option value="Premium Double Room">Premium Double Room</option>
-          <option value="Family Room">Family Room</option>
+    <label for="guest_id" class="form-label">Guest:</label>
+    <select class="form-control" id="guest_id" name="guest_id" required>
+        <option disabled selected>Select Guest</option>
+      {% for guest in guests %}
+        <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
+      {% endfor %}
+    </select>
+
+    <div class="mb-3">
+      <label for="room_type" class="form-label">Room Type:</label>
+      <select id="room_type" name="room_type" style="max-width: 1000px;" required>
+        <option disabled selected>Select Room Type</option>
+        <option value="Standard Twin Room">Standard Twin Room</option>
+        <option value="Standard Double Room">Standard Double Room</option>
+        <option value="Premium Twin Room">Premium Twin Room</option>
+        <option value="Premium Double Room">Premium Double Room</option>
+        <option value="Family Room">Family Room</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="room_id" class="form-label">Room ID:</label>
+    <!--  <input type="number" class="form-control" id="room_id" name="room_id" required> -->
+        <select class="form-control" id="room_id" name="room_id" required>
+          {% for room in rooms %}
+            <option value="{{ room.room_id }}">{{ room.room_number }}</option>
+          {% endfor %}
         </select>
-      </div>
+    </div>
 
-      <div class="mb-3">
-        <label for="room_id" class="form-label">Room ID:</label>
-        <input type="number" class="form-control" id="room_id" name="room_id" required>
-      </div>
+    <div class="mb-3">
+      <label for="exp_check_in" class="form-label">Expected Check-in Date:</label>
+      <input type="date" class="form-control" id="exp_check_in" name="exp_check_in" required>
+    </div>
 
-      <div class="mb-3">
-        <label for="exp_check_in" class="form-label">Expected Check-in Date:</label>
-        <input type="date" class="form-control" id="exp_check_in" name="exp_check_in" required>
-      </div>
+    <div class="mb-3">
+      <label for="exp_check_out" class="form-label">Expected Check-out Date:</label>
+      <input type="date" class="form-control" id="exp_check_out" name="exp_check_out" required>
+    </div>
 
-      <div class="mb-3">
-        <label for="exp_check_out" class="form-label">Expected Check-out Date:</label>
-        <input type="date" class="form-control" id="exp_check_out" name="exp_check_out" required>
-      </div>
+    <div class="mb-3">
+      <label for="status" class="form-label">Status:</label>
+      <input type="text" class="form-control" id="status" name="status" value="Confirmed" readonly required>
+    </div>
 
-      <div class="mb-3">
-        <label for="status" class="form-label">Status:</label>
-        <input type="text" class="form-control" id="status" name="status" value="Confirmed" readonly required>
-      </div>
-
-      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-      <button type="submit" class="btn btn-success">Submit</button>
-    </form>
+    <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+    <button type="submit" class="btn btn-success">Submit</button>
+  </form>
 
     <!-- Edit Booking Form -->
     <form id="editForm" action="/updateBooking" method="POST" style="display: none;" class="mb-4 mt-3">
@@ -176,19 +190,7 @@
 
   <!-- Booking JS and script -->
   <script>
-    const bookings = [
-      {% for booking in bookings %}
-        {
-          booking_id: {{ booking.booking_id }},
-          guest_id: "{{ booking.guest_id | escape }}",
-          room_type: "{{ booking.room_type | escape }}",
-          room_id: "{{ booking.room_id | escape }}",
-          exp_check_in: "{{ booking.exp_check_in.strftime('%Y-%m-%d') if booking.exp_check_in else '' }}",
-          exp_check_out: "{{ booking.exp_check_out.strftime('%Y-%m-%d') if booking.exp_check_out else '' }}",         
-          status: "{{ booking.status | escape }}"
-        }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
+    const bookings = '{{ bookings | tojson | safe }}';
 
     function showForm(mode, booking_id = null) {
       const addForm = document.getElementById("addForm");

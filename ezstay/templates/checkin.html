@@ -24,30 +24,29 @@
         </tr>
       </thead>
       <tbody>
+        {% for room in rooms %}
         <tr>
-          <td>101</td>
-          <td>A-01</td>
+          <td>{{ room.room_id }}</td>
+          <td>{{ room.room_number }}</td>
           <td>
             <a href="#"><i class="bi bi-pencil-square"></i></a>
             <a href="#" class="text-danger ms-2"><i class="bi bi-trash-fill"></i></a>
+            {% if room.status == 'Occupied' %}
+            <form action="/checkout" method="POST" style="display:inline;">
+              <input type="hidden" name="booking_id" value="{{ room.booking_id }}">
+              <input type="datetime-local" name="actual_check_out" required>
+              <button type="submit" class="btn btn-sm btn-warning ms-2">Checkout</button>
+            </form>
+            {% endif %}
           </td>
-          <td>Deluxe</td>
-          <td>Available</td>
+          <td>{{ room.room_type }}</td>
+          <td>{{ room.status }}</td>
         </tr>
-        <tr>
-          <td>102</td>
-          <td>B-02</td>
-          <td>
-            <a href="#"><i class="bi bi-pencil-square"></i></a>
-            <a href="#" class="text-danger ms-2"><i class="bi bi-trash-fill"></i></a>
-          </td>
-          <td>Suite</td>
-          <td>Occupied</td>
-        </tr>
+        {% endfor %}
       </tbody>
     </table>
 
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
   </div>
 </body>
 </html>

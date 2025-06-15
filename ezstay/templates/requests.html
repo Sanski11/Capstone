@@ -30,7 +30,7 @@
             <tr>
                 <th>Request ID</th>
                 <th>Booking ID</th>
-                <th>Service ID</th>
+                <th>Type of Service</th>
                 <th>Quantity</th>
                 <th>Unit Cost</th>
                 <th>Total Cost</th>
@@ -46,7 +46,7 @@
             <tr>
                 <td>{{ request.request_id }}</td>
                 <td>{{ request.booking_id }}</td>
-                <td>{{ request.service_id }}</td>
+                <td>{{ request.item }}</td>
                 <td>{{ request.quantity }}</td>
                 <td>{{ request.unitCost }}</td>
                 <td>{{ request.totalCost }}</td>
@@ -56,11 +56,11 @@
                 <td>{{ request.staff_id }}</td>
                 <td>
                   <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ request.request_id }})">
-                    <i class="bi bi-pencil-square"></i>
-                  </a>      
+                    <i class="bi bi-pencil-square"></i> Edit Request
+                  </a> <br>
                   <button class="btn btn-success btn-sm" onclick="openAssignTaskModal({{ request.request_id }})">
                     <i class="bi bi-person-check"></i> Assign Task
-                  </button>            
+                  </button> <br>
                   <button class="btn btn-danger btn-sm" onclick="openUpdateStatusModal({{ request.request_id }})">
                     <i class="bi bi-person-check"></i> Update Status
                   </button>            
@@ -71,7 +71,7 @@
     </table>
 
     <!-- Back to Homepage -->
-    <a href="/" class="btn btn-secondary mt-3">
+    <a href="/dashboard" class="btn btn-secondary mt-3">
         ← Back to Homepage
     </a>
 
@@ -131,22 +131,6 @@
         <div>
             <label for="edit_totalCost" class="form-label">Total Cost:</label>
             <input type="text" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
-          </div>
-          <div>
-            <label for="status" class="form-label">Status:</label>
-            <input type="text" class="form-control" id="edit_status" name="edit_status" required>
-          </div>
-          <div>
-            <label for="status" class="form-label">Request Time:</label>
-            <input type="datetime-local" class="form-control" id="edit_quantityrequest_time" name="edit_request_time" required>
-          </div>
-          <div>
-            <label for="staff_id" class="form-label">Staff ID:</label>
-            <input type="text" class="form-control" id="staff_id" name="staff_id" required>
-          </div>
-          <div>
-            <label for="completionTime" class="form-label">Completion Time:</label>
-            <input type="datetime-local" class="form-control" id="completionTime" name="completionTime" required>
           </div>
           <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
         <button type="submit" class="btn btn-success">Submit</button>

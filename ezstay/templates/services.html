@@ -52,7 +52,7 @@
             <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ service.service_id }})">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ service.service_id }}, '{{ service.item }}')">
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ service.service_id }}, '{{ service.item | escape }}')">
               <i class="bi bi-trash-fill"></i>
             </a></td>
         </tr>
@@ -61,7 +61,7 @@
     </table>
 
     <!-- Back Button -->
-    <a href="/" class="btn btn-secondary mt-3">← Back to Homepage</a>
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add Service Form -->
     <form id="addForm" action="/addService" method="POST" style="display: none;" class="mb-4 mt-3">
@@ -140,16 +140,7 @@
 
       <!-- Rooms JS and script -->
   <script>
-    const services = [
-      {% for service in services %}
-        {
-          service_id: {{ service.service_id }},
-          service_type: "{{ service.service_type | escape }}",
-          item: "{{ service.item | escape }}",
-          amount: "{{ service.amount | escape }}",
-        }{% if not loop.last %},{% endif %}
-      {% endfor %}
-    ];
+    const services = {{ services | tojson | safe }};
 
     function showForm(mode, service_id = null) {
       const addForm = document.getElementById("addForm");

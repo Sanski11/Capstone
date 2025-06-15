@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Homepage-Staff</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="navbar">
+  <div class="navbar-left">
+    <h1>EzStay</h1>
+  </div>
+
+  <div class="nav-links">
+    <a href="/requests">Requests</a>
+    <a href="/rooms">Rooms</a>
+    <a href="/services">Services</a>
+    <a href="/guests">Guests</a>
+    <a href="/bookings">Bookings</a>
+    <a href="/roomGuest">Check-in/Checkout</a>
+    <a href="/staff">Staff</a>
+  </div>
+
+  <div class="dropdown">
+    <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
+    <div id="dropdownMenu" class="dropdown-menu">
+      <a href="{{ url_for('profile') }}">Profile</a>
+      <a href="{{ url_for('logout') }}">Logout</a>
+    </div>
+  </div>
+</div>
+
+  <section class="chart-section">
+    <canvas id="barChart" width="400" height="200"></canvas>
+    <h2>Daily Staff Activity</h2>
+  </section>
+
+  <section class="chart-section">
+    <canvas id="pieChart" width="200" height="200"></canvas>
+    <h2>Daily Requests</h2>
+  </section>
+
+  <section class="stats-box">
+    <table>
+    <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
+    <tr><td>Food</td><td>{{ stats.food }}</td></tr>
+    <tr><td>Laundry</td><td>{{ stats.laundry }}</td></tr>
+    <tr><td>Spa</td><td>{{ stats.spa }}</td></tr>
+  </table>
+  </section>
+
+  <script>
+  const barLabels = "{{ staffs | map(attribute='staffs') | list | tojson | safe }}";
+  const requests = "{{ staffs | map(attribute='requests') | list | tojson | safe }}";
+  const completedRequests = "{{ staffs | map(attribute='completed') | list | tojson | safe }}";
+
+  const pieLabels = "{{ services | map(attribute='services') | list | tojson | safe }}";
+  const pieData = "{{ services | map(attribute='count') | list | tojson | safe }}";
+  
+  // Bar Chart for Daily Staff Activity
+  const barChart = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [
+        {
+          label: 'Requests',
+          data: requests,
+          backgroundColor: 'skyblue'
+        },
+        {
+          label: 'Completed',
+          data: completedRequests,
+          backgroundColor: 'coral'
+        }
+      ]
+    }
+  });
+
+  const pieChart = new Chart(document.getElementById('pieChart'), {
+    type: 'pie',
+    data: {
+      labels: pieLabels,
+      datasets: [{
+        data: pieData,
+        backgroundColor: ['#4fd1c5', '#81e6d9', '#63b3ed', '#a0aec0']
+      }]
+    }
+  });
+
+function toggleDropdown() {
+  var menu = document.getElementById("dropdownMenu");
+  menu.style.display = (menu.style.display === "block") ? "none" : "block";
+}
+
+  // Optional: Close dropdown if clicking outside
+  window.onclick = function(event) {
+    if (!event.target.matches('.profile-icon')) {
+      var dropdowns = document.getElementsByClassName("dropdown-menu");
+      for (var i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].style.display = "none";
+      }
+    }
+  }
+  </script>
+</body>
+</html>
