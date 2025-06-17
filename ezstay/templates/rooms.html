@@ -73,11 +73,7 @@
         </select>
       </div>
       <div class="mb-3">
-        <label for="room_status" class="form-label">Status:</label>
-         <select id="room_status" name="room_status" readonly>
-          <option value="Vacant">Vacant</option>
-          <option value="Occupied">Occupied</option>
-        </select>
+        <input type="hidden" class="form-control" id="room_status" name="room_status" readonly value="Vacant">
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
       <button type="submit" class="btn btn-success">Submit</button>
@@ -101,11 +97,7 @@
         </select>
       </div>
       <div class="mb-3">
-        <label for="edit_room_status" class="form-label">Status:</label>
-         <select id="edit_room_status" name="edit_room_status">
-          <option value="Vacant">Vacant</option>
-          <option value="Occupied">Occupied</option>
-        </select>
+        <input type="hidden" class="form-control" id="edit_room_status" name="edit_room_status" readonly>
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
       <button type="submit" class="btn btn-success">Update</button>
