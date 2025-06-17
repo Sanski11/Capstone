@@ -780,12 +780,13 @@ def view_users():
 @app.route('/addUser', methods=['POST'])
 def add_user():
     username = request.form['username']
-    email = request.form['email']
     password = request.form['password']
-    cursor = mysql.connection.cursor()
+    role = request.form['role']
+    email = request.form['email']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
-        "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-        (username, email, password)
+        "INSERT INTO users (username, password, role, email) VALUES (%s, %s, %s, %s)",
+        (username, password, role, email)
     )
     mysql.connection.commit()
     cursor.close()
@@ -805,6 +806,59 @@ def admin_dashboard():
     if 'role' in session and session['role'] == 'admin':
         return render_template('admin_dashboard.html')
     return redirect(url_for('login'))
+
+# List all payments
+@app.route('/payments')
+def payments():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM Payment")
+    payments = cursor.fetchall()
+    cursor.close()
+    return render_template('payments.html', payments=payments)
+
+# Add payment
+@app.route('/addPayment', methods=['POST'])
+def add_payment():
+    booking_id = request.form['booking_id']
+    amount = request.form['amount']
+    payment_date = request.form['payment_date']
+    payment_method = request.form['payment_method']
+    status = request.form['status']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "INSERT INTO Payment (booking_id, amount, payment_date, payment_method, status) VALUES (%s, %s, %s, %s, %s)",
+        (booking_id, amount, payment_date, payment_method, status)
+    )
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/payments')
+
+# Update payment
+@app.route('/updatePayment', methods=['POST'])
+def update_payment():
+    payment_id = request.form['edit_payment_id']
+    booking_id = request.form['edit_booking_id']
+    amount = request.form['edit_amount']
+    payment_date = request.form['edit_payment_date']
+    payment_method = request.form['edit_payment_method']
+    status = request.form['edit_status']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "UPDATE Payment SET booking_id=%s, amount=%s, payment_date=%s, payment_method=%s, status=%s WHERE payment_id=%s",
+        (booking_id, amount, payment_date, payment_method, status, payment_id)
+    )
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/payments')
+
+# Delete payment
+@app.route('/deletePayment/<int:payment_id>', methods=['GET'])
+def delete_payment(payment_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM Payment WHERE payment_id = %s", (payment_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/payments')
 
 if __name__ == '__main__':
     app.run(debug=True)

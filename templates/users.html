@@ -1,32 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Users</title>
+  <title>Users</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 <body>
-    <h2>Users</h2>
-    <form action="{{ url_for('add_user') }}" method="POST">
-        <input name="username" placeholder="Username" required>
-        <input name="email" placeholder="Email" required>
-        <input name="password" placeholder="Password" required>
-        <button type="submit">Add User</button>
-    </form>
-    <table border="1">
+  <div class="container mt-5">
+    <h1 class="mb-4">Users</h1>
+
+    <!-- Search and Add Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <!-- Search Form -->
+      <form class="d-flex" method="GET" action="/users">
+        <div class="input-group">
+          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
+      <!-- Add Button -->
+      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+        <i class="bi bi-plus-circle"></i> Add
+      </a>
+    </div>
+
+    <!-- Table -->
+    <table class="table table-striped table-bordered">
+      <thead class="table-dark">
         <tr>
-            <th>ID</th><th>Username</th><th>Email</th><th>Password</th><th>Actions</th>
+          <th>User ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Action</th>
         </tr>
+      </thead>
+      <tbody>
         {% for user in users %}
         <tr>
-            <td>{{ user.user_id }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.password }}</td>
-            <td>
-                <a href="{{ url_for('edit_user', user_id=user.user_id) }}">Edit</a>
-                <a href="{{ url_for('delete_user', user_id=user.user_id) }}" onclick="return confirm('Delete user?')">Delete</a>
-            </td>
+          <td>{{ user.user_id }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.role }}</td>
+          <td>
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ user.user_id }}')">
+              <i class="bi bi-pencil-square"></i>
+            </a>
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
+              <i class="bi bi-trash-fill"></i>
+            </a>
+          </td>
         </tr>
         {% endfor %}
+      </tbody>
     </table>
+
+    <!-- Back Button -->
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+
+    <!-- Add User Form -->
+    <form id="addForm" action="/addUser" method="POST" style="display: none;" class="mb-4 mt-3">
+      <div class="mb-3">
+        <label for="username" class="form-label">Username:</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email:</label>
+        <input type="email" class="form-control" id="email" name="email" required>
+      </div>
+      <div class="mb-3">
+        <label for="password" class="form-label">Password:</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+      </div>
+      <div class="mb-3">
+        <label for="role" class="form-label">Role:</label>
+        <select id="role" name="role" class="form-control" required>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+          <option value="staff">Staff</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+
+    <!-- Edit User Form -->
+    <form id="editForm" action="/updateUser" method="POST" style="display: none;" class="mb-4 mt-3">
+      <input type="hidden" id="edit_user_id" name="edit_user_id">
+      <div class="mb-3">
+        <label for="edit_username" class="form-label">Username:</label>
+        <input type="text" class="form-control" id="edit_username" name="edit_username" required>
+      </div>
+      <div class="mb-3">
+        <label for="edit_email" class="form-label">Email:</label>
+        <input type="email" class="form-control" id="edit_email" name="edit_email" required>
+      </div>
+      <div class="mb-3">
+        <label for="edit_password" class="form-label">Password:</label>
+        <input type="password" class="form-control" id="edit_password" name="edit_password" required>
+      </div>
+      <div class="mb-3">
+        <label for="edit_role" class="form-label">Role:</label>
+        <select id="edit_role" name="edit_role" class="form-control" required>
+          <option value="admin">Admin</option>
+          <option value="user">User</option>
+          <option value="staff">Staff</option>
+        </select>
+      </div>
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete user <span id="modalUserName"></span>?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // Make users a real JS array
+      const users = '{{ users | tojson | safe }}';
+
+      function showForm(mode, user_id = null) {
+        const addForm = document.getElementById("addForm");
+        const editForm = document.getElementById("editForm");
+
+        if (mode === "add") {
+          addForm.style.display = "block";
+          editForm.style.display = "none";
+        } else if (mode === "edit") {
+          addForm.style.display = "none";
+          editForm.style.display = "block";
+
+          const user = users.find(u => u.user_id === parseInt(user_id));
+          if (user) {
+            document.getElementById("edit_user_id").value = user.user_id;
+            document.getElementById("edit_username").value = user.username;
+            document.getElementById("edit_email").value = user.email;
+            document.getElementById("edit_password").value = user.password;
+            document.getElementById("edit_role").value = user.role;
+          } else {
+            console.error("User not found:", user_id);
+          }
+        }
+      }
+
+      function hideForm() {
+        document.getElementById("addForm").style.display = "none";
+        document.getElementById("editForm").style.display = "none";
+      }
+
+      function confirmDelete(user_id, username) {
+        document.getElementById("modalUserName").innerText = username;
+        document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+      }
+    </script>
+  </div>
 </body>
 </html>
