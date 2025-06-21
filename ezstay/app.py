@@ -432,18 +432,18 @@ def updateRoom():
 @app.route('/deleteRoom/<int:room_id>', methods=['GET'])
 def deleteRoom(room_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/rooms')
+
+@app.route('/checkRoomBooking/<int:room_id>')
+def check_room_booking(room_id):
+    cursor  = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,))
     result = cursor.fetchone()
-    count = result['count']
-
-    if count > 0:
-        cursor.close()
-        return jsonify({"error": "Room is still in use by bookings."}), 400
-    else:
-        cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,))
-        mysql.connection.commit()
-        cursor.close()
-        return redirect('/rooms')
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0})
 
 @app.route('/addGuests', methods=['POST'])
 def add_guests():
@@ -756,8 +756,8 @@ def updateBooking():
     guest_id = request.form['edit_guest_id']
     room_type = request.form['edit_room_type']
     room_id = request.form['edit_room_id']
-    exp_check_in = request.form['exp_check_in']
-    exp_check_out = request.form['exp_check_out']
+    exp_check_in = request.form['edit_exp_check_in']
+    exp_check_out = request.form['edit_exp_check_out']
     status = request.form['edit_status']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)

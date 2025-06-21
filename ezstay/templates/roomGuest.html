@@ -51,8 +51,8 @@
         {% for booking in bookings %}
         <tr>
           <td>{{ booking.booking_id }}</td>
-          <td>{{ booking.room_id }}</td>
-          <td>{{ booking.guest_id }}</td>
+          <td>{{ booking.room_number }}</td>
+          <td>{{ booking.last_name }}, {{booking.first_name}}</td>
           <td>{{ booking.exp_check_in }}</td>
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.actual_check_in }}</td>

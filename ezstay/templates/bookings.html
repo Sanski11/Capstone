@@ -50,12 +50,16 @@
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.status }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
+
+
+          {% if booking.status == "Confirmed" %}
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ booking.booking_id }})">
               <i class="bi bi-pencil-square"></i>
             </a>
             <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ booking.booking_id }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
+          {% endif %}
             
           </td>
         </tr>
@@ -74,7 +78,7 @@
 
     <label for="guest_id" class="form-label">Guest:</label>
     <select class="form-control" id="guest_id" name="guest_id" required>
-        <option disabled selected>Select Guest</option>
+        <option value="" disabled selected>Select Guest</option>
       {% for guest in guests %}
         <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
       {% endfor %}
@@ -82,7 +86,7 @@
 
     <div class="mb-3">
       <label for="room_type" class="form-label">Room Type:</label>
-      <select id="room_type" name="room_type" style="max-width: 1000px;" required>
+      <select id="room_type" name="room_type" onchange="filterRooms()" style="max-width: 1000px;" required>
         <option disabled selected>Select Room Type</option>
         <option value="Standard Twin Room">Standard Twin Room</option>
         <option value="Standard Double Room">Standard Double Room</option>
@@ -97,19 +101,19 @@
     <!--  <input type="number" class="form-control" id="room_id" name="room_id" required> -->
         <select class="form-control" id="room_id" name="room_id" required>
           {% for room in rooms %}
-            <option value="{{ room.room_id }}">{{ room.room_number }}</option>
+            <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
           {% endfor %}
         </select>
     </div>
 
     <div class="mb-3">
-      <label for="exp_check_in" class="form-label">Expected Check-in Date:</label>
-      <input type="date" class="form-control" id="exp_check_in" name="exp_check_in" required>
+      <label for="edit_xp_check_in" class="form-label">Expected Check-in Date:</label>
+      <input type="date" class="form-control" id="edit_xp_check_in" name="edit_exp_check_in" required>
     </div>
 
     <div class="mb-3">
-      <label for="exp_check_out" class="form-label">Expected Check-out Date:</label>
-      <input type="date" class="form-control" id="exp_check_out" name="exp_check_out" required>
+      <label for="edit_xp_check_out" class="form-label">Expected Check-out Date:</label>
+      <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required>
     </div>
 
     <div class="mb-3">
@@ -124,14 +128,20 @@
     <!-- Edit Booking Form -->
     <form id="editForm" action="/updateBooking" method="POST" style="display: none;" class="mb-4 mt-3">
       <input type="hidden" class="form-control" id="edit_booking_id" name="edit_booking_id">
+      
       <div class="mb-3">
-        <label for="edit_guest_id" class="form-label">Guest ID:</label>
-        <input type="number" class="form-control" id="edit_guest_id" name="edit_guest_id" required>
+        <label for="edit_guest_id" class="form-label">Guest:</label>
+        <select class="form-control" id="edit_guest_id" name="edit_guest_id" required>
+          <option value="" disabled>Select Guest</option>
+          {% for guest in guests %}
+            <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
+          {% endfor %}
+        </select>
       </div>
 
       <div class="mb-3">
         <label for="edit_room_type" class="form-label">Room Type:</label>
-        <select id="edit_room_type" name="edit_room_type" style="max-width: 1000px;" required>
+        <select id="edit_room_type" name="edit_room_type" style="max-width: 1000px;" onchange="filterEditRooms()" required>
           <option value="Standard Twin Room">Standard Twin Room</option>
           <option value="Standard Double Room">Standard Double Room</option>
           <option value="Premium Twin Room">Premium Twin Room</option>
@@ -141,18 +151,22 @@
       </div>
 
       <div class="mb-3">
-        <label for="edit_room_id" class="form-label">Room ID:</label>
-        <input type="number" class="form-control" id="edit_room_id" name="edit_room_id" required>
+        <label for="edit_room_id" class="form-label">Room Number:</label>
+        <select class="form-control" id="edit_room_id" name="edit_room_id" required>
+          {% for room in rooms %}
+            <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
+          {% endfor %}
+        </select>
       </div>
 
     <div class="mb-3">
     <label for="edit_exp_check_in" class="form-label">Expected Check-in Date:</label>
-    <input type="date" class="form-control" id="edit_exp_check_in" name="exp_check_in" required>
+    <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" required>
     </div>
 
     <div class="mb-3">
     <label for="edit_exp_check_out" class="form-label">Expected Check-out Date:</label>
-    <input type="date" class="form-control" id="edit_exp_check_out" name="exp_check_out" required>
+    <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required>
     </div>
 
     <div class="mb-3">
@@ -184,13 +198,32 @@
   </div>
 </div>
 
+<!--Booking In Use Modal -->
+<div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This booking is currently used in requests and cannot be deleted.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- Bootstrap JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
   <!-- Booking JS and script -->
   <script>
-    const bookings = '{{ bookings | tojson | safe }}';
+    const bookings = {{ bookings | tojson | safe }};
 
     function showForm(mode, booking_id = null) {
       const addForm = document.getElementById("addForm");
@@ -208,9 +241,15 @@
           document.getElementById("edit_booking_id").value = booking.booking_id;
           document.getElementById("edit_guest_id").value = booking.guest_id;
           document.getElementById("edit_room_type").value = booking.room_type;
-          document.getElementById("edit_room_id").value = booking.room_id;
-          document.getElementById("edit_exp_check_in").value = booking.exp_check_in;
-          document.getElementById("edit_exp_check_out").value = booking.exp_check_out;
+
+          // ✅ Delay filtering to allow DOM to update first
+          setTimeout(() => {
+            filterEditRooms(booking.room_id);  // show only rooms of that type
+            document.getElementById("edit_room_id").value = booking.room_id;
+          }, 0);
+
+          document.getElementById("edit_exp_check_in").value = booking.exp_check_in || "";
+          document.getElementById("edit_exp_check_out").value = booking.exp_check_out || "";
           document.getElementById("edit_status").value = booking.status;
         } else {
           console.error("Booking not found:", booking_id);
@@ -229,6 +268,42 @@
       let modal = new bootstrap.Modal(document.getElementById('deleteModal'));
       modal.show();
     }
+
+    function filterRooms() {
+    const selectedType = document.getElementById("room_type").value;
+    const roomSelect = document.getElementById("room_id");
+    const options = roomSelect.options;
+
+    for (let i = 0; i < options.length; i++) {
+      const option = options[i];
+      const roomType = option.getAttribute("data-room-type");
+      if (roomType === selectedType || option.value === "") {
+        option.style.display = "block";
+      } else {
+        option.style.display = "none";
+      }
+    }
+
+    // Reset the selected value
+    roomSelect.value = "";
+    }
+
+    function filterEditRooms(currentRoomId = null) {
+      const selectedType = document.getElementById("edit_room_type").value;
+      const roomSelect = document.getElementById("edit_room_id");
+      const options = roomSelect.querySelectorAll("option");
+
+      options.forEach(option => {
+        const roomType = option.getAttribute("data-room-type");
+        const isCurrent = option.value === String(currentRoomId);
+        option.style.display = (roomType === selectedType || option.value === "" || isCurrent) ? "block" : "none";
+      });
+
+      roomSelect.value = "";
+    }
+
   </script>
+
+  
 </body>
 </html>
