@@ -15,7 +15,11 @@
       <input type="email" name="email" placeholder="Email" required>
 
       <label>Password</label>
-      <input type="password" name="password" placeholder="Password" required>
+      <input type="password" name="password" id="password" placeholder="Password" required>
+      <div style="margin-bottom: 10px;">
+        <input type="checkbox" id="showPassword" onclick="togglePassword()">
+        <label for="showPassword" style="font-size: 0.95em;">Show Password</label>
+      </div>
 
       <label>Role</label>
       <select name="role" required>
@@ -39,5 +43,12 @@
       <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
   </div>
+
+  <script>
+  function togglePassword() {
+    var pw = document.getElementById("password");
+    pw.type = pw.type === "password" ? "text" : "password";
+  }
+  </script>
 </body>
 </html>

@@ -11,7 +11,11 @@
       <label>ID Number</label>
       <input type="text" name="username" placeholder="Username" required>
       <label>Password</label>
-      <input type="password" name="password" placeholder="Password" required>
+      <input type="password" name="password" id="password" placeholder="Password" required>
+      <div style="margin-bottom: 10px;">
+        <input type="checkbox" id="showPassword" onclick="togglePassword()">
+        <label for="showPassword" style="font-size: 0.95em;">Show Password</label>
+      </div>
       <button type="submit">Sign in</button>
     </form>
 
@@ -19,5 +23,12 @@
     <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></p>
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
   </div>
+
+  <script>
+function togglePassword() {
+  var pw = document.getElementById("password");
+  pw.type = pw.type === "password" ? "text" : "password";
+}
+</script>
 </body>
 </html>
