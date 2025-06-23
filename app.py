@@ -752,8 +752,9 @@ def checkin():
     cursor.close()
     return redirect('/roomGuest')
 
-@app.route('/checkout/<int:booking_id>', methods=['POST'])
-def checkout(booking_id):
+@app.route('/checkout', methods=['POST'])
+def checkout():
+    booking_id = request.form['booking_id']
     actual_check_out = request.form['actual_check_out']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -774,7 +775,7 @@ def checkout(booking_id):
 
     mysql.connection.commit()
     cursor.close()
-    return redirect(url_for('add_payment', booking_id=booking_id))
+    return redirect('/roomGuest')
 
 @app.route('/addPayment/<int:booking_id>', methods=['GET', 'POST'])
 def add_payment(booking_id):
