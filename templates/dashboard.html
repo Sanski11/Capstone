@@ -18,10 +18,8 @@
     <a href="/rooms">Rooms</a>
     <a href="/services">Services</a>
     <a href="/guests">Guests</a>
-    <a href="/roomGuest">Room Guests</a>
     <a href="/bookings">Bookings</a>
     <a href="/checkin">Check-in/Checkout</a>
-    <a href="/staff">Staff</a>
     <a href="/users">Users</a>
   </div>
 
@@ -33,18 +31,13 @@
     </div>
   </div>
 </div>
-
+  
   <section class="chart-section">
     <canvas id="barChart" width="400" height="200"></canvas>
     <h2>Daily Staff Activity</h2>
   </section>
-
-  <section class="chart-section">
-    <canvas id="pieChart" width="200" height="200"></canvas>
-    <h2>Daily Requests</h2>
-  </section>
-
-  <section class="stats-box">
+  
+<section class="stats-box">
     <table>
     <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
     <tr><td>Food</td><td>{{ stats.food }}</td></tr>
@@ -53,10 +46,15 @@
   </table>
   </section>
 
+  <section class="chart-section">
+    <canvas id="pieChart" width="200" height="200"></canvas>
+    <h2>Daily Requests</h2>
+  </section>
+
   <script>
-  const barLabels = "{{ staffs | map(attribute='staffs') | list | tojson | safe }}";
-  const requests = "{{ staffs | map(attribute='requests') | list | tojson | safe }}";
-  const completedRequests = "{{ staffs | map(attribute='completed') | list | tojson | safe }}";
+  const barLabels = "{{ staff | map(attribute='staff') | list | tojson | safe }}";
+  const requests = "{{ staff | map(attribute='requests') | list | tojson | safe }}";
+  const completedRequests = "{{ staff | map(attribute='completed') | list | tojson | safe }}";
 
   const pieLabels = "{{ services | map(attribute='services') | list | tojson | safe }}";
   const pieData = "{{ services | map(attribute='count') | list | tojson | safe }}";

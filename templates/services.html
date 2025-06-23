@@ -24,10 +24,12 @@
         </div>
       </form>
 
-      <!-- Add Button -->
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
-        <i class="bi bi-plus-circle"></i> Add
-      </a>
+      {% if session['role'] == 'admin' %}
+        <!-- Add Button -->
+        <a href="#" class="btn btn-primary" onclick="showForm('add')">
+          <i class="bi bi-plus-circle"></i> Add
+        </a>
+      {% endif %}
     </div>
 
     <!-- Table -->
@@ -47,14 +49,17 @@
           <td>{{ service.service_id }}</td>
           <td>{{ service.service_type }}</td>
           <td>{{ service.item }}</td>
-          <td>{{ service.amount }}</td>
+          <td style="text-align: right;">{{ "{:,}".format(service.amount) }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ service.service_id }}')">
-              <i class="bi bi-pencil-square"></i>
-            </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ service.service_id }}', '{{ service.item | escape }}')">
-              <i class="bi bi-trash-fill"></i>
-            </a></td>
+            {% if session['role'] == 'admin' %}
+              <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ service.service_id }}')">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ service.service_id }}', '{{ service.item | escape }}')">
+                <i class="bi bi-trash-fill"></i>
+              </a>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -67,9 +72,9 @@
     <form id="addForm" action="/addService" method="POST" style="display: none;" class="mb-4 mt-3">
       <div class="mb-3">
         <label for="service_type" class="form-label">Service Type:</label>
-        <select id="service_type" name="service_type" required, maxlength="100", style="max-width: 1000px;">
+        <select id="service_type" name="service_type" required value="0" maxlength="100" style="max-width: 1000px;">
           <option value="Housekeeping">Housekeeping</option>
-          <option value="Food">Food</option>
+          <option value="Dining">Dining</option>
           <option value="Laundry">Laundry</option>
           <option value="Massage">Massage</option>
         </select>
@@ -82,7 +87,7 @@
 
       <div class="mb-3">
         <label for="amount" class="form-label">Amount:</label>
-        <input type="number" class="form-control" id="amount" name="amount" step="0.01" required,  min="0" max="99999999.99">
+        <input type="number" class="form-control" id="amount" name="amount" step="0.01" value="0" required,  min="0" max="99999999.99">
       </div>
 
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -91,12 +96,12 @@
 
         <!-- Edit Service Form -->
         <form id="editForm" action="/updateServices" method="POST" style="display: none;" class="mb-4 mt-3">
-          <input type="hidden" id="edit_service_id" name="edit_service_id">
+          <input type="hidden" id="edit_service_id" name="edit_service_id" required>
           <div class="mb-3">
             <label for="edit_service_type" class="form-label">Service Type:</label>
             <select id="edit_service_type" name="edit_service_type" required, maxlength="100", style="max-width: 1000px;">
               <option value="Housekeeping">Housekeeping</option>
-              <option value="Food">Food</option>
+              <option value="Dining">Dining</option>
               <option value="Laundry">Laundry</option>
               <option value="Massage">Massage</option>
             </select>
@@ -104,13 +109,13 @@
     
           <div class="mb-3">
             <label for="edit_item" class="form-label">Item:</label>
-            <input type="text" class="form-control" id="edit_item" name="edit_item" step="0.01" required,  min="0" max="99999999.99">
+            <input type="text" class="form-control" id="edit_item" name="edit_item" step="0.01" required>
           </div>
     
           <div class="mb-3">
             <label for="edit_amount" class="form-label">Amount:</label>
-            <input type="number" class="form-control" id="edit_amount" name="edit_amount" step="0.01" required>
-          </div>
+            <input type="number" class="form-control" id="edit_amount" name="edit_amount" step="0.01" required min="0" max="99999999.99">
+          </div>    
     
           <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
           <button type="submit" class="btn btn-success">Submit</button>

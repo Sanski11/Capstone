@@ -27,9 +27,15 @@ def login():
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
         if user:
+            if user['status'] != 'Active':
+                return render_template('login.html', error="Your account is not yet approved.")
             session['username'] = user['username']
             session['role'] = user['role']
-            return redirect(url_for('dashboard'))
+            # Redirect admin to dashboard, others as needed
+            if user['role'] == 'admin':
+                return redirect(url_for('dashboard'))
+            else:
+                return redirect(url_for('dashboard'))  # Or another page for non-admins
         else:
             return render_template('login.html', error="Invalid credentials")
     return render_template('login.html')
@@ -59,13 +65,21 @@ def signup():
         email = request.form['email']
         password = request.form['password']
         role = request.form['role']
+        department = request.form['department']
+        # If admin, set status to Active, else For approval
+        status = 'Active' if role == 'admin' else 'For approval'
+
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         try:
             cursor.execute(
-                'INSERT INTO users (username, email, password, role) VALUES (%s, %s, %s, %s)',
-                (username, email, password, role)
+                "INSERT INTO users (username, password, role, email, department, status) VALUES (%s, %s, %s, %s, %s, %s)",
+                (username, password, role, email, department, status)
             )
             mysql.connection.commit()
+            if role == 'admin':
+                session['username'] = username
+                session['role'] = role
+                return redirect(url_for('dashboard'))
             return redirect(url_for('login'))
         except MySQLdb.IntegrityError:
             return render_template('signup.html', error="Username or email already exists")
@@ -127,9 +141,7 @@ def dashboard():
                    COUNT(r.request_id) AS requests,
                    SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
             FROM requests r
-            JOIN Bookings b ON r.booking_id = b.booking_id
-            JOIN Guest g ON b.guest_id = g.guest_id
-            JOIN Staff s ON s.staff_id = g.guest_id  -- If staff submits requests directly, adjust this join logic
+            JOIN staff s ON r.staff_id = s.staff_id
             GROUP BY s.first_name
         """)
         staff_data = cursor.fetchall()
@@ -213,14 +225,22 @@ def show_requests():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # Fetch all staff for the dropdown
+    cursor.execute("SELECT * FROM staff")
+    staff_list = cursor.fetchall()
+
     if query:
         search_pattern = f"%{query}%"
         sql = """
             SELECT 
                 r.*,
-                s.item
+                s.item,
+                st.first_name,
+                st.last_name,
+                st.staff_id
             FROM requests r
             JOIN services s ON r.service_id = s.service_id
+            LEFT JOIN staff st ON r.staff_id = st.staff_id
             WHERE 
                 CAST(r.request_id AS CHAR) LIKE %s OR
                 CAST(r.booking_id AS CHAR) LIKE %s OR
@@ -239,27 +259,31 @@ def show_requests():
         cursor.execute("""
             SELECT 
                 r.*,
-                s.item
+                s.item,
+                st.first_name,
+                st.last_name,
+                st.staff_id
             FROM requests r
             JOIN services s ON r.service_id = s.service_id
+            LEFT JOIN staff st ON r.staff_id = st.staff_id
         """)
 
     requests = cursor.fetchall()
     cursor.close()
-    return render_template('requests.html', requests=requests, current_time=current_time)
+    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time)
 
 @app.route('/assignTask', methods=['POST'])
 def assigntask():
-
     request_id = request.form['assignTask_request_id']
     staff_id = request.form['assignTask_staff_id']
 
-    requests = Requests.query.get(request_id)
-
-    #update request table
-    requests.staff_id = staff_id
-    
-    db.session.commit()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "UPDATE requests SET staff_id = %s WHERE request_id = %s",
+        (staff_id, request_id)
+    )
+    mysql.connection.commit()
+    cursor.close()
 
     return redirect('/requests')
 
@@ -728,9 +752,8 @@ def checkin():
     cursor.close()
     return redirect('/roomGuest')
 
-@app.route('/checkout', methods=['POST'])
-def checkout():
-    booking_id = request.form['booking_id']
+@app.route('/checkout/<int:booking_id>', methods=['POST'])
+def checkout(booking_id):
     actual_check_out = request.form['actual_check_out']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -751,7 +774,24 @@ def checkout():
 
     mysql.connection.commit()
     cursor.close()
-    return redirect('/roomGuest')
+    return redirect(url_for('add_payment', booking_id=booking_id))
+
+@app.route('/addPayment/<int:booking_id>', methods=['GET', 'POST'])
+def add_payment(booking_id):
+    if request.method == 'POST':
+        amount = request.form['amount']
+        payment_date = request.form['payment_date']
+        payment_method = request.form['payment_method']
+        status = request.form['status']
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(
+            "INSERT INTO Payment (booking_id, amount, payment_date, payment_method, status) VALUES (%s, %s, %s, %s, %s)",
+            (booking_id, amount, payment_date, payment_method, status)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return redirect('/payments')
+    return render_template('add_payment.html', booking_id=booking_id)
 
 @app.route('/bill/<int:guest_id>')
 def view_bill(guest_id):
@@ -800,65 +840,20 @@ def delete_user(user_id):
     cursor.close()
     return redirect('/users')
 
+@app.route('/approveUser/<int:user_id>', methods=['POST'])
+def approve_user(user_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("UPDATE users SET status = 'Active' WHERE user_id = %s", (user_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/users')
+
 # Example: restrict to admin only
 @app.route('/admin')
 def admin_dashboard():
     if 'role' in session and session['role'] == 'admin':
         return render_template('admin_dashboard.html')
     return redirect(url_for('login'))
-
-# List all payments
-@app.route('/payments')
-def payments():
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM Payment")
-    payments = cursor.fetchall()
-    cursor.close()
-    return render_template('payments.html', payments=payments)
-
-# Add payment
-@app.route('/addPayment', methods=['POST'])
-def add_payment():
-    booking_id = request.form['booking_id']
-    amount = request.form['amount']
-    payment_date = request.form['payment_date']
-    payment_method = request.form['payment_method']
-    status = request.form['status']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "INSERT INTO Payment (booking_id, amount, payment_date, payment_method, status) VALUES (%s, %s, %s, %s, %s)",
-        (booking_id, amount, payment_date, payment_method, status)
-    )
-    mysql.connection.commit()
-    cursor.close()
-    return redirect('/payments')
-
-# Update payment
-@app.route('/updatePayment', methods=['POST'])
-def update_payment():
-    payment_id = request.form['edit_payment_id']
-    booking_id = request.form['edit_booking_id']
-    amount = request.form['edit_amount']
-    payment_date = request.form['edit_payment_date']
-    payment_method = request.form['edit_payment_method']
-    status = request.form['edit_status']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "UPDATE Payment SET booking_id=%s, amount=%s, payment_date=%s, payment_method=%s, status=%s WHERE payment_id=%s",
-        (booking_id, amount, payment_date, payment_method, status, payment_id)
-    )
-    mysql.connection.commit()
-    cursor.close()
-    return redirect('/payments')
-
-# Delete payment
-@app.route('/deletePayment/<int:payment_id>', methods=['GET'])
-def delete_payment(payment_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("DELETE FROM Payment WHERE payment_id = %s", (payment_id,))
-    mysql.connection.commit()
-    cursor.close()
-    return redirect('/payments')
 
 if __name__ == '__main__':
     app.run(debug=True)

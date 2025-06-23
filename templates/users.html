@@ -22,9 +22,11 @@
         </div>
       </form>
       <!-- Add Button -->
+      {% if session['role'] == 'admin' %}
       <a href="#" class="btn btn-primary" onclick="showForm('add')">
         <i class="bi bi-plus-circle"></i> Add
       </a>
+      {% endif %}
     </div>
 
     <!-- Table -->
@@ -35,6 +37,7 @@
           <th>Username</th>
           <th>Email</th>
           <th>Role</th>
+          <th>Department</th> <!-- Add this line -->
           <th>Action</th>
         </tr>
       </thead>
@@ -45,13 +48,19 @@
           <td>{{ user.username }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.role }}</td>
+          <td>{{ user.department }}</td> <!-- Add this line -->
           <td>
+            {% if session['role'] == 'admin' %}
             <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ user.user_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
             <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
+            <form action="{{ url_for('approve_user', user_id=user.user_id) }}" method="post" style="display:inline;">
+              <button type="submit" class="btn btn-success btn-sm">Approve</button>
+            </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}
@@ -75,12 +84,23 @@
         <label for="password" class="form-label">Password:</label>
         <input type="password" class="form-control" id="password" name="password" required>
       </div>
+      <!-- Role Dropdown -->
       <div class="mb-3">
         <label for="role" class="form-label">Role:</label>
         <select id="role" name="role" class="form-control" required>
           <option value="admin">Admin</option>
           <option value="user">User</option>
-          <option value="staff">Staff</option>
+        </select>
+      </div>
+      <!-- Department Dropdown -->
+      <div class="mb-3">
+        <label for="department" class="form-label">Department:</label>
+        <select id="department" name="department" class="form-control" required>
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Dining">Dining</option>
+          <option value="Laundry">Laundry</option>
+          <option value="Massage">Massage</option>
+          <option value="All">All</option>
         </select>
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -101,14 +121,6 @@
       <div class="mb-3">
         <label for="edit_password" class="form-label">Password:</label>
         <input type="password" class="form-control" id="edit_password" name="edit_password" required>
-      </div>
-      <div class="mb-3">
-        <label for="edit_role" class="form-label">Role:</label>
-        <select id="edit_role" name="edit_role" class="form-control" required>
-          <option value="admin">Admin</option>
-          <option value="user">User</option>
-          <option value="staff">Staff</option>
-        </select>
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
       <button type="submit" class="btn btn-success">Submit</button>

@@ -19,15 +19,25 @@
 
       <label>Role</label>
       <select name="role" required>
-        <option value="user">User</option>
-        <option value="staff">Staff</option>
         <option value="admin">Admin</option>
+        <option value="user">User</option>
+      </select>
+
+      <label for="department" class="form-label">Department:</label>
+      <select id="department" name="department" class="form-control" required>
+        <option value="Housekeeping">Housekeeping</option>
+        <option value="Dining">Dining</option>
+        <option value="Laundry">Laundry</option>
+        <option value="Massage">Massage</option>
+        <option value="All">All</option>
       </select>
 
       <button type="submit">Create Account</button>
     </form>
     <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+    {% endif %}
   </div>
 </body>
 </html>

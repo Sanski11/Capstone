@@ -18,9 +18,9 @@
 </head>
 <body>
   <div class="container mt-5">
-    <h1 class="mb-4">Room Guest</h1>
+    <h1 class="mb-4">Check-in / Check-out</h1>
 
-    <!-- Search and Add Buttons -->
+    <!-- Search Button -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <!-- Search Form -->
       <form class="d-flex" method="GET" action="/roomGuest">
@@ -31,11 +31,6 @@
           </button>
         </div>
       </form>
-
-      <!-- Add Button -->
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
-        <i class="bi bi-plus-circle"></i> Add
-      </a>
     </div>
 
     <!-- Table -->
@@ -56,8 +51,8 @@
         {% for booking in bookings %}
         <tr>
           <td>{{ booking.booking_id }}</td>
-          <td>{{ booking.room_id }}</td>
-          <td>{{ booking.guest_id }}</td>
+          <td>{{ booking.room_number }}</td>
+          <td>{{ booking.last_name }}, {{booking.first_name}}</td>
           <td>{{ booking.exp_check_in }}</td>
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.actual_check_in }}</td>
