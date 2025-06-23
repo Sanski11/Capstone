@@ -47,44 +47,6 @@
     </table>
 
     <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
-
-    <form action="" method="POST" class="mt-5">
-      <input type="hidden" name="booking_id" value="{{ booking_id }}">
-      <div class="mb-3">
-        <label for="amount" class="form-label">Amount:</label>
-        <input type="number" class="form-control" id="amount" name="amount" required>
-      </div>
-      <div class="mb-3">
-        <label for="payment_date" class="form-label">Payment Date:</label>
-        <input type="datetime-local" class="form-control" id="payment_date" name="payment_date" required>
-      </div>
-      <div class="mb-3">
-        <label for="payment_method" class="form-label">Payment Method:</label>
-        <select id="payment_method" name="payment_method" class="form-control" required>
-          <option value="Cash">Cash</option>
-          <option value="Credit Card">Credit Card</option>
-          <option value="Online">Online</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="status" class="form-label">Status:</label>
-        <select id="status" name="status" class="form-control" required>
-          <option value="Paid">Paid</option>
-          <option value="Pending">Pending</option>
-          <option value="Failed">Failed</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-success">Submit Payment</button>
-    </form>
-
-    {% if session['role'] == 'admin' %}
-    <div class="mt-5">
-      <h2>Admin Actions</h2>
-      <a href="#" class="btn btn-primary">Add Room</a>
-      <a href="#" class="btn btn-secondary">Edit Room</a>
-      <a href="#" class="btn btn-danger">Delete Room</a>
-    </div>
-    {% endif %}
   </div>
 </body>
 </html>

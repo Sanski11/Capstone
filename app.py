@@ -856,5 +856,10 @@ def admin_dashboard():
         return render_template('admin_dashboard.html')
     return redirect(url_for('login'))
 
+@app.route('/checkout/<int:booking_id>', methods=['GET'])
+def show_checkout(booking_id):
+    # Fetch booking info if needed
+    return render_template('checkout_form.html', booking_id=booking_id)
+
 if __name__ == '__main__':
     app.run(debug=True)
