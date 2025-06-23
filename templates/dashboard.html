@@ -31,13 +31,7 @@
     </div>
   </div>
 </div>
-  
-  <section class="chart-section">
-    <canvas id="barChart" width="400" height="200"></canvas>
-    <h2>Daily Staff Activity</h2>
-  </section>
-  
-<section class="stats-box">
+  <section class="stats-box">
     <table>
     <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
     <tr><td>Food</td><td>{{ stats.food }}</td></tr>
@@ -45,49 +39,73 @@
     <tr><td>Spa</td><td>{{ stats.spa }}</td></tr>
   </table>
   </section>
-
   <section class="chart-section">
-    <canvas id="pieChart" width="200" height="200"></canvas>
-    <h2>Daily Requests</h2>
+    <div style="width: 600px; margin: 0 auto;">
+        <!-- Bar Chart -->
+        <canvas id="barChart"></canvas>
+    </div>
+    <h2 style="text-align:center; margin-top: 30px;">Daily Staff Activity</h2>
+    <div style="width: 500px; margin: 0 auto;">
+        <!-- Pie Chart -->
+        <canvas id="pieChart"></canvas>
+    </div>
   </section>
 
   <script>
-  const barLabels = "{{ staff | map(attribute='staff') | list | tojson | safe }}";
-  const requests = "{{ staff | map(attribute='requests') | list | tojson | safe }}";
-  const completedRequests = "{{ staff | map(attribute='completed') | list | tojson | safe }}";
+  // Bar Chart Data
+  const barLabels = ['{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const requestsData = ['{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const completedData = ['{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}'];
 
-  const pieLabels = "{{ services | map(attribute='services') | list | tojson | safe }}";
-  const pieData = "{{ services | map(attribute='count') | list | tojson | safe }}";
-  
-  // Bar Chart for Daily Staff Activity
-  const barChart = new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels: barLabels,
-      datasets: [
-        {
-          label: 'Requests',
-          data: requests,
-          backgroundColor: 'skyblue'
-        },
-        {
-          label: 'Completed',
-          data: completedRequests,
-          backgroundColor: 'coral'
-        }
-      ]
-    }
+  new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+          labels: barLabels,
+          datasets: [
+              {
+                  label: 'Requests',
+                  backgroundColor: '#7fd3f7',
+                  data: requestsData
+              },
+              {
+                  label: 'Completed',
+                  backgroundColor: '#ff8c6b',
+                  data: completedData
+              }
+          ]
+      },
+      options: {
+          responsive: true,
+          plugins: {
+              legend: { display: true }
+          },
+          scales: {
+              x: { stacked: false },
+              y: { beginAtZero: true }
+          }
+      }
   });
 
-  const pieChart = new Chart(document.getElementById('pieChart'), {
-    type: 'pie',
-    data: {
-      labels: pieLabels,
-      datasets: [{
-        data: pieData,
-        backgroundColor: ['#4fd1c5', '#81e6d9', '#63b3ed', '#a0aec0']
-      }]
-    }
+  // Pie Chart Data
+  const pieLabels = ['{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const pieData = ['{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const pieColors = ['#5fd3bc', '#7fd3f7', '#8cb6e6', '#b3b3c6', '#f7c873'];
+
+  new Chart(document.getElementById('pieChart'), {
+      type: 'pie',
+      data: {
+          labels: pieLabels,
+          datasets: [{
+              data: pieData,
+              backgroundColor: pieColors
+          }]
+      },
+      options: {
+          responsive: true,
+          plugins: {
+              legend: { display: true, position: 'bottom' }
+          }
+      }
   });
 
 function toggleDropdown() {
@@ -95,15 +113,15 @@ function toggleDropdown() {
   menu.style.display = (menu.style.display === "block") ? "none" : "block";
 }
 
-  // Optional: Close dropdown if clicking outside
-  window.onclick = function(event) {
-    if (!event.target.matches('.profile-icon')) {
-      var dropdowns = document.getElementsByClassName("dropdown-menu");
-      for (var i = 0; i < dropdowns.length; i++) {
-        dropdowns[i].style.display = "none";
-      }
+// Optional: Close dropdown if clicking outside
+window.onclick = function(event) {
+  if (!event.target.matches('.profile-icon')) {
+    var dropdowns = document.getElementsByClassName("dropdown-menu");
+    for (var i = 0; i < dropdowns.length; i++) {
+      dropdowns[i].style.display = "none";
     }
   }
+}
   </script>
 </body>
 </html>
