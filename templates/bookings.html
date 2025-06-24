@@ -20,12 +20,9 @@
           </button>
         </div>
       </form>
-      {% if session['role'] == 'admin' %}
-        <!-- Add Button -->
-        <a href="#" class="btn btn-primary" onclick="showForm('add')">
-          <i class="bi bi-plus-circle"></i> Add
-        </a>
-      {% endif %}
+      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+        <i class="bi bi-plus-circle"></i> Add
+      </a>
     </div>
 
     <!-- Table -->
@@ -53,15 +50,17 @@
           <td>{{ booking.exp_check_out }}</td>
           <td>{{ booking.status }}</td>
           <td>
-<!-- Assignment form and admin buttons here -->
-          {% if session['role'] == 'admin' %}
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
+
+
+          {% if booking.status == "Confirmed" %}
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ booking.booking_id }})">
               <i class="bi bi-pencil-square"></i>
             </a>
             <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ booking.booking_id }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
           {% endif %}
+            
           </td>
         </tr>
         {% endfor %}
@@ -224,7 +223,7 @@
 
   <!-- Booking JS and script -->
   <script>
-    const bookings = '{{ bookings | tojson | safe }}';
+    const bookings = {{ bookings | tojson | safe }};
 
     function showForm(mode, booking_id = null) {
       const addForm = document.getElementById("addForm");
@@ -304,7 +303,5 @@
     }
 
   </script>
-
-  
 </body>
 </html>

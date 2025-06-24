@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 
@@ -303,47 +303,124 @@ def updateStatus():
 
 @app.route('/rooms')
 def view_rooms():
+    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM Room")
+
+    if search:
+        like = f"%{search}%"
+        query = """
+            SELECT *
+            FROM room
+            WHERE 
+                room_number LIKE %s OR
+                room_type LIKE %s OR
+                room_status LIKE %s
+        """
+        cursor.execute(query, (like,) * 3)
+    else:
+        cursor.execute("""
+            SELECT * FROM room ORDER BY room_number
+        """)
+
     rooms = cursor.fetchall()
     return render_template('rooms.html', rooms=rooms)
   
 @app.route('/services')
 def view_services():
+    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM Services")
+
+    if search:
+        like = f"%{search}%"
+        query = """
+            SELECT *
+            FROM services
+            WHERE 
+                service_type LIKE %s OR
+                item LIKE %s 
+        """
+        cursor.execute(query, (like,) * 2)
+    else:
+        cursor.execute("""
+            SELECT * FROM services ORDER BY service_type, item
+        """)
+
     services = cursor.fetchall()
     return render_template('services.html', services=services)
  
 @app.route('/guests')
 def view_guests():
+    selected_guest = request.args.get('guest_id', '')
+    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM Guest")
+
+    if search:
+        like = f"%{search}%"
+        query = """
+        SELECT *
+        FROM guest
+        WHERE 
+            first_name LIKE %s OR
+            middle_name LIKE %s OR
+            last_name LIKE %s OR
+            email LIKE %s OR
+            phone LIKE %s
+    """
+        cursor.execute(query, (like,) * 5)
+    else:
+        cursor.execute("""
+            SELECT * FROM guest ORDER BY last_name, first_name
+        """)
     guests = cursor.fetchall()
     return render_template('guests.html', guests=guests)
 
 @app.route('/roomGuest')
 def show_roomGuest():
     query = request.args.get('search', '')
+    selected_room = request.args.get('room_id', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Get all guests
+    cursor.execute("SELECT * FROM guest")
+    guests = cursor.fetchall()
+
+    # Get rooms 
+    cursor.execute("SELECT * FROM room")
+    rooms = cursor.fetchall()
 
     if query:
         search_pattern = f"%{query}%"
-        sql = """
-            SELECT * FROM bookings 
+        query = """
+            SELECT 
+                b.*,
+                r.room_number as room_number,
+                g.last_name as last_name,
+                g.first_name as first_name 
+            FROM bookings b
+            JOIN room r ON b.room_id = r.room_id
+            JOIN guest g ON b.guest_id = g.guest_id
             WHERE 
-                CAST(booking_id AS CHAR) LIKE %s OR
-                CAST(room_id AS CHAR) LIKE %s OR
-                CAST(guest_id AS CHAR) LIKE %s OR
-                CAST(exp_check_in AS CHAR) LIKE %s OR
-                CAST(exp_check_out AS CHAR) LIKE %s OR
-                CAST(actual_check_in AS CHAR) LIKE %s OR
-                CAST(actual_check_out AS CHAR) LIKE %s
+                booking_id LIKE %s OR
+                room_number LIKE %s OR
+                last_name LIKE %s OR
+                first_name LIKE %s OR
+                exp_check_in LIKE %s OR
+                exp_check_out LIKE %s OR
+                actual_check_in LIKE %s OR
+                actual_check_out LIKE %s
         """
-        cursor.execute(sql, (search_pattern,) * 7)
+        cursor.execute(query, (search_pattern,) * 8)
     else:
-        cursor.execute("SELECT * FROM bookings WHERE status = 'Confirmed'")
-
+        cursor.execute("""
+                SELECT 
+                    b.*, 
+                    g.first_name,
+                    g.last_name,
+                    r.room_number
+                FROM bookings b
+                JOIN guest g ON b.guest_id = g.guest_id
+                JOIN room r ON b.room_id = r.room_id
+            """)
     bookings = cursor.fetchall()
     cursor.close()
     return render_template('roomGuest.html', bookings=bookings)
@@ -385,11 +462,19 @@ def updateRoom():
 
 @app.route('/deleteRoom/<int:room_id>', methods=['GET'])
 def deleteRoom(room_id):
-    cursor = mysql.connection.cursor()
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,))
     mysql.connection.commit()
     cursor.close()
     return redirect('/rooms')
+
+@app.route('/checkRoomBooking/<int:room_id>')
+def check_room_booking(room_id):
+    cursor  = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0})
 
 @app.route('/addGuests', methods=['POST'])
 def add_guests():
@@ -617,7 +702,6 @@ def deleteGuest(guest_id):
     cursor.close()
     return redirect('/guests')
 
-
 # ROUTE FOR BOOKINGS
 @app.route('/bookings')
 def view_bookings():
@@ -643,8 +727,8 @@ def view_bookings():
         query = """
             SELECT 
                 b.*, 
-                g.first_name AS guest_first_name,
-                g.last_name AS guest_last_name,
+                g.first_name AS first_name,
+                g.last_name AS last_name,
                 r.room_number AS room_number
             FROM bookings b
             JOIN guest g ON b.guest_id = g.guest_id
@@ -666,9 +750,9 @@ def view_bookings():
         cursor.execute("""
             SELECT 
                 b.*, 
-                g.first_name,
-                g.last_name,
-                r.room_number
+                g.first_name AS first_name,
+                g.last_name AS last_name,
+                r.room_number AS room_number
             FROM bookings b
             JOIN guest g ON b.guest_id = g.guest_id
             JOIN room r ON b.room_id = r.room_id
@@ -703,8 +787,8 @@ def updateBooking():
     guest_id = request.form['edit_guest_id']
     room_type = request.form['edit_room_type']
     room_id = request.form['edit_room_id']
-    exp_check_in = request.form['exp_check_in']
-    exp_check_out = request.form['exp_check_out']
+    exp_check_in = request.form['edit_exp_check_in']
+    exp_check_out = request.form['edit_exp_check_out']
     status = request.form['edit_status']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -725,7 +809,7 @@ def deleteBooking(booking_id):
     cursor.close()
     return redirect('/bookings')
 
-# gina - ROUTE FOR CHECKIN/OUT
+# ROUTE FOR CHECKIN/OUT
 
 @app.route('/checkin', methods=['POST'])
 def checkin():
@@ -736,7 +820,7 @@ def checkin():
     # Update booking table
     cursor.execute("""
         UPDATE Bookings
-        SET actual_check_in = %s
+        SET actual_check_in = %s, status='Checked-in'
         WHERE booking_id = %s
     """, (actual_check_in, booking_id))
 
@@ -761,7 +845,7 @@ def checkout():
     # Update booking
     cursor.execute("""
         UPDATE Bookings
-        SET actual_check_out = %s
+        SET actual_check_out = %s, status='Checked-out'
         WHERE booking_id = %s
     """, (actual_check_out, booking_id))
 
