@@ -878,21 +878,20 @@ def add_payment(booking_id):
         return redirect('/payments')
     return render_template('add_payment.html', booking_id=booking_id)
 
-@app.route('/bill/<int:guest_id>')
-def view_bill(guest_id):
+@app.route('/bill/<int:booking_id>')
+def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Get all requests for this guest (via RoomGuest)
+    # Get all requests for this booking
     cursor.execute("""
         SELECT r.*, s.item, s.amount
         FROM Requests r
-        JOIN bookings b ON r.booking_id = b.booking_id
         JOIN Services s ON r.service_id = s.service_id
-        WHERE b.booking_id = %s
-    """, (guest_id,))
+        WHERE r.booking_id = %s
+    """, (booking_id,))
     requests = cursor.fetchall()
     total_bill = sum(r['totalCost'] for r in requests)
     cursor.close()
-    return render_template('bill.html', requests=requests, total_bill=total_bill, guest_id=guest_id)
+    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
 
 @app.route('/users')
 def view_users():
