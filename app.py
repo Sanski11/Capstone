@@ -9,10 +9,18 @@ app.secret_key = 'your_secret_key'
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
+
+@app.context_processor
+def inject_user_details():
+    return {
+        'username': session.get('username'),
+        'role': session.get('role'),
+        'department': session.get('department')
+    }
 
 @app.route('/')
 def home():
@@ -31,6 +39,7 @@ def login():
                 return render_template('login.html', error="Your account is not yet approved.")
             session['username'] = user['username']
             session['role'] = user['role']
+            session['department'] = user['department']
             # Redirect admin to dashboard, others as needed
             if user['role'] == 'admin':
                 return redirect(url_for('dashboard'))
@@ -172,12 +181,38 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/staff')
-def staff():
+def view_staffs():
+    selected_staff = request.args.get('staff_id', '')
+    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM Staff")
+
+    if search:
+        like = f"%{search}%"
+        query = """
+        SELECT *
+        FROM staff
+        WHERE 
+            first_name LIKE %s OR
+            last_name LIKE %s OR
+            department LIKE %s OR
+            email LIKE %s OR
+            phone LIKE %s
+    """
+        cursor.execute(query, (like,) * 5)
+    else:
+        cursor.execute("""
+            SELECT * FROM staff ORDER BY last_name, first_name
+        """)
     staffs = cursor.fetchall()
-    cursor.close()
     return render_template('staff.html', staffs=staffs)
+
+@app.route('/checkStaff/<int:staff_id>')
+def check_staff(staff_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT COUNT(*) AS count FROM requests WHERE staff_id = %s", (staff_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0})
 
 @app.route('/delete/<int:guest_id>')
 def delete_guest(guest_id):
@@ -186,7 +221,6 @@ def delete_guest(guest_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/guests')
-
 
 @app.route('/edit/<int:guest_id>', methods=['GET', 'POST'])
 def editGuest(guest_id):
@@ -603,14 +637,14 @@ def add_service():
 def add_staff():
     first_name = request.form['first_name']
     last_name = request.form['last_name']
-    role = request.form['role']
+    department = request.form['department']
     email = request.form['email']
     phone = request.form['phone']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
-        "INSERT INTO Staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
-        (first_name, last_name, role, email, phone)
+        "INSERT INTO Staff (first_name, last_name, department, email, phone) VALUES (%s, %s, %s, %s, %s)",
+        (first_name, last_name, department, email, phone)
     )
     mysql.connection.commit()
     cursor.close()
@@ -622,7 +656,7 @@ def updateStaff():
     staff_id = int(request.form['edit_staff_id'])
     first_name = request.form['edit_first_name']
     last_name = request.form['edit_last_name']
-    role = request.form['edit_role']
+    department = request.form['edit_department']
     email = request.form['edit_email']
     phone = request.form['edit_phone']
 
@@ -630,16 +664,15 @@ def updateStaff():
     cursor.execute(
         """
         UPDATE Staff 
-        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s 
+        SET first_name = %s, last_name = %s, department = %s, email = %s, phone = %s 
         WHERE staff_id = %s
         """,
-        (first_name, last_name, role, email, phone, staff_id)
+        (first_name, last_name, department, email, phone, staff_id)
     )
     mysql.connection.commit()
     cursor.close()
 
     return redirect('/staff')
-
 
 @app.route('/deleteStaff/<int:staff_id>', methods=['GET'])
 def deleteStaff(staff_id):
@@ -648,6 +681,14 @@ def deleteStaff(staff_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/staff')
+
+@app.route('/checkServices/<int:service_id>')
+def check_services(service_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT COUNT(*) AS count FROM requests WHERE service_id = %s", (service_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0})
 
 @app.route('/updateServices', methods=['POST'])
 def updateServices():
@@ -693,6 +734,14 @@ def add_room_guest():
     mysql.connection.commit()
     cursor.close()
     return redirect('/roomGuest')
+
+@app.route('/checkGuests/<int:guest_id>')
+def check_guests(guest_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE guest_id = %s", (guest_id,))
+    result = cursor.fetchone()
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0})
 
 @app.route('/deleteGuest/<int:guest_id>', methods=['GET'])
 def deleteGuest(guest_id):

@@ -10,17 +10,23 @@
 <body>
   <div class="navbar">
   <div class="navbar-left">
-    <h1>EzStay</h1>
+    <h1>ezStay</h1>
   </div>
 
   <div class="nav-links">
-    <a href="/rooms">Rooms</a>
-    <a href="/services">Services</a>
-    <a href="/guests">Guests</a>
-    <a href="/staff">Staff</a>
-    <a href="/bookings">Bookings</a>
-    <a href="/roomGuest">Check-in/Checkout</a>  
-    <a href="/requests">Requests</a>
+    {% if role == "admin" %}
+      <a href="/staff">Authorized Users</a>
+    {% elif role == "manager" %}
+      <a href="/rooms">Rooms</a>
+      <a href="/services">Services</a>
+      <a href="/guests">Guests</a>
+      <a href="/staff">Staff</a>
+      <a href="/bookings">Bookings</a>
+      <a href="/roomGuest">Check-in/Checkout</a>  
+      <a href="/requests">Requests</a>
+    {% elif role == "supervisor" or role == "staff" %}
+      <a href="/requests">Requests</a>
+    {% endif %}
   </div>
 
   <div class="dropdown">
