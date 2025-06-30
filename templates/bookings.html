@@ -56,14 +56,16 @@
 
 
           {% if booking.status == "Confirmed" %}
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ booking.booking_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
             <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ booking.booking_id }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
           {% endif %}
-            
+            <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-info btn-sm">
+              View Bill
+            </a>
           </td>
         </tr>
         {% endfor %}
@@ -226,7 +228,7 @@
 
   <!-- Booking JS and script -->
   <script>
-    const bookings = {{ bookings | tojson | safe }};
+    const bookings = '{{ bookings | tojson | safe }}';
 
     function showForm(mode, booking_id = null) {
       const addForm = document.getElementById("addForm");
