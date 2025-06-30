@@ -51,10 +51,10 @@
           <td>{{ service.item }}</td>
           <td style="text-align: right;">{{ "{:,}".format(service.amount) }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ service.service_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ service.service_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ service.service_id }}, '{{ service.item | escape }}')">
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ service.service_id }}', '{{ service.item | escape }}')">
               <i class="bi bi-trash-fill"></i>
             </a></td>
         </tr>
@@ -159,7 +159,7 @@
 
       <!-- Rooms JS and script -->
   <script>
-    const services = {{ services | tojson | safe }};
+    const services = '{{ services | tojson | safe }}';
 
     function showForm(mode, service_id = null) {
       const addForm = document.getElementById("addForm");

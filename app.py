@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -9,7 +10,7 @@ app.secret_key = 'your_secret_key'
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -28,7 +29,31 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'login_attempts' not in session:
+        session['login_attempts'] = 0
+
+    # Check for lockout
+    lockout_until = session.get('lockout_until')
+    if lockout_until:
+        lockout_until_dt = datetime.strptime(lockout_until, "%Y-%m-%d %H:%M:%S")
+        if datetime.now() < lockout_until_dt:
+            remaining = (lockout_until_dt - datetime.now()).seconds
+            return render_template(
+                'login.html',
+                lockout_remaining=remaining,
+                error="Maximum login attempts reached. Try again in {minutes}m {seconds}s."
+            )
+        else:
+            session.pop('lockout_until')
+            session['login_attempts'] = 0
+
     if request.method == 'POST':
+        if session['login_attempts'] >= 3:
+            # Set lockout for 3 minutes
+            lockout_time = datetime.now() + timedelta(minutes=3)
+            session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
+            return render_template('login.html', error="Maximum login attempts reached. Please try again in 3 minutes.")
+
         username = request.form['username']
         password = request.form['password']
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -40,13 +65,18 @@ def login():
             session['username'] = user['username']
             session['role'] = user['role']
             session['department'] = user['department']
-            # Redirect admin to dashboard, others as needed
-            if user['role'] == 'admin':
-                return redirect(url_for('dashboard'))
-            else:
-                return redirect(url_for('dashboard'))  # Or another page for non-admins
+            session['login_attempts'] = 0  # Reset on successful login
+            session.pop('lockout_until', None)
+            return redirect(url_for('dashboard'))
         else:
-            return render_template('login.html', error="Invalid credentials")
+            session['login_attempts'] += 1
+            attempts_left = 3 - session['login_attempts']
+            error_msg = "Invalid credentials"
+            if attempts_left > 0:
+                error_msg += f". Attempts left: {attempts_left}"
+            else:
+                error_msg = "Maximum login attempts reached. Please try again in 3 minutes."
+            return render_template('login.html', error=error_msg)
     return render_template('login.html')
 
 @app.route('/forgot-password', methods=['GET', 'POST'])

@@ -55,11 +55,11 @@
           <td>{{ staff.email }}</td>
           <td>{{ staff.phone }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ staff.staff_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ staff.staff_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
 
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ staff.staff_id }}, '{{ staff.last_name | escape }}')">
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ staff.staff_id }}', '{{ staff.last_name | escape }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
           </td>
