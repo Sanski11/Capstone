@@ -59,9 +59,9 @@
 
   <script>
   // Bar Chart Data
-  const barLabels = ['{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const requestsData = ['{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const completedData = ['{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const barLabels = [{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+  const requestsData = [{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}];
+  const completedData = [{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}];
 
   new Chart(document.getElementById('barChart'), {
       type: 'bar',
@@ -93,8 +93,8 @@
   });
 
   // Pie Chart Data
-  const pieLabels = ['{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const pieData = ['{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const pieLabels = [{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+  const pieData = [{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
   const pieColors = ['#5fd3bc', '#7fd3f7', '#8cb6e6', '#b3b3c6', '#f7c873'];
 
   new Chart(document.getElementById('pieChart'), {

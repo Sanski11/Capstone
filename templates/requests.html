@@ -74,7 +74,7 @@
                       <i class="bi bi-trash-fill"></i>
                     </a>
                   {% endif %}
-                  <form action="{{ url_for('assignTask') }}" method="POST" style="display:inline;">
+                  <form action="{{ url_for('assigntask') }}" method="POST" style="display:inline;">
                     <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
                     <select name="assignTask_staff_id" required>
                       <option value="">Assign Staff</option>
