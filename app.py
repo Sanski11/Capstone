@@ -105,8 +105,8 @@ def signup():
         password = request.form['password']
         role = request.form['role']
         department = request.form['department']
-        # If admin, set status to Active, else For approval
-        status = 'Active' if role == 'admin' else 'For approval'
+        # Set status to Active for admin, manager, supervisor; else For approval
+        status = 'Active' if role in ['admin', 'manager', 'supervisor'] else 'For approval'
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         try:
@@ -115,7 +115,7 @@ def signup():
                 (username, password, role, email, department, status)
             )
             mysql.connection.commit()
-            if role == 'admin':
+            if role in ['admin', 'manager', 'supervisor']:
                 session['username'] = username
                 session['role'] = role
                 return redirect(url_for('dashboard'))
@@ -126,10 +126,18 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'username' in session:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+    role = session['role']
 
-        # Housekeeping: Count of housekeeping services requested
+    # Only admin: show users management dashboard
+    if role == 'admin':
+        return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
+
+    # Manager: show all stats and charts
+    elif role == 'manager':
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        # Housekeeping
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -137,8 +145,7 @@ def dashboard():
             WHERE s.service_type = 'Housekeeping'
         """)
         housekeeping = cursor.fetchone()['count']
-
-        # Food: Dining services
+        # Food
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -146,8 +153,7 @@ def dashboard():
             WHERE s.service_type = 'Dining'
         """)
         food = cursor.fetchone()['count']
-
-        # Laundry services
+        # Laundry
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -155,8 +161,7 @@ def dashboard():
             WHERE s.service_type = 'Laundry'
         """)
         laundry = cursor.fetchone()['count']
-
-        # Spa / Massage services
+        # Spa
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -164,7 +169,6 @@ def dashboard():
             WHERE s.service_type = 'Massage'
         """)
         spa = cursor.fetchone()['count']
-
         # Pie chart data
         cursor.execute("""
             SELECT service_type, COUNT(*) AS count
@@ -173,8 +177,7 @@ def dashboard():
             GROUP BY service_type
         """)
         service_data = cursor.fetchall()
-
-        # Bar chart data (requests vs completed by staff)
+        # Bar chart data
         cursor.execute("""
             SELECT s.first_name AS staff, 
                    COUNT(r.request_id) AS requests,
@@ -184,10 +187,10 @@ def dashboard():
             GROUP BY s.first_name
         """)
         staff_data = cursor.fetchall()
-
+        cursor.close()
         return render_template(
             'dashboard.html',
-            user=session['username'],
+            role=role,
             stats={
                 "housekeeping": housekeeping,
                 "food": food,
@@ -197,6 +200,12 @@ def dashboard():
             service_data=service_data,
             staff_data=staff_data
         )
+
+    # Supervisor/Staff: show only requests/tasks
+    elif role in ['supervisor', 'staff']:
+        return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
+
+    # Default: redirect to login
     return redirect(url_for('login'))
 
 @app.route('/profile')
@@ -940,23 +949,6 @@ def checkout():
     cursor.close()
     return redirect('/roomGuest')
 
-@app.route('/addPayment/<int:booking_id>', methods=['GET', 'POST'])
-def add_payment(booking_id):
-    if request.method == 'POST':
-        amount = request.form['amount']
-        payment_date = request.form['payment_date']
-        payment_method = request.form['payment_method']
-        status = request.form['status']
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute(
-            "INSERT INTO Payment (booking_id, amount, payment_date, payment_method, status) VALUES (%s, %s, %s, %s, %s)",
-            (booking_id, amount, payment_date, payment_method, status)
-        )
-        mysql.connection.commit()
-        cursor.close()
-        return redirect('/payments')
-    return render_template('add_payment.html', booking_id=booking_id)
-
 @app.route('/bill/<int:booking_id>')
 def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -1010,13 +1002,6 @@ def approve_user(user_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/users')
-
-# Example: restrict to admin only
-@app.route('/admin')
-def admin_dashboard():
-    if 'role' in session and session['role'] == 'admin':
-        return render_template('admin_dashboard.html')
-    return redirect(url_for('login'))
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])
 def show_checkout(booking_id):

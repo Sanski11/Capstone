@@ -92,6 +92,8 @@
         <label for="role" class="form-label">Role:</label>
         <select id="role" name="role" class="form-control" required>
           <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="supervisor">Supervisor</option>
           <option value="user">User</option>
         </select>
       </div>
@@ -124,6 +126,16 @@
       <div class="mb-3">
         <label for="edit_password" class="form-label">Password:</label>
         <input type="password" class="form-control" id="edit_password" name="edit_password" required>
+      </div>
+      <!-- Role Dropdown -->
+      <div class="mb-3">
+        <label for="edit_role" class="form-label">Role:</label>
+        <select id="edit_role" name="edit_role" class="form-control" required>
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="user">User</option>
+        </select>
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
       <button type="submit" class="btn btn-success">Submit</button>

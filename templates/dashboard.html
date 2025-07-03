@@ -15,7 +15,7 @@
 
   <div class="nav-links">
     {% if role == "admin" %}
-      <a href="/staff">Authorized Users</a>
+      <a href="/users">Authorized Users</a>
     {% elif role == "manager" %}
       <a href="/rooms">Rooms</a>
       <a href="/services">Services</a>
@@ -46,12 +46,12 @@
   </table>
   </section>
   <section class="chart-section">
-    <div style="width: 600px; margin: 0 auto;">
+    <div style="width: 400px; margin: 0 auto;">
         <!-- Bar Chart -->
         <canvas id="barChart"></canvas>
     </div>
     <h2 style="text-align:center; margin-top: 30px;">Daily Staff Activity</h2>
-    <div style="width: 500px; margin: 0 auto;">
+    <div style="width: 400px; margin: 0 auto;">
         <!-- Pie Chart -->
         <canvas id="pieChart"></canvas>
     </div>

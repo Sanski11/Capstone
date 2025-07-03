@@ -22,7 +22,7 @@
                 <i class="bi bi-search"></i>
             </button>
         </form>
-        {% if session['role'] == 'admin' %}
+        {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
         <!-- Add Button -->
         <a href="#" class="btn btn-primary" onclick="showForm('add')">
             <i class="bi bi-plus-circle"></i> Add
@@ -66,7 +66,7 @@
                 </td>
                 <td>
                   <!-- Assignment form and admin buttons here -->
-                  {% if session['role'] == 'admin' %}
+                  {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                     <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ request.request_id }}')">
                       <i class="bi bi-pencil-square"></i>
                     </a>
@@ -74,9 +74,9 @@
                       <i class="bi bi-trash-fill"></i>
                     </a>
                   {% endif %}
-                  <form action="{{ url_for('assigntask') }}" method="POST" style="display:inline;">
-                    <input type="hidden" name="request_id" value="{{ request.request_id }}">
-                    <select name="staff_id" required>
+                  <form action="{{ url_for('assignTask') }}" method="POST" style="display:inline;">
+                    <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
+                    <select name="assignTask_staff_id" required>
                       <option value="">Assign Staff</option>
                       {% for staff in staff_list %}
                         <option value="{{ staff.staff_id }}"
@@ -85,7 +85,7 @@
                         </option>
                       {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-primary btn-sm"">Assign</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Assign</button>
                   </form>
                 </td>
             </tr>
@@ -99,42 +99,46 @@
     </a>
 
     <!-- Add Request Form -->
-    <form id="addForm" action="/addRequest" method="POST" style="display: none;" class="mb-4 mt-3">
-        <div class="mb-3">
-          <label for="roomGuest_id" class="form-label">Room Guest ID:</label>
-          <input type="text" class="form-control" id="roomGuest_id" name="roomGuest_id" required>
-        </div>
-        <div class="mb-3">
-          <label for="service_id" class="form-label">Service ID:</label>
-          <input type="text" class="form-control" id="service_id" name="service_id" required>
-        </div>
-        <div class="mb-3">
-          <label for="quantity" class="form-label">Quantity:</label>
-          <input type="text" class="form-control" id="quantity" name="quantity" required>
-        </div>
-        <div class="mb-3">
-            <label for="unitCost" class="form-label">Unit Cost:</label>
-            <input type="text" class="form-control" id="unitCost" name="unitCost" required>
+    <form id="addForm" action="/addRequest" method="POST" style="display: none;">
+      <div class="mb-3">
+        <label for="booking_id" class="form-label">Booking ID:</label>
+        <input type="text" class="form-control" id="booking_id" name="booking_id" required>
+      </div>
+      <div class="mb-3">
+        <label for="roomGuest_id" class="form-label">Room Guest ID:</label>
+        <input type="text" class="form-control" id="roomGuest_id" name="roomGuest_id" required>
+      </div>
+      <div class="mb-3">
+        <label for="service_id" class="form-label">Service ID:</label>
+        <input type="text" class="form-control" id="service_id" name="service_id" required>
+      </div>
+      <div class="mb-3">
+        <label for="quantity" class="form-label">Quantity:</label>
+        <input type="text" class="form-control" id="quantity" name="quantity" required>
+      </div>
+      <div class="mb-3">
+          <label for="unitCost" class="form-label">Unit Cost:</label>
+          <input type="text" class="form-control" id="unitCost" name="unitCost" required>
+      </div>
+      <div>
+          <label for="totalCost" class="form-label">Total Cost:</label>
+          <input type="text" class="form-control" id="totalCost" name="totalCost" required>
         </div>
         <div>
-            <label for="totalCost" class="form-label">Total Cost:</label>
-            <input type="text" class="form-control" id="totalCost" name="totalCost" required>
-          </div>
-          <div>
-            <label for="status" class="form-label">Status:</label>
-            <select class="form-control" id="status" name="status" required>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="completed">Completed</option>
-            </select>
-          </div>
-          <div>
-            <label for="status" class="form-label">Request Time:</label>
-            <input type="datetime-local" class="form-control" id="request_time" name="request_time" required>
-          </div>
-          <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        <button type="submit" class="btn btn-success">Submit</button>
-      </form>
+          <label for="status" class="form-label">Status:</label>
+          <select class="form-control" id="status" name="status" required>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div>
+          <label for="status" class="form-label">Request Time:</label>
+          <input type="datetime-local" class="form-control" id="request_time" name="request_time" required>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
 
     <!-- Edit Request Form  -->
     <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
@@ -263,8 +267,8 @@ function showForm(mode, request_id = null) {
 
             function confirmDelete(request_id) {
                 document.getElementById("modalRequestId").innerText = request_id;
-                document.getElementById("confirmDeleteBtn").href = `/deleteRequest/${request_id}`; new bootstrap.Modal(document.getElementById('deleteModal'));
-               deleteModal.show();
+                document.getElementById("confirmDeleteBtn").href = `/deleteRequest/${request_id}`;
+                var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
                 deleteModal.show();
             }   
                      </script>
