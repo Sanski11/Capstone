@@ -1,16 +1,18 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from datetime import datetime, timedelta
 import requests
 import base64
 import json
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
-# PayMongo Sandbox API Key (test key)
-PAYMONGO_SECRET_KEY = "sk_test_eM9Pno9mhoeXzGDDoTg6aViE"
+load_dotenv()
+PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
 
 HEADERS = {
     "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
@@ -137,10 +139,15 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
+        
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
     role = session['role']
 
+# ✅ Now check if redirected from successful payment
+    if request.args.get('paid') == '1':
+        flash("✅ Payment successful. Welcome back to dashboard!")
+        
     # Only admin: show users management dashboard
     if role == 'admin':
         return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
@@ -1021,68 +1028,100 @@ def show_checkout(booking_id):
 
 @app.route('/pay', methods=['POST'])
 def pay():
-    try:
-        
-     # ✅ Must be a valid source type: "gcash", "grab_pay", or "card"
-        payment_method = "gcash"  # Use GCash for sandbox testing
-        # Get values from form
-        booking_id = request.form['booking_id']
-        amount = int(request.form['amount'])  # Amount in centavos (₱100.00 = 10000)
+    booking_id = request.form['booking_id']
+    amount = int(request.form['amount'])  # In centavos
+    method = request.form.get('payment_method')  # 'gcash', 'paymaya', or 'card'
 
-        # PayMongo Secret Key
-        PAYMONGO_SECRET_KEY = "sk_test_eLo6i2aYccKKGU4ALUbhX18Z"
+    HEADERS = {
+        "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
+        "Content-Type": "application/json"
+    }
 
-        # Headers
-        HEADERS = {
-            "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
-            "Content-Type": "application/json"
-        }
-
-        # Payload for GCash payment source
+    # ✅ For gcash and paymaya → use /v1/sources
+    if method in ["gcash", "paymaya"]:
         payload = {
             "data": {
                 "attributes": {
                     "amount": amount,
                     "redirect": {
-                        "success": url_for('success', booking_id=booking_id, _external=True),
+                        "success": url_for('dashboard', _external=True),
                         "failed": url_for('failed', _external=True)
                     },
-                    "type": "payment_method",
+                    "type": method,
                     "currency": "PHP"
                 }
             }
         }
 
-        # Send request to PayMongo
-        response = requests.post(
-            "https://api.paymongo.com/v1/sources",
-            headers=HEADERS,
-            data=json.dumps(payload)
-        )
+        response = requests.post("https://api.paymongo.com/v1/sources", headers=HEADERS, data=json.dumps(payload))
         data = response.json()
 
-        # Error handling
-        if "data" not in data or "attributes" not in data["data"]:
-            return render_template("error.html", message="Error creating payment source", details=data)
+        if "data" not in data:
+            return f"<h1 style='color:red;'>❌ Payment Error</h1><pre>{json.dumps(data, indent=2)}</pre>"
 
-        # Redirect to GCash checkout page
-        checkout_url = data["data"]["attributes"]["redirect"]["checkout_url"]
-        return redirect(checkout_url)
+        return redirect(data["data"]["attributes"]["redirect"]["checkout_url"])
 
-    except KeyError as e:
-        return f"<h2 style='color:red;'>❌ Missing field: {str(e)}</h2>"
-    except Exception as e:
-        return f"<h2 style='color:red;'>❌ Unexpected error: {str(e)}</h2>"
+    # ✅ For cards → use /v1/payment_intents and /v1/links
+    elif method == "card":
+        intent_payload = {
+            "data": {
+                "attributes": {
+                    "amount": amount,
+                    "currency": "PHP",
+                    "description": f"Booking #{booking_id} Card Payment",
+                    "payment_method_allowed": ["card"],
+                    "payment_method_options": {
+                        "card": {"request_three_d_secure": "any"}
+                    }
+                }
+            }
+        }
 
+        intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
+        intent_data = intent_response.json()
 
+        if "data" not in intent_data:
+            return f"<h1 style='color:red;'>❌ Error creating payment intent.</h1><pre>{json.dumps(intent_data, indent=2)}</pre>"
+
+        intent_id = intent_data["data"]["id"]
+
+        # Create checkout link
+        checkout_payload = {
+            "data": {
+                "attributes": {
+                    "billing": {"name": "ezStay Guest"},
+                    "payment_intent": intent_id,
+                    "description": f"Booking #{booking_id} Card Payment",
+                    "amount": amount,
+                    "currency": "PHP",
+                    "success_url": url_for('success', _external=True) + "?paid=1",
+                    "cancel_url": url_for('failed', _external=True)
+                }
+            }
+        }
+
+        checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
+        checkout_data = checkout_response.json()
+
+        if "data" not in checkout_data:
+            return f"<h1 style='color:red;'>❌ Error creating checkout link.</h1><pre>{json.dumps(checkout_data, indent=2)}</pre>"
+
+        return redirect(checkout_data["data"]["attributes"]["checkout_url"])
+
+    else:
+        return "<h1 style='color:red;'>❌ Invalid payment method.</h1>"
+    
 @app.route('/success')
 def success():
-    booking_id = request.args.get('booking_id')
-    return f"<h1 style='color:green;'>✅ Payment Successful for Booking #{booking_id}</h1><a href='/dashboard'>Return Home</a>"
+    if 'username' in session:
+        flash("✅ Payment successful. Welcome back to dashboard!")
+        return redirect(url_for('dashboard', paid=1))
+    else:
+        return redirect(url_for('login'))
 
 @app.route('/failed')
 def failed():
-    return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1><a href='/bill'>Return Home</a>"
+    return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1>"
 
 if __name__ == '__main__':
     app.run(debug=True)

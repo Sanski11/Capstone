@@ -31,12 +31,24 @@
             </tbody>
         </table>
         <h3 class="mt-4">Grand Total: ₱{{ total_bill }}</h3>
-<form method="POST" action="/pay">
-    <input type="hidden" name="booking_id" value="{{ booking_id }}">
-    <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}"> <!-- Convert to centavos -->
-    <button type="submit" class="btn btn-success mt-3">Payment</button>
+<form id="paymentForm" method="POST" action="/pay">
+  <input type="hidden" name="booking_id" value="{{ booking_id }}">
+  <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}"> <!-- Centavos -->
+  <input type="hidden" name="payment_method" id="paymentMethod"> <!-- Set dynamically -->
+
+  <div class="btn btn-sucess mt-3">
+    <button type="button" class="btn btn-warning" onclick="submitPayment('card')">Pay Now</button>
+  </div>
 </form>
         <a href="{{ url_for('view_guests') }}" class="btn btn-secondary mt-3">← Back to Guests</a>
     </div>
+    
+    <script>
+  function submitPayment(method) {
+    document.getElementById('paymentMethod').value = method;
+    document.getElementById('paymentForm').submit();
+  }
+</script>
+
 </body>
 </html>

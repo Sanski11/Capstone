@@ -37,6 +37,15 @@
     </div>
   </div>
 </div>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="alert alert-success mt-3 text-center">
+      {{ messages[0] }}
+    </div>
+  {% endif %}
+{% endwith %}
+
   <section class="stats-box">
     <table>
     <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
