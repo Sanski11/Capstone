@@ -40,7 +40,11 @@
     <button type="button" class="btn btn-warning" onclick="submitPayment('card')">Pay Now</button>
   </div>
 </form>
-        <a href="{{ url_for('view_guests') }}" class="btn btn-secondary mt-3">← Back to Guests</a>
+        {% if session['role'] == 'manager' %}
+  <a href="{{ url_for('view_guests') }}" class="btn btn-secondary mt-3">← Back to Guests</a>
+        {% elif session['role'] == 'user' %}
+  <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
+{% endif %}
     </div>
     
     <script>

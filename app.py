@@ -73,14 +73,16 @@ def login():
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
         if user:
-            if user['status'] != 'Active':
-                return render_template('login.html', error="Your account is not yet approved.")
-            session['username'] = user['username']
-            session['role'] = user['role']
-            session['department'] = user['department']
-            session['login_attempts'] = 0  # Reset on successful login
-            session.pop('lockout_until', None)
-            return redirect(url_for('dashboard'))
+         if user['status'] != 'Active':
+            return render_template('login.html', error="Your account is not yet approved.")
+    
+         session['username'] = user['username']         # ✅ This is correct
+         session['role'] = user['role']                 # ✅ This is correct
+         session['department'] = user['department']     # ✅ Optional but helpful for role-based logic
+         session['login_attempts'] = 0
+         session.pop('lockout_until', None)
+         flash(f"Welcome back, {user['username']}!", "success")
+         return redirect(url_for('dashboard'))
         else:
             session['login_attempts'] += 1
             attempts_left = 3 - session['login_attempts']
@@ -139,23 +141,16 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-        
-    if 'username' not in session or 'role' not in session:
-        return redirect(url_for('login'))
-    role = session['role']
-
-# ✅ Now check if redirected from successful payment
     if request.args.get('paid') == '1':
         flash("✅ Payment successful. Welcome back to dashboard!")
-        
-    # Only admin: show users management dashboard
-    if role == 'admin':
-        return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
 
-    # Manager: show all stats and charts
-    elif role == 'manager':
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        # Housekeeping
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+
+    role = session['role']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    def get_stats_and_charts():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -163,7 +158,7 @@ def dashboard():
             WHERE s.service_type = 'Housekeeping'
         """)
         housekeeping = cursor.fetchone()['count']
-        # Food
+
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -171,7 +166,7 @@ def dashboard():
             WHERE s.service_type = 'Dining'
         """)
         food = cursor.fetchone()['count']
-        # Laundry
+
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -179,7 +174,7 @@ def dashboard():
             WHERE s.service_type = 'Laundry'
         """)
         laundry = cursor.fetchone()['count']
-        # Spa
+
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -187,7 +182,7 @@ def dashboard():
             WHERE s.service_type = 'Massage'
         """)
         spa = cursor.fetchone()['count']
-        # Pie chart data
+
         cursor.execute("""
             SELECT service_type, COUNT(*) AS count
             FROM services s
@@ -195,7 +190,7 @@ def dashboard():
             GROUP BY service_type
         """)
         service_data = cursor.fetchall()
-        # Bar chart data
+
         cursor.execute("""
             SELECT s.first_name AS staff, 
                    COUNT(r.request_id) AS requests,
@@ -205,32 +200,40 @@ def dashboard():
             GROUP BY s.first_name
         """)
         staff_data = cursor.fetchall()
-        cursor.close()
-        return render_template(
-            'dashboard.html',
-            role=role,
-            stats={
-                "housekeeping": housekeeping,
-                "food": food,
-                "laundry": laundry,
-                "spa": spa
-            },
-            service_data=service_data,
-            staff_data=staff_data
-        )
 
-    # Supervisor/Staff: show only requests/tasks
-    elif role in ['supervisor', 'staff']:
+        return {
+            "housekeeping": housekeeping,
+            "food": food,
+            "laundry": laundry,
+            "spa": spa
+        }, service_data, staff_data
+
+    # Admin, Manager, Supervisor see stats and charts
+    if role in ['admin', 'manager', 'supervisor']:
+        stats, service_data, staff_data = get_stats_and_charts()
+        cursor.close()
+        return render_template('dashboard.html', role=role, stats=stats, service_data=service_data, staff_data=staff_data)
+
+    # User role: no charts/stats, but allow booking/payment features
+    elif role == 'user':
+        cursor.close()
         return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
 
-    # Default: redirect to login
+    # Default fallback
+    cursor.close()
     return redirect(url_for('login'))
 
 @app.route('/profile')
 def profile():
-    if 'username' in session and 'role' in session:
-        return render_template('profile.html', user=session['username'], role=session['role'])
-    return redirect(url_for('login'))
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    user = cursor.fetchone()
+    cursor.close()
+
+    return render_template('profile.html', user=user, role=user['role'])
 
 @app.route('/logout')
 def logout():
@@ -1019,7 +1022,9 @@ def approve_user(user_id):
     cursor.execute("UPDATE users SET status = 'Active' WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/users')
+
+    flash("✅ User approved successfully!")
+    return redirect(url_for('view_users'))  # Make sure 'view_users' is the correct endpoint name
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])
 def show_checkout(booking_id):
