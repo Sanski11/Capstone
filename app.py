@@ -2,9 +2,20 @@ from flask import Flask, render_template, request, redirect, session, url_for, j
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
 from datetime import datetime, timedelta
+import requests
+import base64
+import json
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+
+# PayMongo Sandbox API Key (test key)
+PAYMONGO_SECRET_KEY = "sk_test_eM9Pno9mhoeXzGDDoTg6aViE"
+
+HEADERS = {
+    "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
+    "Content-Type": "application/json" 
+    }
 
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
@@ -1007,6 +1018,71 @@ def approve_user(user_id):
 def show_checkout(booking_id):
     # Fetch booking info if needed
     return render_template('checkout_form.html', booking_id=booking_id)
+
+@app.route('/pay', methods=['POST'])
+def pay():
+    try:
+        
+     # ✅ Must be a valid source type: "gcash", "grab_pay", or "card"
+        payment_method = "gcash"  # Use GCash for sandbox testing
+        # Get values from form
+        booking_id = request.form['booking_id']
+        amount = int(request.form['amount'])  # Amount in centavos (₱100.00 = 10000)
+
+        # PayMongo Secret Key
+        PAYMONGO_SECRET_KEY = "sk_test_eLo6i2aYccKKGU4ALUbhX18Z"
+
+        # Headers
+        HEADERS = {
+            "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
+            "Content-Type": "application/json"
+        }
+
+        # Payload for GCash payment source
+        payload = {
+            "data": {
+                "attributes": {
+                    "amount": amount,
+                    "redirect": {
+                        "success": url_for('success', booking_id=booking_id, _external=True),
+                        "failed": url_for('failed', _external=True)
+                    },
+                    "type": "payment_method",
+                    "currency": "PHP"
+                }
+            }
+        }
+
+        # Send request to PayMongo
+        response = requests.post(
+            "https://api.paymongo.com/v1/sources",
+            headers=HEADERS,
+            data=json.dumps(payload)
+        )
+        data = response.json()
+
+        # Error handling
+        if "data" not in data or "attributes" not in data["data"]:
+            return render_template("error.html", message="Error creating payment source", details=data)
+
+        # Redirect to GCash checkout page
+        checkout_url = data["data"]["attributes"]["redirect"]["checkout_url"]
+        return redirect(checkout_url)
+
+    except KeyError as e:
+        return f"<h2 style='color:red;'>❌ Missing field: {str(e)}</h2>"
+    except Exception as e:
+        return f"<h2 style='color:red;'>❌ Unexpected error: {str(e)}</h2>"
+
+
+@app.route('/success')
+def success():
+    booking_id = request.args.get('booking_id')
+    return f"<h1 style='color:green;'>✅ Payment Successful for Booking #{booking_id}</h1><a href='/dashboard'>Return Home</a>"
+
+@app.route('/failed')
+def failed():
+    return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1><a href='/bill'>Return Home</a>"
 
 if __name__ == '__main__':
     app.run(debug=True)
