@@ -381,20 +381,6 @@ def assigntask():
 
     return redirect('/requests')
 
-@app.route('/updateStatus', methods=['POST'])
-def updateStatus():
-    request_id = request.form['updateStatus_request_id']
-    status = request.form['updateStatus_status']
-    completionTime = datetime.strptime(request.form['updateStatus_completionTime'], '%Y-%m-%dT%H:%M')
-
-    cursor = mysql.connection.cursor()
-    sql = "UPDATE requests SET status = %s, completionTime = %s WHERE request_id = %s"
-    cursor.execute(sql, (status, completionTime, request_id))
-    mysql.connection.commit()
-    cursor.close()
-
-    return redirect('/requests')
-
 @app.route('/rooms')
 def view_rooms():
     search = request.args.get('search', '')
@@ -636,34 +622,41 @@ from flask import request, redirect
 
 @app.route('/updateRequest', methods=['POST'])
 def update_request():
-    request_id = request.form['edit_request_id']
-    booking_id = request.form['edit_booking_id']
-    service_id = request.form['edit_service_id']
-    quantity = int(request.form['edit_quantity'])
-    unitCost = float(request.form['edit_unitCost'])
-    totalCost = quantity * unitCost
+    request_id = request.form.get('edit_request_id')
+    booking_id = request.form.get('edit_booking_id')
+    service_id = request.form.get('edit_service_id')
+    quantity = request.form.get('edit_quantity')
+    unitCost = request.form.get('edit_unitCost')
+    totalCost = request.form.get('edit_totalCost')
+    status = request.form.get('edit_status')
+    request_time = request.form.get('edit_request_time')
 
+    # Debug: Print form data to terminal
+    print("FORM DATA:", request.form)
+
+    # Validate required fields
+    if not booking_id or not request_id:
+        return "Missing required fields", 400
+
+    # Convert numeric values
+    try:
+        quantity = int(quantity)
+        unitCost = float(unitCost)
+        totalCost = float(totalCost)
+    except ValueError:
+        return "Invalid numeric input", 400
+
+    # Execute SQL update
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         UPDATE requests
-        SET booking_id=%s, service_id=%s, quantity=%s, unitCost=%s, totalCost=%s
+        SET booking_id=%s, service_id=%s, quantity=%s,
+            unitCost=%s, totalCost=%s, status=%s, request_time=%s
         WHERE request_id=%s
-    """, (booking_id, service_id, quantity, unitCost, totalCost, request_id))
+    """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/requests')
 
-@app.route('/updateRequestStatus', methods=['POST'])
-def update_request_status():
-    request_id = request.form['edit_request_id']
-    status = request.form['edit_status']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "UPDATE Requests SET status = %s WHERE request_id = %s",
-        (status, request_id)
-    )
-    mysql.connection.commit()
-    cursor.close()
     return redirect('/requests')
 
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])

@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet"> -->
     <link href="/static/bootstrap.min.css" rel="stylesheet">
     <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
 </head>
 <body>
@@ -35,7 +36,7 @@
         <thead class="table-dark">
             <tr>
                 <th>Request ID</th>
-                <th>Room Guest ID</th>
+                <th>Booking ID</th>
                 <th>Service ID</th>
                 <th>Quantity</th>
                 <th>Unit Cost</th>
@@ -50,7 +51,7 @@
             {% for request in requests %}
             <tr>
                 <td>{{ request.request_id }}</td>
-                <td>{{ request.roomGuest_id }}</td>
+                <td>{{ request.booking_id }}</td>
                 <td>{{ request.service_id }}</td>
                 <td>{{ request.quantity }}</td>
                 <td>{{ request.unitCost }}</td>
@@ -105,10 +106,6 @@
         <input type="text" class="form-control" id="booking_id" name="booking_id" required>
       </div>
       <div class="mb-3">
-        <label for="roomGuest_id" class="form-label">Room Guest ID:</label>
-        <input type="text" class="form-control" id="roomGuest_id" name="roomGuest_id" required>
-      </div>
-      <div class="mb-3">
         <label for="service_id" class="form-label">Service ID:</label>
         <input type="text" class="form-control" id="service_id" name="service_id" required>
       </div>
@@ -141,44 +138,53 @@
     </form>
 
     <!-- Edit Request Form  -->
-    <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
-        <input type="hidden" id="edit_request_id" name="edit_request_id">
-        <div class="mb-3">
-          <label for="edit_roomGuest_id" class="form-label">Room Guest ID:</label>
-          <input type="text" class="form-control" id="edit_roomGuest_id" name="edit_roomGuest_id" required>
-        </div>
-        <div class="mb-3">
-          <label for="edit_service_id" class="form-label">Service ID:</label>
-          <input type="text" class="form-control" id="edit_service_id" name="edit_service_id" required>
-        </div>
-        <div class="mb-3">
-          <label for="edit_quantity" class="form-label">Quantity:</label>
-          <input type="text" class="form-control" id="edit_quantity" name="edit_quantity" required>
-        </div>
-        <div class="mb-3">
-            <label for="edit_unitCost" class="form-label">Unit Cost:</label>
-            <input type="text" class="form-control" id="edit_unitCost" name="edit_unitCost" required>
-        </div>
-        <div>
-            <label for="edit_totalCost" class="form-label">Total Cost:</label>
-            <input type="text" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
-          </div>
-          <div class="mb-3">
-            <label for="edit_status" class="form-label">Status:</label>
-            <select class="form-control" id="edit_status" name="edit_status" required>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="completed">Completed</option>
-            </select>
-        </div>
-          <div>
-            <label for="status" class="form-label">Request Time:</label>
-            <input type="datetime-local" class="form-control" id="edit_quantityrequest_time" name="edit_request_time" required>
-          </div>
-          <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        <button type="submit" class="btn btn-success">Submit</button>
-      </form>
-</div>
+  <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
+    <input type="hidden" id="edit_request_id" name="edit_request_id">
+    
+
+    <div class="mb-3">
+      <label for="edit_booking_id" class="form-label">Booking ID:</label>
+      <input type="text" class="form-control" id="edit_booking_id" name="edit_booking_id" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="edit_service_id" class="form-label">Service ID:</label>
+      <input type="text" class="form-control" id="edit_service_id" name="edit_service_id" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="edit_quantity" class="form-label">Quantity:</label>
+      <input type="number" class="form-control" id="edit_quantity" name="edit_quantity" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="edit_unitCost" class="form-label">Unit Cost:</label>
+      <input type="number" step="0.01" class="form-control" id="edit_unitCost" name="edit_unitCost" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="edit_totalCost" class="form-label">Total Cost:</label>
+      <input type="number" step="0.01" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="edit_status" class="form-label">Status:</label>
+      <select class="form-control" id="edit_status" name="edit_status" required>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="completed">Completed</option>
+      </select>
+    </div>
+
+  <div class="mb-3">
+    <label for="edit_request_time" class="form-label">Request Time:</label>
+    <input type="datetime-local" class="form-control" id="edit_request_time" name="edit_request_time" required>
+  </div>
+
+  <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+  <button type="submit" class="btn btn-success">Submit</button>
+</form>
+
         <!-- Delete Confirmation Modal -->
         <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -197,68 +203,43 @@
               </div>
             </div>
           </div>
-<!-- Update Status Modal -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <form action="/updateStatus" method="POST" class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="updateStatusModalLabel">Update Status</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <input type="hidden" name="updateStatus_request_id" id="updateStatus_request_id">
-                <div class="mb-3">
-                  <label for="updateStatus_status" class="form-label">Status:</label>
-                  <input type="text" class="form-control" id="updateStatus_status" name="updateStatus_status" required>
-                </div>
-                <div class="mb-3">
-                  <label for="updateStatus_completionTime" class="form-label">Completion Time:</label>
-                  <input type="text" class="form-control" id="updateStatus_completionTime" name="updateStatus_completionTime" value="{{ current_time }}" required>
-                </div>
-              </div>
-              <div class="modal-footer">
-                <button type="submit" class="btn btn-success">Submit</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              </div>
-            </form>
-          </div>
-        </div>           
           <!-- Bootstrap JS Bundle with Popper -->
           <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
        
           <!-- Rooms JS and script -->
         <script>
-            const requests = '{{ requests | tojson | safe }}';
+              const requests = '{{ requests | tojson | safe }}';
 
-function showForm(mode, request_id = null) {
+  function showForm(mode, request_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
 
     if (mode === "add") {
-        addForm.style.display = "block";
-        editForm.style.display = "none";
+      addForm.style.display = "block";
+      editForm.style.display = "none";
     } else if (mode === "edit") {
-        addForm.style.display = "none";
-        editForm.style.display = "block";
+      addForm.style.display = "none";
+      editForm.style.display = "block";
 
-        const request = requests.find(r => r.request_id === parseInt(request_id));
-        if (request) {
-            document.getElementById("edit_request_id").value = request.request_id;
-                document.getElementById("edit_booking_id").value = request.booking_id;
-                document.getElementById("edit_service_id").value = request.service_id;
-                document.getElementById("edit_quantity").value = request.quantity;
-                document.getElementById("edit_unitCost").value = request.unitCost;
-                document.getElementById("edit_totalCost").value = request.totalCost;
-                document.getElementById("edit_status").value = request.status;
-                document.getElementById("edit_request_time").value = request.request_time;
-                document.getElementById("edit_staff_id").value = request.staff_id;
-                document.getElementById("edit_completionTime").value = request.completionTime;
-        } else {
-            console.error("Request not found:", request_id);
-        }
+      // ✅ Replace this line:
+      // const request = requests.find(r => r.request_id === parseInt(request_id));
+      // 🔁 With this line:
+      const request = requests.find(r => r.request_id == request_id);
+
+      if (request) {
+        document.getElementById("edit_request_id").value = request.request_id;
+        document.getElementById("edit_booking_id").value = request.booking_id;
+        document.getElementById("edit_service_id").value = request.service_id;
+        document.getElementById("edit_quantity").value = request.quantity;
+        document.getElementById("edit_unitCost").value = request.unitCost;
+        document.getElementById("edit_totalCost").value = request.totalCost;
+        document.getElementById("edit_status").value = request.status;
+        document.getElementById("edit_request_time").value = request.request_time;
+      } else {
+        console.error("Request not found:", request_id);
+      }
     }
-}
+  }
 
             function hideForm() {
             document.getElementById("addForm").style.display = "none";
@@ -271,8 +252,14 @@ function showForm(mode, request_id = null) {
                 var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
                 deleteModal.show();
             }   
-                     </script>
-        </script>
 
-
-</html></body></html>
+            document.getElementById("editForm").addEventListener("submit", function(e) {
+            const formData = new FormData(this);
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ": " + pair[1]);
+                }
+            });
+   </script>
+</html>
+</body>
+</html>
