@@ -112,6 +112,35 @@ def forgot_password():
     
     return render_template('forgot_password.html')
 
+from flask import render_template, request, redirect, url_for, flash
+import MySQLdb.cursors
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if new_password != confirm_password:
+            error = "Passwords do not match."
+        elif len(new_password) < 8 or len(new_password) > 60:
+            error = "Password must be 8-60 characters."
+        else:
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+            user = cursor.fetchone()
+            if not user:
+                error = "Username not found."
+            else:
+                cursor.execute("UPDATE users SET password=%s WHERE username=%s", (new_password, username))
+                mysql.connection.commit()
+                cursor.close()
+                flash("Password reset successful. Please log in.")
+                return redirect(url_for('login'))
+    return render_template('reset_password.html', error=error)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
