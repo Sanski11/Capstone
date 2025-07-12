@@ -23,7 +23,7 @@ HEADERS = {
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -76,9 +76,9 @@ def login():
          if user['status'] != 'Active':
             return render_template('login.html', error="Your account is not yet approved.")
     
-         session['username'] = user['username']         # ✅ This is correct
-         session['role'] = user['role']                 # ✅ This is correct
-         session['department'] = user['department']     # ✅ Optional but helpful for role-based logic
+         session['username'] = user['username']
+         session['role'] = user['role']
+         session['department'] = user['department']
          session['login_attempts'] = 0
          session.pop('lockout_until', None)
          flash(f"Welcome back, {user['username']}!", "success")
@@ -1064,7 +1064,7 @@ def pay():
         "Content-Type": "application/json"
     }
 
-    # ✅ For gcash and paymaya → use /v1/sources
+    # For gcash and paymaya
     if method in ["gcash", "paymaya"]:
         payload = {
             "data": {
