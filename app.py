@@ -23,7 +23,7 @@ HEADERS = {
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -1056,95 +1056,57 @@ def show_checkout(booking_id):
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form['booking_id']
-    amount = int(request.form['amount'])  # In centavos
-    method = request.form.get('payment_method')  # 'gcash', 'paymaya', or 'card'
+    amount = int(request.form['amount'])
+    method = "card"  # Always use 'card' for PayMongo links
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
         "Content-Type": "application/json"
     }
 
-    # For gcash and paymaya
-    if method in ["gcash", "paymaya"]:
-        payload = {
-            "data": {
-                "attributes": {
-                    "amount": amount,
-                    "redirect": {
-                        "success": url_for('dashboard', _external=True),
-                        "failed": url_for('failed', _external=True)
-                    },
-                    "type": method,
-                    "currency": "PHP"
+    # Create payment intent
+    intent_payload = {
+        "data": {
+            "attributes": {
+                "amount": amount,
+                "currency": "PHP",
+                "description": f"Booking #{booking_id} Payment",
+                "payment_method_allowed": ["card", "gcash", "grab_pay"],  # Show all options
+                "payment_method_options": {
+                    "card": {"request_three_d_secure": "any"}
                 }
             }
         }
+    }
+    intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
+    intent_data = intent_response.json()
+    if "data" not in intent_data:
+        return "<h3>❌ Error creating payment intent.</h3><pre>{}</pre>".format(json.dumps(intent_data, indent=2))
+    intent_id = intent_data["data"]["id"]
 
-        response = requests.post("https://api.paymongo.com/v1/sources", headers=HEADERS, data=json.dumps(payload))
-        data = response.json()
-
-        if "data" not in data:
-            return f"<h1 style='color:red;'>❌ Payment Error</h1><pre>{json.dumps(data, indent=2)}</pre>"
-
-        return redirect(data["data"]["attributes"]["redirect"]["checkout_url"])
-
-    # ✅ For cards → use /v1/payment_intents and /v1/links
-    elif method == "card":
-        intent_payload = {
-            "data": {
-                "attributes": {
-                    "amount": amount,
-                    "currency": "PHP",
-                    "description": f"Booking #{booking_id} Card Payment",
-                    "payment_method_allowed": ["card"],
-                    "payment_method_options": {
-                        "card": {"request_three_d_secure": "any"}
-                    }
-                }
+    # Create checkout link
+    checkout_payload = {
+        "data": {
+            "attributes": {
+                "billing": {"name": "ezStay Guest"},
+                "payment_intent": intent_id,
+                "description": f"Booking #{booking_id} Payment",
+                "amount": amount,
+                "currency": "PHP",
+                "success_url": url_for('success', _external=True),
+                "cancel_url": url_for('failed', _external=True)
             }
         }
+    }
+    checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
+    checkout_data = checkout_response.json()
+    if "data" not in checkout_data:
+        return "<h3>❌ Error creating checkout link.</h3><pre>{}</pre>".format(json.dumps(checkout_data, indent=2))
+    return redirect(checkout_data["data"]["attributes"]["checkout_url"])
 
-        intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
-        intent_data = intent_response.json()
-
-        if "data" not in intent_data:
-            return f"<h1 style='color:red;'>❌ Error creating payment intent.</h1><pre>{json.dumps(intent_data, indent=2)}</pre>"
-
-        intent_id = intent_data["data"]["id"]
-
-        # Create checkout link
-        checkout_payload = {
-            "data": {
-                "attributes": {
-                    "billing": {"name": "ezStay Guest"},
-                    "payment_intent": intent_id,
-                    "description": f"Booking #{booking_id} Card Payment",
-                    "amount": amount,
-                    "currency": "PHP",
-                    "success_url": url_for('success', _external=True) + "?paid=1",
-                    "cancel_url": url_for('failed', _external=True)
-                }
-            }
-        }
-
-        checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
-        checkout_data = checkout_response.json()
-
-        if "data" not in checkout_data:
-            return f"<h1 style='color:red;'>❌ Error creating checkout link.</h1><pre>{json.dumps(checkout_data, indent=2)}</pre>"
-
-        return redirect(checkout_data["data"]["attributes"]["checkout_url"])
-
-    else:
-        return "<h1 style='color:red;'>❌ Invalid payment method.</h1>"
-    
 @app.route('/success')
 def success():
-    if 'username' in session:
-        flash("✅ Payment successful. Welcome back to dashboard!")
-        return redirect(url_for('dashboard', paid=1))
-    else:
-        return redirect(url_for('login'))
+    return render_template("bill.html")
 
 @app.route('/failed')
 def failed():

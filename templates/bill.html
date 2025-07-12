@@ -31,26 +31,52 @@
             </tbody>
         </table>
         <h3 class="mt-4">Grand Total: ₱{{ total_bill }}</h3>
-<form id="paymentForm" method="POST" action="/pay">
+<form id="payForm" action="/pay" method="POST" target="_blank">
   <input type="hidden" name="booking_id" value="{{ booking_id }}">
-  <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}"> <!-- Centavos -->
-  <input type="hidden" name="payment_method" id="paymentMethod"> <!-- Set dynamically -->
-
-  <div class="btn btn-sucess mt-3">
-    <button type="button" class="btn btn-warning" onclick="submitPayment('card')">Pay Now</button>
-  </div>
+  <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}">
+  <button type="submit" class="btn btn-warning">Pay Now</button>
 </form>
-        {% if session['role'] == 'manager' %}
+{% if session['role'] == 'manager' %}
   <a href="{{ url_for('view_guests') }}" class="btn btn-secondary mt-3">← Back to Guests</a>
-        {% elif session['role'] == 'user' %}
+{% elif session['role'] == 'user' %}
   <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
 {% endif %}
     </div>
-    
     <script>
   function submitPayment(method) {
     document.getElementById('paymentMethod').value = method;
-    document.getElementById('paymentForm').submit();
+    document.getElementById('payForm').submit();
+
+    document.getElementById("payForm").addEventListener("submit", async function (e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const formData = new FormData(form);
+  const data = new URLSearchParams(formData);
+
+  // 👉 Open a blank tab immediately — BEFORE the fetch
+  const payTab = window.open("", "_blank");
+
+  try {
+    const response = await fetch("/pay", {
+      method: "POST",
+      body: data
+    });
+
+    const result = await response.json();
+
+    if (result.checkout_url) {
+      // ✅ Redirect the previously opened tab
+      payTab.location.href = result.checkout_url;
+    } else {
+      payTab.document.write("<h1>❌ Payment initiation failed.</h1>");
+      console.error(result);
+    }
+  } catch (err) {
+    console.error("Error during payment:", err);
+    payTab.document.write("<h1>❌ Something went wrong while connecting to the payment server.</h1>");
+  }
+});
   }
 </script>
 
