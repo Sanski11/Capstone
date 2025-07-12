@@ -247,7 +247,7 @@
           document.getElementById("edit_guest_id").value = booking.guest_id;
           document.getElementById("edit_room_type").value = booking.room_type;
 
-          // ✅ Delay filtering to allow DOM to update first
+          // Delay filtering to allow DOM to update first
           setTimeout(() => {
             filterEditRooms(booking.room_id);  // show only rooms of that type
             document.getElementById("edit_room_id").value = booking.room_id;
