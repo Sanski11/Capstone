@@ -31,9 +31,9 @@
     <thead class="table-dark">
       <tr>
         <th>Booking ID</th>
-        <th>Guest ID</th>
+        <th>Guest Name</th>
         <th>Room Type</th>
-        <th>Room ID</th>
+        <th>Room Number</th>
         <th>Expected Check-in</th>
         <th>Expected Check-out</th>
         <th>Status</th>
@@ -158,67 +158,41 @@
   {% endif %}
 </div>
 
-<script>
-  const bookings = '{{ bookings | tojson | safe }}';
-
-  function showForm(mode, id = null) {
-    const addForm = document.getElementById("addForm");
-    const editForm = document.getElementById("editForm");
-    if (mode === "add") {
-      addForm.style.display = "block";
-      editForm.style.display = "none";
-    } else if (mode === "edit") {
-      addForm.style.display = "none";
-      editForm.style.display = "block";
-
 <!-- Bootstrap JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-
   <!-- Booking JS and script -->
-  <script>
-    const bookings = '{{ bookings | tojson | safe }}';
+<script>
+  const bookings = {{ bookings | tojson | safe }};
 
-    function showForm(mode, booking_id = null) {
-      const addForm = document.getElementById("addForm");
-      const editForm = document.getElementById("editForm");
+  function showForm(mode, booking_id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
 
-      if (mode === "add") {
-        addForm.style.display = "block";
-        editForm.style.display = "none";
-      } else if (mode === "edit") {
-        addForm.style.display = "none";
-        editForm.style.display = "block";
+    if (mode === "add") {
+      addForm.style.display = "block";
+      editForm.style.display = "none";
+    } 
+    else if (mode === "edit") {
+      addForm.style.display = "none";
+      editForm.style.display = "block";
 
-        const booking = bookings.find(r => r.booking_id === parseInt(booking_id));
-        if (booking) {
-          document.getElementById("edit_booking_id").value = booking.booking_id;
-          document.getElementById("edit_guest_id").value = booking.guest_id;
-          document.getElementById("edit_room_type").value = booking.room_type;
-
-          // Delay filtering to allow DOM to update first
-          setTimeout(() => {
-            filterEditRooms(booking.room_id);  // show only rooms of that type
-            document.getElementById("edit_room_id").value = booking.room_id;
-          }, 0);
-
-          document.getElementById("edit_exp_check_in").value = booking.exp_check_in || "";
-          document.getElementById("edit_exp_check_out").value = booking.exp_check_out || "";
-          document.getElementById("edit_status").value = booking.status;
-        } else {
-          console.error("Booking not found:", booking_id);
-        }
-
-        const booking = bookings.find(b => b.booking_id === parseInt(id));
+      const booking = bookings.find(b => b.booking_id === parseInt(booking_id));
       if (booking) {
         document.getElementById("edit_booking_id").value = booking.booking_id;
         document.getElementById("edit_guest_id").value = booking.guest_id;
         document.getElementById("edit_room_type").value = booking.room_type;
-        document.getElementById("edit_room_id").value = booking.room_id;
-        document.getElementById("edit_exp_check_in").value = booking.exp_check_in;
-        document.getElementById("edit_exp_check_out").value = booking.exp_check_out;
-        document.getElementById("edit_status").value = booking.status;
 
+        setTimeout(() => {
+          filterEditRooms();
+          document.getElementById("edit_room_id").value = booking.room_id;
+        }, 0);
+
+        document.getElementById("edit_exp_check_in").value = booking.exp_check_in || "";
+        document.getElementById("edit_exp_check_out").value = booking.exp_check_out || "";
+        document.getElementById("edit_status").value = booking.status;
+      } else {
+        console.error("Booking not found:", booking_id);
       }
     }
   }
@@ -229,8 +203,8 @@
   }
 
   function confirmDelete(id) {
-    if (confirm(`Delete booking ${id}?`)) {
-      window.location.href = `/deleteBooking/${id}`;
+    if (confirm(Delete booking ${id}?)) {
+      window.location.href = /deleteBooking/${id};
     }
   }
 

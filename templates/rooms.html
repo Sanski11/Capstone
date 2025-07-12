@@ -149,7 +149,7 @@
 
   <!-- Rooms JS and script -->
 <script>
-    const rooms = '{{ rooms | tojson | safe }}'
+    const rooms = {{ rooms | tojson | safe }}
 
     function showForm(mode, room_id = null) {
       const addForm = document.getElementById("addForm");
