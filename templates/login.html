@@ -8,7 +8,7 @@
   <div class="form-box">
     <h2>Login</h2>
     <form method="POST">
-      <label>ID Number</label>
+      <label>Username</label>
       <input type="text" name="username" placeholder="Username" required>
       <label>Password</label>
       <input type="password" name="password" id="password" placeholder="Password" required>
@@ -21,7 +21,29 @@
 
     <p><a href="{{ url_for('forgot_password') }}">Forgot your password?</a></p>
     <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></p>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    
+    {% if lockout_remaining %}
+      <p class="error" id="lockout-msg">
+        Maximum login attempts reached. Try again in <span id="timer"></span>.
+      </p>
+      <script>
+        var remaining = '{{ lockout_remaining }}';
+        function updateTimer() {
+          if (remaining <= 0) {
+            document.getElementById('lockout-msg').innerText = "You may now try logging in again.";
+            return;
+          }
+          var m = Math.floor(remaining / 60);
+          var s = remaining % 60;
+          document.getElementById('timer').innerText = m + "m " + s + "s";
+          remaining--;
+          setTimeout(updateTimer, 1000);
+        }
+        updateTimer();
+      </script>
+    {% elif error %}
+      <p class="error">{{ error }}</p>
+    {% endif %}
   </div>
 
   <script>

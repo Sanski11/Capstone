@@ -9,7 +9,7 @@
 <body>
   <div class="navbar">
     <div class="nav-links">
-      <a href="{{ url_for('dashboard') }}">Home</a>
+      <a href="{{ url_for('dashboard') }}" style="font-weight:bold;">Home</a>
     </div>
     <div class="dropdown">
       <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
@@ -20,14 +20,16 @@
     </div>
   </div>
 
-  <div class="profile-container">
-    <h2>Welcome, {{ user }}</h2>
-    <div class="profile-card">
-      <p><strong>Username:</strong> {{ user }}</p>
-      <p><strong>Role:</strong> {{ role|capitalize }}</p>
-      <p><strong>Status:</strong> Active</p>
-    </div>
+<div class="profile-container">
+  <h2>Welcome, {{ user.username }}</h2>
+  <div class="profile-card">
+    <p><strong>Username:</strong> {{ user.username }}</p>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Role:</strong> {{ user.role|capitalize }}</p>
+    <p><strong>Department:</strong> {{ user.department }}</p>
+    <p><strong>Status:</strong> {{ user.status }}</p>
   </div>
+</div>
 
   <script>
   function toggleDropdown() {

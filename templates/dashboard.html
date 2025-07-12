@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Homepage-Staff</title>
+  <title>Homepage</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,10 +12,9 @@
   <div class="navbar-left">
     <h1>ezStay</h1>
   </div>
-
   <div class="nav-links">
     {% if role == "admin" %}
-      <a href="/staff">Authorized Users</a>
+      <a href="/users">Authorized Users</a>
     {% elif role == "manager" %}
       <a href="/rooms">Rooms</a>
       <a href="/services">Services</a>
@@ -24,7 +23,7 @@
       <a href="/bookings">Bookings</a>
       <a href="/roomGuest">Check-in/Checkout</a>  
       <a href="/requests">Requests</a>
-    {% elif role == "supervisor" or role == "staff" %}
+    {% elif role in ["supervisor", "staff"] %}
       <a href="/requests">Requests</a>
     {% endif %}
   </div>
@@ -37,97 +36,95 @@
     </div>
   </div>
 </div>
+
+{% if role in ['admin', 'manager', 'supervisor'] %}
   <section class="stats-box">
-    <table>
-    <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
-    <tr><td>Food</td><td>{{ stats.food }}</td></tr>
-    <tr><td>Laundry</td><td>{{ stats.laundry }}</td></tr>
-    <tr><td>Spa</td><td>{{ stats.spa }}</td></tr>
-  </table>
-  </section>
-  <section class="chart-section">
-    <div style="width: 600px; margin: 0 auto;">
-        <!-- Bar Chart -->
-        <canvas id="barChart"></canvas>
-    </div>
-    <h2 style="text-align:center; margin-top: 30px;">Daily Staff Activity</h2>
-    <div style="width: 500px; margin: 0 auto;">
-        <!-- Pie Chart -->
-        <canvas id="pieChart"></canvas>
-    </div>
+    <table class="table table-bordered">
+      <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
+      <tr><td>Food</td><td>{{ stats.food }}</td></tr>
+      <tr><td>Laundry</td><td>{{ stats.laundry }}</td></tr>
+      <tr><td>Spa</td><td>{{ stats.spa }}</td></tr>
+    </table>
   </section>
 
-  <script>
-  // Bar Chart Data
-  const barLabels = ['{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const requestsData = ['{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const completedData = ['{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  <section class="chart-section">
+    <div style="max-width: 400px;">
+      <canvas id="barChart"></canvas>
+    </div>
+    <h2>Daily Staff Activity</h2>
+    <div style="max-width: 400px;">
+      <canvas id="pieChart"></canvas>
+    </div>
+  </section>
+{% endif %}
+
+{% if role in ['user'] %}
+  <section class="advertising-box" style="max-width:500px;margin:30px auto;padding:24px;border-radius:12px;background:#f8f8f8;box-shadow:0 2px 8px rgba(0,0,0,0.07);text-align:center;">
+    <h2 style="color:#2c2c2c;">Welcome to ezStay Hotels!</h2>
+    <p style="font-size:18px;color:#555;">
+      Enjoy exclusive offers: <br>
+      <strong>Free breakfast</strong> for all guests! <br>
+      <strong>20% off Spa services</strong> this month! <br>
+      Book now and experience luxury, comfort, and world-class service.
+    </p>
+    <img src="{{ url_for('static', filename='images/hotel-ad.jpg') }}" alt="Hotel Promotion" style="max-width:100%;border-radius:8px;margin-top:16px;">
+    <p style="margin-top:12px;">
+      <a href="/bookings" class="btn btn-success">Book Your Stay</a>
+    </p>
+  </section>
+{% endif %}
+
+<script>
+  const barLabels = [{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+  const requestsData = [{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}];
+  const completedData = [{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}];
 
   new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: {
-          labels: barLabels,
-          datasets: [
-              {
-                  label: 'Requests',
-                  backgroundColor: '#7fd3f7',
-                  data: requestsData
-              },
-              {
-                  label: 'Completed',
-                  backgroundColor: '#ff8c6b',
-                  data: completedData
-              }
-          ]
-      },
-      options: {
-          responsive: true,
-          plugins: {
-              legend: { display: true }
-          },
-          scales: {
-              x: { stacked: false },
-              y: { beginAtZero: true }
-          }
-      }
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [
+        { label: 'Requests', backgroundColor: '#7fd3f7', data: requestsData },
+        { label: 'Completed', backgroundColor: '#ff8c6b', data: completedData }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { y: { beginAtZero: true } }
+    }
   });
 
-  // Pie Chart Data
-  const pieLabels = ['{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}'];
-  const pieData = ['{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}'];
+  const pieLabels = [{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+  const pieData = [{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
   const pieColors = ['#5fd3bc', '#7fd3f7', '#8cb6e6', '#b3b3c6', '#f7c873'];
 
   new Chart(document.getElementById('pieChart'), {
-      type: 'pie',
-      data: {
-          labels: pieLabels,
-          datasets: [{
-              data: pieData,
-              backgroundColor: pieColors
-          }]
-      },
-      options: {
-          responsive: true,
-          plugins: {
-              legend: { display: true, position: 'bottom' }
-          }
-      }
+    type: 'pie',
+    data: {
+      labels: pieLabels,
+      datasets: [{ data: pieData, backgroundColor: pieColors }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true, position: 'bottom' } }
+    }
   });
 
-function toggleDropdown() {
-  var menu = document.getElementById("dropdownMenu");
-  menu.style.display = (menu.style.display === "block") ? "none" : "block";
-}
+  function toggleDropdown() {
+    var menu = document.getElementById("dropdownMenu");
+    menu.style.display = (menu.style.display === "block") ? "none" : "block";
+  }
 
-// Optional: Close dropdown if clicking outside
-window.onclick = function(event) {
-  if (!event.target.matches('.profile-icon')) {
-    var dropdowns = document.getElementsByClassName("dropdown-menu");
-    for (var i = 0; i < dropdowns.length; i++) {
-      dropdowns[i].style.display = "none";
+  window.onclick = function(event) {
+    if (!event.target.matches('.profile-icon')) {
+      var dropdowns = document.getElementsByClassName("dropdown-menu");
+      for (var i = 0; i < dropdowns.length; i++) {
+        dropdowns[i].style.display = "none";
+      }
     }
   }
-}
-  </script>
+</script>
+
 </body>
 </html>

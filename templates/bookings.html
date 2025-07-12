@@ -1,61 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Rooms</title>
-  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"> -->
- 
+  <title>Bookings</title>
   <link href="/static/bootstrap.min.css" rel="stylesheet">
   <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
-
 </head>
 <body>
-  <div class="container mt-5">
-    <h1 class="mb-4">Bookings</h1>
+<div class="container mt-5">
+  <h1 class="mb-4">Bookings</h1>
 
-    <!-- Search and Add Buttons -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <form class="d-flex" method="GET" action="/bookings">
-        <div class="input-group">
-          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
-          <button class="btn btn-outline-secondary" type="submit">
-            <i class="bi bi-search"></i>
-          </button>
-        </div>
-      </form>
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
-        <i class="bi bi-plus-circle"></i> Add
-      </a>
-    </div>
+  <!-- Search and Add -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <form class="d-flex" method="GET" action="/bookings">
+      <div class="input-group">
+        <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+        <button class="btn btn-outline-secondary" type="submit">
+          <i class="bi bi-search"></i>
+        </button>
+      </div>
+    </form>
+    {% if session['role'] != 'user' %}
+    <a href="#" class="btn btn-primary" onclick="showForm('add')">
+      <i class="bi bi-plus-circle"></i> Add
+    </a>
+    {% endif %}
+  </div>
 
-    <!-- Table -->
-    <table class="table table-striped table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>Booking ID</th>
-          <th>Guest ID</th>
-          <th>Room Type</th>
-          <th>Room ID</th>
-          <th>Expected Check-in Date</th>
-          <th>Expected Check-out Date</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for booking in bookings %}
-        <tr>
-          <td>{{ booking.booking_id }}</td>
-          <td>{{ booking.last_name }}, {{booking.first_name}}</td>
-          <td>{{ booking.room_type }}</td>
-          <td>{{ booking.room_number }}</td>
-          <td>{{ booking.exp_check_in }}</td>
-          <td>{{ booking.exp_check_out }}</td>
-          <td>{{ booking.status }}</td>
-          <td>
-
-
-          {% if booking.status == "Confirmed" %}
+  <!-- Table -->
+  <table class="table table-striped table-bordered">
+    <thead class="table-dark">
+      <tr>
+        <th>Booking ID</th>
+        <th>Guest ID</th>
+        <th>Room Type</th>
+        <th>Room ID</th>
+        <th>Expected Check-in</th>
+        <th>Expected Check-out</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for booking in bookings %}
+      <tr>
+        <td>{{ booking.booking_id }}</td>
+        <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
+        <td>{{ booking.room_type }}</td>
+        <td>{{ booking.room_number }}</td>
+        <td>{{ booking.exp_check_in }}</td>
+        <td>{{ booking.exp_check_out }}</td>
+        <td>{{ booking.status }}</td>
+        <td>
+          {% if session['role'] != 'user' and booking.status == "Confirmed" %}
             <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ booking.booking_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
@@ -63,35 +59,30 @@
               <i class="bi bi-trash-fill"></i>
             </a>
           {% endif %}
-            <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-info btn-sm">
-              View Bill
-            </a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          {% if role in ['manager', 'user'] %}
+            <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-info btn-sm">View Bill</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 
-    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+  <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
-<!-- Add Booking Form -->
-<form id="addForm" action="/addBooking" method="POST" style="display: none;" class="mb-4 mt-3">
-  <!--  <div class="mb-3">
-      <label for="guest_id" class="form-label">Guest ID:</label>
-      <input type="number" class="form-control" id="guest_id" name="guest_id" required>
-    </div> -->
-
+  <!-- Add Booking Form -->
+  {% if session['role'] != 'user' %}
+  <form id="addForm" action="/addBooking" method="POST" style="display: none;" class="mb-4 mt-3">
     <label for="guest_id" class="form-label">Guest:</label>
     <select class="form-control" id="guest_id" name="guest_id" required>
-        <option value="" disabled selected>Select Guest</option>
+      <option value="" disabled selected>Select Guest</option>
       {% for guest in guests %}
         <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
       {% endfor %}
     </select>
-
     <div class="mb-3">
       <label for="room_type" class="form-label">Room Type:</label>
-      <select id="room_type" name="room_type" onchange="filterRooms()" style="max-width: 1000px;" required>
+      <select id="room_type" name="room_type" onchange="filterRooms()" class="form-control" required>
         <option disabled selected>Select Room Type</option>
         <option value="Standard Twin Room">Standard Twin Room</option>
         <option value="Standard Double Room">Standard Double Room</option>
@@ -100,128 +91,87 @@
         <option value="Family Room">Family Room</option>
       </select>
     </div>
-
     <div class="mb-3">
-      <label for="room_id" class="form-label">Room ID:</label>
-    <!--  <input type="number" class="form-control" id="room_id" name="room_id" required> -->
-        <select class="form-control" id="room_id" name="room_id" required>
-          {% for room in rooms %}
-            <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
-          {% endfor %}
-        </select>
+      <label for="room_id" class="form-label">Room:</label>
+      <select class="form-control" id="room_id" name="room_id" required>
+        {% for room in rooms %}
+          <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
+        {% endfor %}
+      </select>
     </div>
-
     <div class="mb-3">
-      <label for="edit_xp_check_in" class="form-label">Expected Check-in Date:</label>
-      <input type="date" class="form-control" id="edit_xp_check_in" name="edit_exp_check_in" required>
+      <label for="edit_exp_check_in" class="form-label">Expected Check-in:</label>
+      <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" required>
     </div>
-
     <div class="mb-3">
-      <label for="edit_xp_check_out" class="form-label">Expected Check-out Date:</label>
+      <label for="edit_exp_check_out" class="form-label">Expected Check-out:</label>
       <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required>
     </div>
-
     <div class="mb-3">
       <label for="status" class="form-label">Status:</label>
       <input type="text" class="form-control" id="status" name="status" value="Confirmed" readonly required>
     </div>
-
     <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
     <button type="submit" class="btn btn-success">Submit</button>
   </form>
 
-    <!-- Edit Booking Form -->
-    <form id="editForm" action="/updateBooking" method="POST" style="display: none;" class="mb-4 mt-3">
-      <input type="hidden" class="form-control" id="edit_booking_id" name="edit_booking_id">
-      
-      <div class="mb-3">
-        <label for="edit_guest_id" class="form-label">Guest:</label>
-        <select class="form-control" id="edit_guest_id" name="edit_guest_id" required>
-          <option value="" disabled>Select Guest</option>
-          {% for guest in guests %}
-            <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label for="edit_room_type" class="form-label">Room Type:</label>
-        <select id="edit_room_type" name="edit_room_type" style="max-width: 1000px;" onchange="filterEditRooms()" required>
-          <option value="Standard Twin Room">Standard Twin Room</option>
-          <option value="Standard Double Room">Standard Double Room</option>
-          <option value="Premium Twin Room">Premium Twin Room</option>
-          <option value="Premium Double Room">Premium Double Room</option>
-          <option value="Family Room">Family Room</option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label for="edit_room_id" class="form-label">Room Number:</label>
-        <select class="form-control" id="edit_room_id" name="edit_room_id" required>
-          {% for room in rooms %}
-            <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
+  <!-- Edit Booking Form -->
+  <form id="editForm" action="/updateBooking" method="POST" style="display: none;" class="mb-4 mt-3">
+    <input type="hidden" id="edit_booking_id" name="edit_booking_id">
+    <label for="edit_guest_id" class="form-label">Guest:</label>
+    <select class="form-control" id="edit_guest_id" name="edit_guest_id" required>
+      <option value="" disabled>Select Guest</option>
+      {% for guest in guests %}
+        <option value="{{ guest.guest_id }}">{{ guest.first_name }} {{ guest.last_name }}</option>
+      {% endfor %}
+    </select>
     <div class="mb-3">
-    <label for="edit_exp_check_in" class="form-label">Expected Check-in Date:</label>
-    <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" required>
+      <label for="edit_room_type" class="form-label">Room Type:</label>
+      <select id="edit_room_type" name="edit_room_type" class="form-control" onchange="filterEditRooms()" required>
+        <option value="Standard Twin Room">Standard Twin Room</option>
+        <option value="Standard Double Room">Standard Double Room</option>
+        <option value="Premium Twin Room">Premium Twin Room</option>
+        <option value="Premium Double Room">Premium Double Room</option>
+        <option value="Family Room">Family Room</option>
+      </select>
     </div>
-
     <div class="mb-3">
-    <label for="edit_exp_check_out" class="form-label">Expected Check-out Date:</label>
-    <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required>
+      <label for="edit_room_id" class="form-label">Room:</label>
+      <select class="form-control" id="edit_room_id" name="edit_room_id" required>
+        {% for room in rooms %}
+          <option value="{{ room.room_id }}" data-room-type="{{ room.room_type }}">{{ room.room_number }}</option>
+        {% endfor %}
+      </select>
     </div>
-
     <div class="mb-3">
-    <!-- <label for="edit_status" class="form-label">Status:</label>
-    <input type="text" class="form-control" id="edit_status" name="edit_status" disable required> -->
-    <input type="hidden" class="form-control" id="edit_status" name="edit_status">
+      <label for="edit_exp_check_in" class="form-label">Expected Check-in:</label>
+      <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" required>
     </div>
-
-      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-      <button type="submit" class="btn btn-success">Submit</button>
-    </form>
-
-<!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Are you sure you want to delete Booking <span id="modalBookingId"></span>?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-      </div>
+    <div class="mb-3">
+      <label for="edit_exp_check_out" class="form-label">Expected Check-out:</label>
+      <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required>
     </div>
-  </div>
+    <input type="hidden" id="edit_status" name="edit_status">
+    <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+    <button type="submit" class="btn btn-success">Submit</button>
+  </form>
+  {% endif %}
 </div>
 
-<!--Booking In Use Modal -->
-<div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        This booking is currently used in requests and cannot be deleted.
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
-      </div>
-    </div>
-  </div>
-</div>
+<script>
+  const bookings = '{{ bookings | tojson | safe }}';
 
+  function showForm(mode, id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
+    if (mode === "add") {
+      addForm.style.display = "block";
+      editForm.style.display = "none";
+    } else if (mode === "edit") {
+      addForm.style.display = "none";
+      editForm.style.display = "block";
 
+<<<<<<< HEAD
 <!-- Bootstrap JS Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -259,54 +209,51 @@
         } else {
           console.error("Booking not found:", booking_id);
         }
+=======
+      const booking = bookings.find(b => b.booking_id === parseInt(id));
+      if (booking) {
+        document.getElementById("edit_booking_id").value = booking.booking_id;
+        document.getElementById("edit_guest_id").value = booking.guest_id;
+        document.getElementById("edit_room_type").value = booking.room_type;
+        document.getElementById("edit_room_id").value = booking.room_id;
+        document.getElementById("edit_exp_check_in").value = booking.exp_check_in;
+        document.getElementById("edit_exp_check_out").value = booking.exp_check_out;
+        document.getElementById("edit_status").value = booking.status;
+>>>>>>> 1c0a5d4b7d163009dc94183d2e95d8294b3ae730
       }
     }
+  }
 
-    function hideForm() {
-      document.getElementById("addForm").style.display = "none";
-      document.getElementById("editForm").style.display = "none";
+  function hideForm() {
+    document.getElementById("addForm").style.display = "none";
+    document.getElementById("editForm").style.display = "none";
+  }
+
+  function confirmDelete(id) {
+    if (confirm(`Delete booking ${id}?`)) {
+      window.location.href = `/deleteBooking/${id}`;
     }
+  }
 
-    function confirmDelete(booking_id) {
-      document.getElementById('modalBookingId').innerText = booking_id;
-      document.getElementById('confirmDeleteBtn').href = `/deleteBooking/${booking_id}`;
-      let modal = new bootstrap.Modal(document.getElementById('deleteModal'));
-      modal.show();
-    }
-
-    function filterRooms() {
-    const selectedType = document.getElementById("room_type").value;
+  function filterRooms() {
+    const type = document.getElementById("room_type").value;
     const roomSelect = document.getElementById("room_id");
-    const options = roomSelect.options;
-
-    for (let i = 0; i < options.length; i++) {
-      const option = options[i];
-      const roomType = option.getAttribute("data-room-type");
-      if (roomType === selectedType || option.value === "") {
-        option.style.display = "block";
-      } else {
-        option.style.display = "none";
-      }
-    }
-
-    // Reset the selected value
+    [...roomSelect.options].forEach(opt => {
+      const match = opt.getAttribute("data-room-type") === type;
+      opt.style.display = match || opt.value === "" ? "block" : "none";
+    });
     roomSelect.value = "";
-    }
+  }
 
-    function filterEditRooms(currentRoomId = null) {
-      const selectedType = document.getElementById("edit_room_type").value;
-      const roomSelect = document.getElementById("edit_room_id");
-      const options = roomSelect.querySelectorAll("option");
-
-      options.forEach(option => {
-        const roomType = option.getAttribute("data-room-type");
-        const isCurrent = option.value === String(currentRoomId);
-        option.style.display = (roomType === selectedType || option.value === "" || isCurrent) ? "block" : "none";
-      });
-
-      roomSelect.value = "";
-    }
-
-  </script>
+  function filterEditRooms() {
+    const type = document.getElementById("edit_room_type").value;
+    const roomSelect = document.getElementById("edit_room_id");
+    [...roomSelect.options].forEach(opt => {
+      const match = opt.getAttribute("data-room-type") === type;
+      opt.style.display = match || opt.value === "" ? "block" : "none";
+    });
+    roomSelect.value = "";
+  }
+</script>
 </body>
 </html>

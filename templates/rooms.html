@@ -46,10 +46,10 @@
           <td>{{ room.room_type }}</td>
           <td>{{ room.room_status }}</td>
           <td>
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', {{ room.room_id }})">
+            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ room.room_id }}')">
               <i class="bi bi-pencil-square"></i>
             </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete({{ room.room_id }}, '{{ room.room_number | escape }}')">              <i class="bi bi-trash-fill"></i>
+            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ room.room_id }}', '{{ room.room_number | escape }}')">              <i class="bi bi-trash-fill"></i>
             </a>
           </td>
         </tr>
@@ -149,16 +149,8 @@
 
   <!-- Rooms JS and script -->
 <script>
-    const rooms = [
-    {% for room in rooms %}
-        {
-        room_id: {{ room.room_id }},
-        room_number: "{{ room.room_number | escape }}",
-        room_type: "{{ room.room_type | escape }}",
-        room_status: "{{ room.room_status   | escape }}"
-        }{% if not loop.last %},{% endif %}
-    {% endfor %}
-    ];
+    const rooms = '{{ rooms | tojson | safe }}'
+
     function showForm(mode, room_id = null) {
       const addForm = document.getElementById("addForm");
       const editForm = document.getElementById("editForm");

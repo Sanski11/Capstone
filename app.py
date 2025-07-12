@@ -1,15 +1,29 @@
-from flask import Flask, render_template, request, redirect, session, url_for, jsonify
+from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+from datetime import datetime, timedelta
+import requests
+import base64
+import json
+import os
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+
+load_dotenv()
+PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
+
+HEADERS = {
+    "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
+    "Content-Type": "application/json" 
+    }
 
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -28,25 +42,56 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if 'login_attempts' not in session:
+        session['login_attempts'] = 0
+
+    # Check for lockout
+    lockout_until = session.get('lockout_until')
+    if lockout_until:
+        lockout_until_dt = datetime.strptime(lockout_until, "%Y-%m-%d %H:%M:%S")
+        if datetime.now() < lockout_until_dt:
+            remaining = (lockout_until_dt - datetime.now()).seconds
+            return render_template(
+                'login.html',
+                lockout_remaining=remaining,
+                error="Maximum login attempts reached. Try again in {minutes}m {seconds}s."
+            )
+        else:
+            session.pop('lockout_until')
+            session['login_attempts'] = 0
+
     if request.method == 'POST':
+        if session['login_attempts'] >= 3:
+            # Set lockout for 3 minutes
+            lockout_time = datetime.now() + timedelta(minutes=3)
+            session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
+            return render_template('login.html', error="Maximum login attempts reached. Please try again in 3 minutes.")
+
         username = request.form['username']
         password = request.form['password']
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
         if user:
-            if user['status'] != 'Active':
-                return render_template('login.html', error="Your account is not yet approved.")
-            session['username'] = user['username']
-            session['role'] = user['role']
-            session['department'] = user['department']
-            # Redirect admin to dashboard, others as needed
-            if user['role'] == 'admin':
-                return redirect(url_for('dashboard'))
-            else:
-                return redirect(url_for('dashboard'))  # Or another page for non-admins
+         if user['status'] != 'Active':
+            return render_template('login.html', error="Your account is not yet approved.")
+    
+         session['username'] = user['username']         # ✅ This is correct
+         session['role'] = user['role']                 # ✅ This is correct
+         session['department'] = user['department']     # ✅ Optional but helpful for role-based logic
+         session['login_attempts'] = 0
+         session.pop('lockout_until', None)
+         flash(f"Welcome back, {user['username']}!", "success")
+         return redirect(url_for('dashboard'))
         else:
-            return render_template('login.html', error="Invalid credentials")
+            session['login_attempts'] += 1
+            attempts_left = 3 - session['login_attempts']
+            error_msg = "Invalid credentials"
+            if attempts_left > 0:
+                error_msg += f". Attempts left: {attempts_left}"
+            else:
+                error_msg = "Maximum login attempts reached. Please try again in 3 minutes."
+            return render_template('login.html', error=error_msg)
     return render_template('login.html')
 
 @app.route('/forgot-password', methods=['GET', 'POST'])
@@ -67,6 +112,35 @@ def forgot_password():
     
     return render_template('forgot_password.html')
 
+from flask import render_template, request, redirect, url_for, flash
+import MySQLdb.cursors
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        new_password = request.form['new_password']
+        confirm_password = request.form['confirm_password']
+
+        if new_password != confirm_password:
+            error = "Passwords do not match."
+        elif len(new_password) < 8 or len(new_password) > 60:
+            error = "Password must be 8-60 characters."
+        else:
+            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+            cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+            user = cursor.fetchone()
+            if not user:
+                error = "Username not found."
+            else:
+                cursor.execute("UPDATE users SET password=%s WHERE username=%s", (new_password, username))
+                mysql.connection.commit()
+                cursor.close()
+                flash("Password reset successful. Please log in.")
+                return redirect(url_for('login'))
+    return render_template('reset_password.html', error=error)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -75,8 +149,8 @@ def signup():
         password = request.form['password']
         role = request.form['role']
         department = request.form['department']
-        # If admin, set status to Active, else For approval
-        status = 'Active' if role == 'admin' else 'For approval'
+        # Set status to Active for admin, manager, supervisor; else For approval
+        status = 'Active' if role in ['admin', 'manager', 'supervisor'] else 'For approval'
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         try:
@@ -85,7 +159,7 @@ def signup():
                 (username, password, role, email, department, status)
             )
             mysql.connection.commit()
-            if role == 'admin':
+            if role in ['admin', 'manager', 'supervisor']:
                 session['username'] = username
                 session['role'] = role
                 return redirect(url_for('dashboard'))
@@ -96,10 +170,16 @@ def signup():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'username' in session:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    if request.args.get('paid') == '1':
+        flash("✅ Payment successful. Welcome back to dashboard!")
 
-        # Housekeeping: Count of housekeeping services requested
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+
+    role = session['role']
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    def get_stats_and_charts():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -108,7 +188,6 @@ def dashboard():
         """)
         housekeeping = cursor.fetchone()['count']
 
-        # Food: Dining services
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -117,7 +196,6 @@ def dashboard():
         """)
         food = cursor.fetchone()['count']
 
-        # Laundry services
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -126,7 +204,6 @@ def dashboard():
         """)
         laundry = cursor.fetchone()['count']
 
-        # Spa / Massage services
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM Requests r 
@@ -135,7 +212,6 @@ def dashboard():
         """)
         spa = cursor.fetchone()['count']
 
-        # Pie chart data
         cursor.execute("""
             SELECT service_type, COUNT(*) AS count
             FROM services s
@@ -144,7 +220,6 @@ def dashboard():
         """)
         service_data = cursor.fetchall()
 
-        # Bar chart data (requests vs completed by staff)
         cursor.execute("""
             SELECT s.first_name AS staff, 
                    COUNT(r.request_id) AS requests,
@@ -155,25 +230,39 @@ def dashboard():
         """)
         staff_data = cursor.fetchall()
 
-        return render_template(
-            'dashboard.html',
-            user=session['username'],
-            stats={
-                "housekeeping": housekeeping,
-                "food": food,
-                "laundry": laundry,
-                "spa": spa
-            },
-            service_data=service_data,
-            staff_data=staff_data
-        )
+        return {
+            "housekeeping": housekeeping,
+            "food": food,
+            "laundry": laundry,
+            "spa": spa
+        }, service_data, staff_data
+
+    # Admin, Manager, Supervisor see stats and charts
+    if role in ['admin', 'manager', 'supervisor']:
+        stats, service_data, staff_data = get_stats_and_charts()
+        cursor.close()
+        return render_template('dashboard.html', role=role, stats=stats, service_data=service_data, staff_data=staff_data)
+
+    # User role: no charts/stats, but allow booking/payment features
+    elif role == 'user':
+        cursor.close()
+        return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
+
+    # Default fallback
+    cursor.close()
     return redirect(url_for('login'))
 
 @app.route('/profile')
 def profile():
-    if 'username' in session and 'role' in session:
-        return render_template('profile.html', user=session['username'], role=session['role'])
-    return redirect(url_for('login'))
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    user = cursor.fetchone()
+    cursor.close()
+
+    return render_template('profile.html', user=user, role=user['role'])
 
 @app.route('/logout')
 def logout():
@@ -316,20 +405,6 @@ def assigntask():
         "UPDATE requests SET staff_id = %s WHERE request_id = %s",
         (staff_id, request_id)
     )
-    mysql.connection.commit()
-    cursor.close()
-
-    return redirect('/requests')
-
-@app.route('/updateStatus', methods=['POST'])
-def updateStatus():
-    request_id = request.form['updateStatus_request_id']
-    status = request.form['updateStatus_status']
-    completionTime = datetime.strptime(request.form['updateStatus_completionTime'], '%Y-%m-%dT%H:%M')
-
-    cursor = mysql.connection.cursor()
-    sql = "UPDATE requests SET status = %s, completionTime = %s WHERE request_id = %s"
-    cursor.execute(sql, (status, completionTime, request_id))
     mysql.connection.commit()
     cursor.close()
 
@@ -576,34 +651,41 @@ from flask import request, redirect
 
 @app.route('/updateRequest', methods=['POST'])
 def update_request():
-    request_id = request.form['edit_request_id']
-    booking_id = request.form['edit_booking_id']
-    service_id = request.form['edit_service_id']
-    quantity = int(request.form['edit_quantity'])
-    unitCost = float(request.form['edit_unitCost'])
-    totalCost = quantity * unitCost
+    request_id = request.form.get('edit_request_id')
+    booking_id = request.form.get('edit_booking_id')
+    service_id = request.form.get('edit_service_id')
+    quantity = request.form.get('edit_quantity')
+    unitCost = request.form.get('edit_unitCost')
+    totalCost = request.form.get('edit_totalCost')
+    status = request.form.get('edit_status')
+    request_time = request.form.get('edit_request_time')
 
+    # Debug: Print form data to terminal
+    print("FORM DATA:", request.form)
+
+    # Validate required fields
+    if not booking_id or not request_id:
+        return "Missing required fields", 400
+
+    # Convert numeric values
+    try:
+        quantity = int(quantity)
+        unitCost = float(unitCost)
+        totalCost = float(totalCost)
+    except ValueError:
+        return "Invalid numeric input", 400
+
+    # Execute SQL update
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         UPDATE requests
-        SET booking_id=%s, service_id=%s, quantity=%s, unitCost=%s, totalCost=%s
+        SET booking_id=%s, service_id=%s, quantity=%s,
+            unitCost=%s, totalCost=%s, status=%s, request_time=%s
         WHERE request_id=%s
-    """, (booking_id, service_id, quantity, unitCost, totalCost, request_id))
+    """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/requests')
 
-@app.route('/updateRequestStatus', methods=['POST'])
-def update_request_status():
-    request_id = request.form['edit_request_id']
-    status = request.form['edit_status']
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "UPDATE Requests SET status = %s WHERE request_id = %s",
-        (status, request_id)
-    )
-    mysql.connection.commit()
-    cursor.close()
     return redirect('/requests')
 
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])
@@ -910,23 +992,6 @@ def checkout():
     cursor.close()
     return redirect('/roomGuest')
 
-@app.route('/addPayment/<int:booking_id>', methods=['GET', 'POST'])
-def add_payment(booking_id):
-    if request.method == 'POST':
-        amount = request.form['amount']
-        payment_date = request.form['payment_date']
-        payment_method = request.form['payment_method']
-        status = request.form['status']
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute(
-            "INSERT INTO Payment (booking_id, amount, payment_date, payment_method, status) VALUES (%s, %s, %s, %s, %s)",
-            (booking_id, amount, payment_date, payment_method, status)
-        )
-        mysql.connection.commit()
-        cursor.close()
-        return redirect('/payments')
-    return render_template('add_payment.html', booking_id=booking_id)
-
 @app.route('/bill/<int:booking_id>')
 def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -979,19 +1044,111 @@ def approve_user(user_id):
     cursor.execute("UPDATE users SET status = 'Active' WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/users')
 
-# Example: restrict to admin only
-@app.route('/admin')
-def admin_dashboard():
-    if 'role' in session and session['role'] == 'admin':
-        return render_template('admin_dashboard.html')
-    return redirect(url_for('login'))
+    flash("✅ User approved successfully!")
+    return redirect(url_for('view_users'))  # Make sure 'view_users' is the correct endpoint name
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])
 def show_checkout(booking_id):
     # Fetch booking info if needed
     return render_template('checkout_form.html', booking_id=booking_id)
+
+@app.route('/pay', methods=['POST'])
+def pay():
+    booking_id = request.form['booking_id']
+    amount = int(request.form['amount'])  # In centavos
+    method = request.form.get('payment_method')  # 'gcash', 'paymaya', or 'card'
+
+    HEADERS = {
+        "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
+        "Content-Type": "application/json"
+    }
+
+    # ✅ For gcash and paymaya → use /v1/sources
+    if method in ["gcash", "paymaya"]:
+        payload = {
+            "data": {
+                "attributes": {
+                    "amount": amount,
+                    "redirect": {
+                        "success": url_for('dashboard', _external=True),
+                        "failed": url_for('failed', _external=True)
+                    },
+                    "type": method,
+                    "currency": "PHP"
+                }
+            }
+        }
+
+        response = requests.post("https://api.paymongo.com/v1/sources", headers=HEADERS, data=json.dumps(payload))
+        data = response.json()
+
+        if "data" not in data:
+            return f"<h1 style='color:red;'>❌ Payment Error</h1><pre>{json.dumps(data, indent=2)}</pre>"
+
+        return redirect(data["data"]["attributes"]["redirect"]["checkout_url"])
+
+    # ✅ For cards → use /v1/payment_intents and /v1/links
+    elif method == "card":
+        intent_payload = {
+            "data": {
+                "attributes": {
+                    "amount": amount,
+                    "currency": "PHP",
+                    "description": f"Booking #{booking_id} Card Payment",
+                    "payment_method_allowed": ["card"],
+                    "payment_method_options": {
+                        "card": {"request_three_d_secure": "any"}
+                    }
+                }
+            }
+        }
+
+        intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
+        intent_data = intent_response.json()
+
+        if "data" not in intent_data:
+            return f"<h1 style='color:red;'>❌ Error creating payment intent.</h1><pre>{json.dumps(intent_data, indent=2)}</pre>"
+
+        intent_id = intent_data["data"]["id"]
+
+        # Create checkout link
+        checkout_payload = {
+            "data": {
+                "attributes": {
+                    "billing": {"name": "ezStay Guest"},
+                    "payment_intent": intent_id,
+                    "description": f"Booking #{booking_id} Card Payment",
+                    "amount": amount,
+                    "currency": "PHP",
+                    "success_url": url_for('success', _external=True) + "?paid=1",
+                    "cancel_url": url_for('failed', _external=True)
+                }
+            }
+        }
+
+        checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
+        checkout_data = checkout_response.json()
+
+        if "data" not in checkout_data:
+            return f"<h1 style='color:red;'>❌ Error creating checkout link.</h1><pre>{json.dumps(checkout_data, indent=2)}</pre>"
+
+        return redirect(checkout_data["data"]["attributes"]["checkout_url"])
+
+    else:
+        return "<h1 style='color:red;'>❌ Invalid payment method.</h1>"
+    
+@app.route('/success')
+def success():
+    if 'username' in session:
+        flash("✅ Payment successful. Welcome back to dashboard!")
+        return redirect(url_for('dashboard', paid=1))
+    else:
+        return redirect(url_for('login'))
+
+@app.route('/failed')
+def failed():
+    return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1>"
 
 if __name__ == '__main__':
     app.run(debug=True)
