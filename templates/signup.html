@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Signup - Staff</title>
+  <title>Sign Up</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <div class="form-box">
     <h2>Sign Up</h2>
-    <form method="POST">
-      <label>ID Number</label>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flash">
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST" action="{{ url_for('signup') }}">
+      <label>Username</label>
       <input type="text" name="username" placeholder="Username" required>
 
       <label>Email Address</label>
@@ -16,41 +26,63 @@
 
       <label>Password</label>
       <input type="password" name="password" id="password" placeholder="Password" required>
+
       <div style="margin-bottom: 10px;">
-        <input type="checkbox" id="showPassword" onclick="togglePassword()">
-        <label for="showPassword" style="font-size: 0.95em;">Show Password</label>
+        <input type="checkbox" onclick="togglePassword()"> Show Password
       </div>
 
       <label>Role</label>
-      <select name="role" required>
+      <select name="role" id="role" onchange="toggleDepartment()" required>
+        <option value="">--Select--</option>
         <option value="admin">Admin</option>
         <option value="manager">Manager</option>
         <option value="supervisor">Supervisor</option>
         <option value="user">User</option>
       </select>
 
-      <label for="department" class="form-label">Department:</label>
-      <select id="department" name="department" class="form-control" required>
-        <option value="Housekeeping">Housekeeping</option>
-        <option value="Dining">Dining</option>
-        <option value="Laundry">Laundry</option>
-        <option value="Massage">Massage</option>
-        <option value="All">All</option>
-      </select>
+      <div id="departmentDiv">
+        <label>Department</label>
+        <select name="department" id="department">
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Dining">Dining</option>
+          <option value="Laundry">Laundry</option>
+          <option value="Massage">Massage</option>
+          <option value="All">All</option>
+        </select>
+      </div>
 
       <button type="submit">Create Account</button>
     </form>
+
     <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+
     {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
+      <div class="error">{{ error }}</div>
     {% endif %}
   </div>
 
-  <script>
+<script>
   function togglePassword() {
-    var pw = document.getElementById("password");
+    const pw = document.getElementById("password");
     pw.type = pw.type === "password" ? "text" : "password";
   }
-  </script>
+
+  function toggleDepartment() {
+    const role = document.getElementById("role").value;
+    const departmentDiv = document.getElementById("departmentDiv");
+    const departmentSelect = document.getElementById("department");
+
+    if (role === "user") {
+      departmentDiv.style.display = "none";
+      departmentSelect.removeAttribute("name");
+      departmentSelect.value = ""; // ✅ Clear value if hidden
+    } else {
+      departmentDiv.style.display = "block";
+      departmentSelect.setAttribute("name", "department");
+    }
+  }
+
+  window.onload = toggleDepartment;
+</script>
 </body>
 </html>

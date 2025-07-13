@@ -76,9 +76,6 @@
             <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
               <i class="bi bi-trash-fill"></i>
             </a>
-            <form action="{{ url_for('approve_user', user_id=user.user_id) }}" method="post" style="display:inline;">
-            <button type="submit" class="btn btn-success btn-sm">Approve</button>
-            </form>
             {% endif %}
           </td>
         </tr>

@@ -7,9 +7,26 @@ import base64
 import json
 import os
 from dotenv import load_dotenv
+from werkzeug.security import generate_password_hash
+from utils import send_verification_email, verify_token 
+from flask import Flask
+from flask_mail import Mail, Message
+from extensions import mail
+from itsdangerous import URLSafeTimedSerializer
 
 app = Flask(__name__)
+app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USERNAME'] = 'ca7ae8bbfd6c40'
+app.config['MAIL_PASSWORD'] = '9c19be1575f571'
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USE_SSL'] = False
+app.config['MAIL_DEFAULT_SENDER'] = 'no-reply@yourapp.com'
 app.secret_key = 'your_secret_key'
+serializer = URLSafeTimedSerializer(app.secret_key)
+
+mail = Mail(app)
+mail.init_app(app)
 
 load_dotenv()
 PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
@@ -73,8 +90,6 @@ def login():
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
         if user:
-         if user['status'] != 'Active':
-            return render_template('login.html', error="Your account is not yet approved.")
     
          session['username'] = user['username']
          session['role'] = user['role']
@@ -148,25 +163,47 @@ def signup():
         email = request.form['email']
         password = request.form['password']
         role = request.form['role']
-        department = request.form['department']
-        # Set status to Active for admin, manager, supervisor; else For approval
-        status = 'Active' if role in ['admin', 'manager', 'supervisor'] else 'For approval'
+        department = request.form['department'] if role != 'user' else None
 
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        hashed_pw = generate_password_hash(password)
+
+        cursor = mysql.connection.cursor()
         try:
-            cursor.execute(
-                "INSERT INTO users (username, password, role, email, department, status) VALUES (%s, %s, %s, %s, %s, %s)",
-                (username, password, role, email, department, status)
-            )
+            cursor.execute("""
+                INSERT INTO users (username, email, password, role, department, verified)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (username, email, hashed_pw, role, department, False))
             mysql.connection.commit()
-            if role in ['admin', 'manager', 'supervisor']:
-                session['username'] = username
-                session['role'] = role
-                return redirect(url_for('dashboard'))
-            return redirect(url_for('login'))
-        except MySQLdb.IntegrityError:
-            return render_template('signup.html', error="Username or email already exists")
+
+            # ✅ Generate token and send email with token
+            token = serializer.dumps(email, salt='email-confirm-salt')
+            send_verification_email(email, token)  # PASS token here
+
+            flash("✅ Verification link sent!")
+            return redirect(url_for('signup'))
+
+        except Exception as e:
+            print("Signup error:", e)
+            flash("❌ Username or email already exists or an error occurred.")
+        finally:
+            cursor.close()
+
     return render_template('signup.html')
+
+@app.route('/verify_email/<token>')
+def verify_email(token):
+    try:
+        email = serializer.loads(token, salt='email-confirm-salt', max_age=3600)
+    except Exception:
+        return render_template("verification_failed.html")
+
+    # mark user as verified
+    cursor = mysql.connection.cursor()
+    cursor.execute("UPDATE users SET verified = 1 WHERE email = %s", (email,))
+    mysql.connection.commit()
+    cursor.close()
+
+    return render_template("email_verified.html")  # 🟢 Only happens here
 
 @app.route('/dashboard')
 def dashboard():
@@ -1037,16 +1074,6 @@ def delete_user(user_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/users')
-
-@app.route('/approveUser/<int:user_id>', methods=['POST'])
-def approve_user(user_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("UPDATE users SET status = 'Active' WHERE user_id = %s", (user_id,))
-    mysql.connection.commit()
-    cursor.close()
-
-    flash("✅ User approved successfully!")
-    return redirect(url_for('view_users'))  # Make sure 'view_users' is the correct endpoint name
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])
 def show_checkout(booking_id):
