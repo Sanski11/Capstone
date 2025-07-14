@@ -430,6 +430,10 @@ def show_requests():
     # Fetch all staff for the dropdown
     cursor.execute("SELECT * FROM staff")
     staff_list = cursor.fetchall()
+    
+    # Fetch all services for the dropdown
+    cursor.execute("SELECT * FROM services")
+    service_list = cursor.fetchall()
 
     if query:
         search_pattern = f"%{query}%"
@@ -472,7 +476,7 @@ def show_requests():
 
     requests = cursor.fetchall()
     cursor.close()
-    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time)
+    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time, service_list=service_list)
 
 @app.route('/assignTask', methods=['POST'])
 def assigntask():

@@ -43,7 +43,7 @@
                 <th>Total Cost</th>
                 <th>Status</th>
                 <th>Request Time</th>
-                <th>Assigned To</th> <!-- New column -->
+                <th>Assigned To</th>
                 <th>Action</th>
             </tr>
         </thead>
@@ -52,7 +52,7 @@
             <tr>
                 <td>{{ request.request_id }}</td>
                 <td>{{ request.booking_id }}</td>
-                <td>{{ request.service_id }}</td>
+                <td>{{ request.item }}</td>
                 <td>{{ request.quantity }}</td>
                 <td>{{ request.unitCost }}</td>
                 <td>{{ request.totalCost }}</td>
@@ -66,7 +66,7 @@
                   {% endif %}
                 </td>
                 <td>
-                  <!-- Assignment form and admin buttons here -->
+                  <!-- Assignment form and admin buttons -->
                   {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                     <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ request.request_id }}')">
                       <i class="bi bi-pencil-square"></i>
@@ -106,9 +106,13 @@
         <input type="text" class="form-control" id="booking_id" name="booking_id" required>
       </div>
       <div class="mb-3">
-        <label for="service_id" class="form-label">Service ID:</label>
-        <input type="text" class="form-control" id="service_id" name="service_id" required>
-      </div>
+        <label for="service_id" class="form-label">Service Name:</label>
+        <select class="form-control" id="service_id" name="service_id" required>
+          {% for service in service_list %}
+          <option value="{{ service.service_id }}">{{ service.item }}</option>
+          {% endfor %}
+        </select>
+      </div>  
       <div class="mb-3">
         <label for="quantity" class="form-label">Quantity:</label>
         <input type="text" class="form-control" id="quantity" name="quantity" required>
@@ -148,9 +152,13 @@
     </div>
 
     <div class="mb-3">
-      <label for="edit_service_id" class="form-label">Service ID:</label>
-      <input type="text" class="form-control" id="edit_service_id" name="edit_service_id" required>
-    </div>
+      <label for="edit_service_id" class="form-label">Service Name:</label>
+      <select class="form-control" id="edit_service_id" name="edit_service_id" required>
+        {% for service in service_list %}
+        <option value="{{ service.service_id }}">{{ service.item }}</option>
+        {% endfor %}
+      </select>
+    </div>  
 
     <div class="mb-3">
       <label for="edit_quantity" class="form-label">Quantity:</label>
