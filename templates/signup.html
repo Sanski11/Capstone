@@ -16,7 +16,6 @@
         </ul>
       {% endif %}
     {% endwith %}
-    
     <form method="POST" action="{{ url_for('signup') }}">
       <label>Username</label>
       <input type="text" name="username" placeholder="Username" required>
@@ -72,13 +71,13 @@
     const departmentDiv = document.getElementById("departmentDiv");
     const departmentSelect = document.getElementById("department");
 
-    if (role === "user") {
-      departmentDiv.style.display = "none";
-      departmentSelect.removeAttribute("name");
-      departmentSelect.value = ""; // ✅ Clear value if hidden
-    } else {
+    if (role === "manager") {
       departmentDiv.style.display = "block";
       departmentSelect.setAttribute("name", "department");
+    } else {
+      departmentDiv.style.display = "none";
+      departmentSelect.removeAttribute("name");
+      departmentSelect.value = ""; // Clear value if hidden
     }
   }
 

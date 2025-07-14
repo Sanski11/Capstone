@@ -161,23 +161,22 @@ def signup():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = request.form['password']
+        password = request.form['password']  # ❌ Not hashed
         role = request.form['role']
-        department = request.form['department'] if role != 'user' else None
+        department = request.form.get('department') if role in ['manager'] else None
 
-        hashed_pw = generate_password_hash(password)
 
         cursor = mysql.connection.cursor()
         try:
             cursor.execute("""
                 INSERT INTO users (username, email, password, role, department, verified)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, email, hashed_pw, role, department, False))
+            """, (username, email, password, role, department, False))  # 👈 password inserted directly
             mysql.connection.commit()
 
-            # ✅ Generate token and send email with token
+            # ✅ Send email verification link
             token = serializer.dumps(email, salt='email-confirm-salt')
-            send_verification_email(email, token)  # PASS token here
+            send_verification_email(email, token)
 
             flash("✅ Verification link sent!")
             return redirect(url_for('signup'))
@@ -291,13 +290,19 @@ def dashboard():
 
 @app.route('/profile')
 def profile():
-    if 'username' not in session or 'role' not in session:
+    username = session.get('username')
+    if not username:
+        flash("⚠️ You must be logged in.")
         return redirect(url_for('login'))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM users WHERE username = %s", (session['username'],))
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
     cursor.close()
+
+    if not user:
+        flash("⚠️ User not found.")
+        return redirect(url_for('login'))
 
     return render_template('profile.html', user=user, role=user['role'])
 
