@@ -1097,13 +1097,14 @@ def view_users():
 @app.route('/addUser', methods=['POST'])
 def add_user():
     username = request.form['username']
-    password = request.form['password']
-    role = request.form['role']
     email = request.form['email']
+    role = request.form['role']
+    department = request.form['department']
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
-        "INSERT INTO users (username, password, role, email) VALUES (%s, %s, %s, %s)",
-        (username, password, role, email)
+        "INSERT INTO users (username, email, role, department, verified) VALUES (%s, %s, %s, %s, %s)",
+        (username, email, role, department, True)
     )
     mysql.connection.commit()
     cursor.close()
@@ -1115,6 +1116,37 @@ def delete_user(user_id):
     cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
+    return redirect('/users')
+
+@app.route('/updateUser', methods=['POST'])
+def update_user():
+    user_id = request.form['edit_user_id']
+    username = request.form['edit_username']
+    email = request.form['edit_email']
+    role = request.form['edit_role']
+    department = request.form.get('edit_department')  # Use .get() for safety
+
+    # ✅ Remove department if admin or supervisor
+    if role in ['admin', 'supervisor']:
+        department = None
+
+    print("🟡 Department submitted:", department)  # Debug: check what’s being submitted
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    try:
+        cursor.execute("""
+            UPDATE users 
+            SET username=%s, email=%s, role=%s, department=%s 
+            WHERE user_id=%s
+        """, (username, email, role, department, user_id))
+        mysql.connection.commit()
+        flash("✅ User updated successfully!")
+    except Exception as e:
+        print("❌ Update error:", e)
+        flash("❌ Failed to update user.")
+    finally:
+        cursor.close()
+
     return redirect('/users')
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])

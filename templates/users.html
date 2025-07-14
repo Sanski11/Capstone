@@ -49,7 +49,6 @@
           <th>Email</th>
           <th>Role</th>
           <th>Department</th>
-          <th>Status</th> <!-- New Column -->
           <th>Action</th>
         </tr>
       </thead>
@@ -60,14 +59,7 @@
           <td>{{ user.username }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.role }}</td>
-          <td>{{ user.department }}</td>
-          <td>
-            {% if user.status == 'Active' %}
-              <span class="badge bg-success">Approved</span>
-            {% else %}
-              <span class="badge bg-warning text-dark">Pending</span>
-            {% endif %}
-          </td>
+          <td>{{ user.department or "None" }}</td>
           <td>
             {% if session['role'] == 'admin' %}
             <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ user.user_id }}')">
@@ -96,10 +88,6 @@
         <label for="email" class="form-label">Email:</label>
         <input type="email" class="form-control" id="email" name="email" required>
       </div>
-      <div class="mb-3">
-        <label for="password" class="form-label">Password:</label>
-        <input type="password" class="form-control" id="password" name="password" required>
-      </div>
       <!-- Role Dropdown -->
       <div class="mb-3">
         <label for="role" class="form-label">Role:</label>
@@ -114,6 +102,7 @@
       <div class="mb-3">
         <label for="department" class="form-label">Department:</label>
         <select id="department" name="department" class="form-control" required>
+          <option value="">None</option>
           <option value="Housekeeping">Housekeeping</option>
           <option value="Dining">Dining</option>
           <option value="Laundry">Laundry</option>
@@ -136,10 +125,6 @@
         <label for="edit_email" class="form-label">Email:</label>
         <input type="email" class="form-control" id="edit_email" name="edit_email" required>
       </div>
-      <div class="mb-3">
-        <label for="edit_password" class="form-label">Password:</label>
-        <input type="password" class="form-control" id="edit_password" name="edit_password" required>
-      </div>
       <!-- Role Dropdown -->
       <div class="mb-3">
         <label for="edit_role" class="form-label">Role:</label>
@@ -148,6 +133,17 @@
           <option value="manager">Manager</option>
           <option value="supervisor">Supervisor</option>
           <option value="user">User</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <label for="edit_department" class="form-label">Department:</label>
+        <select id="edit_department" name="edit_department" class="form-control">
+          <option value="">None</option>
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Dining">Dining</option>
+          <option value="Laundry">Laundry</option>
+          <option value="Massage">Massage</option>
+          <option value="All">All</option>
         </select>
       </div>
       <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
@@ -178,7 +174,7 @@
 
     <script>
       // Make users a real JS array
-      const users = '{{ users | tojson | safe }}';
+      const users = {{ users | tojson | safe }};
 
       function showForm(mode, user_id = null) {
         const addForm = document.getElementById("addForm");
@@ -196,8 +192,8 @@
             document.getElementById("edit_user_id").value = user.user_id;
             document.getElementById("edit_username").value = user.username;
             document.getElementById("edit_email").value = user.email;
-            document.getElementById("edit_password").value = user.password;
             document.getElementById("edit_role").value = user.role;
+            document.getElementById("edit_department").value = user.department || "";
           } else {
             console.error("User not found:", user_id);
           }
