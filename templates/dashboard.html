@@ -36,15 +36,17 @@
     </div>
   </div>
 </div>
- {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul class="flash-messages">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div id="flashPopup" class="flash-popup">
+      <ul>
         {% for category, message in messages %}
           <li class="{{ category }}">{{ message }}</li>
         {% endfor %}
       </ul>
-    {% endif %}
-  {% endwith %}
+    </div>
+  {% endif %}
+{% endwith %}
 {% if role in ['admin', 'manager', 'supervisor'] %}
   <section class="stats-box">
     <table class="table table-bordered">
@@ -132,6 +134,15 @@
       }
     }
   }
+
+  setTimeout(() => {
+    const popup = document.getElementById("flashPopup");
+    if (popup) {
+      popup.style.transition = "opacity 0.5s";
+      popup.style.opacity = 0;
+      setTimeout(() => popup.remove(), 500);
+    }
+  }, 3000);
 </script>
 
 </body>

@@ -163,7 +163,7 @@
 
   <!-- Booking JS and script -->
 <script>
-  const bookings = {{ bookings | tojson | safe }};
+  const bookings = '{{ bookings | tojson | safe }}';
 
   function showForm(mode, booking_id = null) {
     const addForm = document.getElementById("addForm");
@@ -203,10 +203,10 @@
   }
 
   function confirmDelete(id) {
-    if (confirm(Delete booking ${id}?)) {
-      window.location.href = /deleteBooking/${id};
-    }
+  if (confirm(`Delete booking ${id}?`)) {
+    window.location.href = `/deleteBooking/${id}`;
   }
+}
 
   function filterRooms() {
     const type = document.getElementById("room_type").value;

@@ -306,6 +306,43 @@ def profile():
 
     return render_template('profile.html', user=user, role=user['role'])
 
+@app.route('/edit_user/<int:user_id>', methods=['POST'])
+def edit_user(user_id):
+    new_username = request.form['username']
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute("UPDATE users SET username = %s WHERE user_id = %s", (new_username, user_id))
+        mysql.connection.commit()
+        flash("✅ Username updated successfully!")
+    except Exception as e:
+        print("❌ Error updating username:", e)
+        flash("❌ Failed to update username.")
+    finally:
+        cursor.close()
+    return redirect(url_for('profile'))
+
+@app.route('/edit_profile', methods=['POST'])
+def edit_profile():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    new_username = request.form['username']
+    current_username = session['username']
+
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute("UPDATE users SET username = %s WHERE username = %s", (new_username, current_username))
+        mysql.connection.commit()
+        session['username'] = new_username  # Update session too
+        flash("✅ Username updated successfully!")
+    except Exception as e:
+        print("❌ Error updating username:", e)
+        flash("❌ Failed to update username.")
+    finally:
+        cursor.close()
+
+    return redirect(url_for('profile'))
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)

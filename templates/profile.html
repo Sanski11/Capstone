@@ -1,42 +1,46 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Profile - Staff</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='profile.css') }}">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <title>Profile</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <div class="navbar">
-    <div class="nav-links">
-      <a href="{{ url_for('dashboard') }}" style="font-weight:bold;">Home</a>
-    </div>
-    <div class="dropdown">
-      <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
-      <div id="dropdownMenu" class="dropdown-menu">
-        <a href="{{ url_for('profile') }}">Profile</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
-      </div>
-    </div>
-  </div>
+<div class="form-box">
+  <h2>User Profile</h2>
 
-<div class="profile-container">
-  <h2>Welcome, {{ user.username }}</h2>
-  <div class="profile-card">
-    <p><strong>Username:</strong> {{ user.username }}</p>
-    <p><strong>Email:</strong> {{ user.email }}</p>
-    <p><strong>Role:</strong> {{ user.role|capitalize }}</p>
+  <p><strong>Username:</strong> {{ user.username }}</p>
+  <p><strong>Email:</strong> {{ user.email }}</p>
+  <p><strong>Role:</strong> {{ user.role }}</p>
+  {% if user.department %}
     <p><strong>Department:</strong> {{ user.department }}</p>
-  </div>
+  {% endif %}
+
+  <!-- ✅ Edit Button to Show Form -->
+  <button onclick="toggleEditForm()" class="btn btn-primary">✏️ Edit Username</button>
+
+  <!-- ✅ Hidden Edit Username Form -->
+  <form id="editForm" action="{{ url_for('edit_profile') }}" method="POST" style="display: none; margin-top: 15px;">
+    <label for="username">New Username</label>
+    <input type="text" id="username" name="username" value="{{ user.username }}" required>
+    <button type="submit">Save</button>
+    <button type="button" onclick="toggleEditForm()">Cancel</button>
+  </form>
+
+  <br><br>
+  <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
 </div>
 
-  <script>
+<script>
+  function toggleEditForm() {
+    const form = document.getElementById("editForm");
+    form.style.display = form.style.display === "none" ? "block" : "none";
+  }
+
   function toggleDropdown() {
     var menu = document.getElementById("dropdownMenu");
     menu.style.display = (menu.style.display === "block") ? "none" : "block";
   }
 
-  // Optional: Close dropdown if clicking outside
   window.onclick = function(event) {
     if (!event.target.matches('.profile-icon')) {
       var dropdowns = document.getElementsByClassName("dropdown-menu");
