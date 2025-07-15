@@ -172,46 +172,77 @@
     <!-- Bootstrap JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script>
-      // Make users a real JS array
-      const users = {{ users | tojson | safe }};
+  <script>
+  const users = {{ users | tojson | safe }};
 
-      function showForm(mode, user_id = null) {
-        const addForm = document.getElementById("addForm");
-        const editForm = document.getElementById("editForm");
+  function toggleDepartmentField(roleSelectId, departmentSelectId) {
+    const role = document.getElementById(roleSelectId).value;
+    const departmentField = document.getElementById(departmentSelectId);
 
-        if (mode === "add") {
-          addForm.style.display = "block";
-          editForm.style.display = "none";
-        } else if (mode === "edit") {
-          addForm.style.display = "none";
-          editForm.style.display = "block";
+    if (role === "admin" || role === "supervisor") {
+      departmentField.value = "";  // clear selection
+      departmentField.disabled = true;
+    } else {
+      departmentField.disabled = false;
+    }
+  }
 
-          const user = users.find(u => u.user_id === parseInt(user_id));
-          if (user) {
-            document.getElementById("edit_user_id").value = user.user_id;
-            document.getElementById("edit_username").value = user.username;
-            document.getElementById("edit_email").value = user.email;
-            document.getElementById("edit_role").value = user.role;
-            document.getElementById("edit_department").value = user.department || "";
-          } else {
-            console.error("User not found:", user_id);
-          }
-        }
+  // ✅ Add this function to show add or edit forms
+  function showForm(mode, user_id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
+
+    if (mode === "add") {
+      addForm.style.display = "block";
+      editForm.style.display = "none";
+    } else if (mode === "edit") {
+      addForm.style.display = "none";
+      editForm.style.display = "block";
+
+      const user = users.find(u => u.user_id === parseInt(user_id));
+      if (user) {
+        document.getElementById("edit_user_id").value = user.user_id;
+        document.getElementById("edit_username").value = user.username;
+        document.getElementById("edit_email").value = user.email;
+        document.getElementById("edit_role").value = user.role;
+        document.getElementById("edit_department").value = user.department || "";
+        toggleDepartmentField("edit_role", "edit_department");
       }
+    }
+  }
 
-      function hideForm() {
-        document.getElementById("addForm").style.display = "none";
-        document.getElementById("editForm").style.display = "none";
-      }
+  // ✅ Add this function to hide both forms
+  function hideForm() {
+    document.getElementById("addForm").style.display = "none";
+    document.getElementById("editForm").style.display = "none";
+  }
 
-      function confirmDelete(user_id, username) {
-        document.getElementById("modalUserName").innerText = username;
-        document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
-      }
-    </script>
+  // ✅ Add this function to show the delete modal and set the link
+  function confirmDelete(user_id, username) {
+    document.getElementById("modalUserName").innerText = username;
+    document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+  }
+
+  // ✅ Initialize role dropdown states on load
+  document.addEventListener("DOMContentLoaded", function () {
+    const roleAdd = document.getElementById("role");
+    const deptAdd = document.getElementById("department");
+    const roleEdit = document.getElementById("edit_role");
+    const deptEdit = document.getElementById("edit_department");
+
+    if (roleAdd && deptAdd) {
+      roleAdd.addEventListener("change", () => toggleDepartmentField("role", "department"));
+      toggleDepartmentField("role", "department");
+    }
+
+    if (roleEdit && deptEdit) {
+      roleEdit.addEventListener("change", () => toggleDepartmentField("edit_role", "edit_department"));
+      toggleDepartmentField("edit_role", "edit_department");
+    }
+  });
+</script>
   </div>
 </body>
 </html>

@@ -1115,9 +1115,19 @@ def view_bill(booking_id):
     return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
 
 @app.route('/users')
-def view_users():
+def users_page():
+    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM users")
+
+    if search:
+        like = f"%{search}%"
+        cursor.execute("""
+            SELECT * FROM users
+            WHERE username LIKE %s OR email LIKE %s OR role LIKE %s OR department LIKE %s
+        """, (like, like, like, like))
+    else:
+        cursor.execute("SELECT * FROM users")
+
     users = cursor.fetchall()
     cursor.close()
     return render_template('users.html', users=users)
@@ -1127,7 +1137,11 @@ def add_user():
     username = request.form['username']
     email = request.form['email']
     role = request.form['role']
-    department = request.form['department']
+    department = request.form.get('department')  # safer
+
+    # Force department to None for admin/supervisor
+    if role in ['admin', 'supervisor']:
+        department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
