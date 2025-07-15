@@ -195,6 +195,26 @@
     })
     .catch(error => console.error("Error checking room booking", error));
   }
+
+  function filterRooms() {
+    const type = document.getElementById("room_type").value;
+    const roomSelect = document.getElementById("room_id");
+    [...roomSelect.options].forEach(opt => {
+      const match = opt.getAttribute("data-room-type") === type;
+      opt.style.display = match || opt.value === "" ? "block" : "none";
+    });
+    roomSelect.value = "";
+  }
+
+  function filterEditRooms() {
+    const type = document.getElementById("edit_room_type").value;
+    const roomSelect = document.getElementById("edit_room_id");
+    [...roomSelect.options].forEach(opt => {
+      const match = opt.getAttribute("data-room-type") === type;
+      opt.style.display = match || opt.value === "" ? "block" : "none";
+    });
+    roomSelect.value = "";
+  }
   </script>
 </body>
 </html>

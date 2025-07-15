@@ -39,8 +39,8 @@ HEADERS = {
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+#app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -802,14 +802,14 @@ def add_service():
 def add_staff():
     first_name = request.form['first_name']
     last_name = request.form['last_name']
-    department = request.form['department']
+    role = request.form['role']
     email = request.form['email']
     phone = request.form['phone']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
-        "INSERT INTO Staff (first_name, last_name, department, email, phone) VALUES (%s, %s, %s, %s, %s)",
-        (first_name, last_name, department, email, phone)
+        "INSERT INTO Staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
+        (first_name, last_name, role, email, phone)
     )
     mysql.connection.commit()
     cursor.close()
@@ -821,7 +821,7 @@ def updateStaff():
     staff_id = int(request.form['edit_staff_id'])
     first_name = request.form['edit_first_name']
     last_name = request.form['edit_last_name']
-    department = request.form['edit_department']
+    role = request.form['edit_role']
     email = request.form['edit_email']
     phone = request.form['edit_phone']
 
@@ -829,10 +829,10 @@ def updateStaff():
     cursor.execute(
         """
         UPDATE Staff 
-        SET first_name = %s, last_name = %s, department = %s, email = %s, phone = %s 
+        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s 
         WHERE staff_id = %s
         """,
-        (first_name, last_name, department, email, phone, staff_id)
+        (first_name, last_name, role, email, phone, staff_id)
     )
     mysql.connection.commit()
     cursor.close()
@@ -911,7 +911,17 @@ def check_guests(guest_id):
 @app.route('/deleteGuest/<int:guest_id>', methods=['GET'])
 def deleteGuest(guest_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("DELETE FROM Guest WHERE guest_id = %s", (guest_id,))
+    
+    # Check if guest is in use
+    cursor.execute("SELECT COUNT(*) AS count FROM roomguest WHERE guest_id = %s", (guest_id,))
+    result = cursor.fetchone()
+    if result['count'] > 0:
+        cursor.close()
+        flash("Cannot delete. Guest is in use.", "danger")
+        return redirect('/guests')
+
+    # Proceed with deletion
+    cursor.execute("DELETE FROM guest WHERE guest_id = %s", (guest_id,))
     mysql.connection.commit()
     cursor.close()
     return redirect('/guests')
@@ -979,12 +989,17 @@ def view_bookings():
 
 @app.route('/addBooking', methods=['POST'])
 def add_booking():
-    guest_id = request.form['guest_id']
-    room_type = request.form['room_type']
-    room_id = request.form['room_id']
-    exp_check_in = request.form['exp_check_in']
-    exp_check_out = request.form['exp_check_out']
-    status = request.form['status']
+    guest_id = request.form.get('guest_id')
+    room_type = request.form.get('room_type')
+    room_id = request.form.get('room_id')
+    exp_check_in = request.form.get('exp_check_in')
+    exp_check_out = request.form.get('exp_check_out')
+    status = request.form.get('status')
+
+    # Optional: Validate dates before inserting
+    if not exp_check_in or not exp_check_out:
+        flash("Check-in and check-out dates are required.", "danger")
+        return redirect('/bookings')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
@@ -1015,13 +1030,22 @@ def updateBooking():
     cursor.close()
     return redirect('/bookings')
 
-@app.route('/deleteBooking/<int:booking_id>', methods=['GET'])
-def deleteBooking(booking_id):
+@app.route('/checkBookingUsage/<int:booking_id>')
+def check_booking_usage(booking_id):
     cursor = mysql.connection.cursor()
-    cursor.execute("DELETE FROM Bookings WHERE booking_id = %s", (booking_id,))
+    cursor.execute("SELECT COUNT(*) FROM requests WHERE booking_id = %s", (booking_id,))
+    count = cursor.fetchone()[0]
+    cursor.close()
+    return jsonify({'in_use': count > 0})
+
+@app.route('/deleteBooking/<int:booking_id>')
+def delete_booking(booking_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM bookings WHERE booking_id = %s", (booking_id,))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/bookings')
+    flash('Booking deleted successfully', 'success')
+    return redirect(url_for('view_bookings'))
 
 # ROUTE FOR CHECKIN/OUT
 
