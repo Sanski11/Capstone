@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h2 class="mb-4">Total Bill for Guest ID: {{ guest_id }}</h2>
+        <h2 class="mb-4">Total Bill for Booking ID: {{ booking_id }}</h2>
         <table class="table table-striped table-bordered">
             <thead class="table-dark">
                 <tr>
@@ -37,7 +37,7 @@
   <button type="submit" class="btn btn-warning">Pay Now</button>
 </form>
 {% if session['role'] == 'manager' %}
-  <a href="{{ url_for('view_guests') }}" class="btn btn-secondary mt-3">← Back to Guests</a>
+  <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
 {% elif session['role'] == 'user' %}
   <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
 {% endif %}
