@@ -39,8 +39,8 @@ HEADERS = {
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+#app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -1169,7 +1169,7 @@ def update_user():
     department = request.form.get('edit_department')  # Use .get() for safety
 
     # ✅ Remove department if admin or supervisor
-    if role in ['admin', 'supervisor']:
+    if role in ['admin', 'supervisor', 'user']:
         department = None
 
     print("🟡 Department submitted:", department)  # Debug: check what’s being submitted

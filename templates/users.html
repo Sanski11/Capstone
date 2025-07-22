@@ -179,7 +179,7 @@
     const role = document.getElementById(roleSelectId).value;
     const departmentField = document.getElementById(departmentSelectId);
 
-    if (role === "admin" || role === "supervisor") {
+    if (role === "admin" || role === "supervisor" || role === "user") {
       departmentField.value = "";  // clear selection
       departmentField.disabled = true;
     } else {
