@@ -60,9 +60,9 @@
               <i class="bi bi-trash-fill"></i>
             </a>
           {% endif %}
-          {% if role in ['manager', 'user'] %}
-            <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-info btn-sm">View Bill</a>
-          {% endif %}
+          {% if role in ['manager', 'user'] and booking.status == 'Checked-in' %}
+          <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-info btn-sm">View Bill</a>
+        {% endif %}
         </td>
       </tr>
       {% endfor %}
@@ -203,6 +203,14 @@
 <script>
   const bookings = {{ bookings | tojson | safe }};
 
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()) .padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   function showForm(mode, booking_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
@@ -226,8 +234,8 @@
           document.getElementById("edit_room_id").value = booking.room_id;
         }, 0);
 
-        document.getElementById("edit_exp_check_in").value = booking.exp_check_in || "";
-        document.getElementById("edit_exp_check_out").value = booking.exp_check_out || "";
+        document.getElementById("edit_exp_check_in").value = formatDate(booking.exp_check_in);
+        document.getElementById("edit_exp_check_out").value = formatDate(booking.exp_check_out);
         document.getElementById("edit_status").value = booking.status;
       } else {
         console.error("Booking not found:", booking_id);

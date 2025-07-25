@@ -39,8 +39,8 @@ HEADERS = {
 # MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-#app.config['MYSQL_PASSWORD'] = 'admin'
+#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
