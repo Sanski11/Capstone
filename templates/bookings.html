@@ -102,11 +102,11 @@
     </div>
       <div class="mb-3">
       <label for="exp_check_in" class="form-label">Expected Check-in:</label>
-      <input type="date" class="form-control" id="exp_check_in" name="exp_check_in" required>
+      <input type="date" class="form-control" id="exp_check_in" name="exp_check_in" style="width: 160px;" required>
     </div>
     <div class="mb-3">
       <label for="exp_check_out" class="form-label">Expected Check-out:</label>
-      <input type="date" class="form-control" id="exp_check_out" name="exp_check_out" required
+      <input type="date" class="form-control" id="exp_check_out" name="exp_check_out" style="width: 160px;" required
       oninput="validateCheckout('exp_check_in', 'exp_check_out', 'add_checkout_error')">
       <div id="add_checkout_error" class="text-danger small mt-1"></div>
     </div>
@@ -120,7 +120,7 @@
 
   <!-- Edit Booking Form -->
   <form id="editForm" action="/updateBooking" method="POST" style="display: none;" class="mb-4 mt-3">
-    <input type="hidden" id="edit_booking_id" name="edit_booking_id"
+    <input type="hidden" id="edit_booking_id" name="edit_booking_id">
     <label for="edit_guest_id" class="form-label">Guest:</label>
     <select class="form-control" id="edit_guest_id" name="edit_guest_id" required>
       <option value="" disabled>Select Guest</option>
@@ -148,11 +148,11 @@
     </div>
     <div class="mb-3">
       <label for="edit_exp_check_in" class="form-label">Expected Check-in:</label>
-      <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" required>
+      <input type="date" class="form-control" id="edit_exp_check_in" name="edit_exp_check_in" style="width: 160px;" required>
     </div>
     <div class="mb-3">
       <label for="edit_exp_check_out" class="form-label">Expected Check-out:</label>
-      <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" required
+      <input type="date" class="form-control" id="edit_exp_check_out" name="edit_exp_check_out" style="width: 160px;" required
       oninput="validateCheckout('edit_exp_check_in', 'edit_exp_check_out', 'edit_exp_check_out')">
       <div id="edit_checkout_error" class="text-danger small mt-1"></div>
     </div>
@@ -222,7 +222,6 @@
 
       if (checkin && checkout && new Date(checkout) <= new Date(checkin)) {
         errorDiv.textContent = "Check-out must be after check-in.";
-        alert("Check-out must be after check-in.");
         document.getElementById(checkoutId).value = "";
       } else {
         errorDiv.textContent = "";
