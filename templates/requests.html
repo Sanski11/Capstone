@@ -54,8 +54,8 @@
                 <td>{{ request.booking_id }}</td>
                 <td>{{ request.item }}</td>
                 <td>{{ request.quantity }}</td>
-                <td>{{ request.unitCost }}</td>
-                <td>{{ request.totalCost }}</td>
+                <td style="text-align: right;">{{ "{:,.2f}".format(request.unitCost | float) }}</td>
+                <td style="text-align: right;">{{ "{:,.2f}".format(request.totalCost | float) }}</td>
                 <td>{{ request.status|capitalize }}</td>
                 <td>{{ request.request_time }}</td>
                 <td>
@@ -120,8 +120,8 @@
           <input type="text" class="form-control" id="unitCost" name="unitCost" required>
       </div>
       <div>
-          <label for="totalCost" class="form-label">Total Cost:</label>
-          <input type="text" class="form-control" id="totalCost" name="totalCost" required>
+          <label for="totalCost" class="form-label" hidden >Total Cost:</label>
+          <input type="text" class="form-control" id="totalCost" name="totalCost" hidden>
         </div>
         <div>
           <label for="status" class="form-label">Status:</label>
@@ -169,8 +169,8 @@
     </div>
 
     <div class="mb-3">
-      <label for="edit_totalCost" class="form-label">Total Cost:</label>
-      <input type="number" step="0.01" class="form-control" id="edit_totalCost" name="edit_totalCost" required>
+      <label for="edit_totalCost" class="form-label" hidden >Total Cost:</label>
+      <input type="number" step="0.01" class="form-control" id="edit_totalCost" name="edit_totalCost" hidden>
     </div>
 
     <div class="mb-3">
