@@ -110,7 +110,7 @@
           <option value="{{ service.service_id }}">{{ service.item }}</option>
           {% endfor %}
         </select>
-      </div>  
+      </div>
       <div class="mb-3">
         <label for="quantity" class="form-label">Quantity:</label>
         <input type="text" class="form-control" id="quantity" name="quantity" required>
@@ -232,6 +232,12 @@
                 }
               })
 
+              function setDefaultDateTime() {
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); //Fix timezone
+                document.getElementById("request_time").value = now.toISOString().slice(0,16);
+              }
+
   function showForm(mode, request_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
@@ -239,6 +245,7 @@
     if (mode === "add") {
       addForm.style.display = "block";
       editForm.style.display = "none";
+      setDefaultDateTime();
     } else if (mode === "edit") {
       addForm.style.display = "none";
       editForm.style.display = "block";
