@@ -117,7 +117,7 @@
       </div>
       <div class="mb-3">
           <label for="unitCost" class="form-label">Unit Cost:</label>
-          <input type="text" class="form-control" id="unitCost" name="unitCost" required>
+          <input type="text" class="form-control" id="unitCost" name="unitCost" readonly>
       </div>
       <div>
           <label for="totalCost" class="form-label" hidden >Total Cost:</label>
@@ -165,7 +165,7 @@
 
     <div class="mb-3">
       <label for="edit_unitCost" class="form-label">Unit Cost:</label>
-      <input type="number" step="0.01" class="form-control" id="edit_unitCost" name="edit_unitCost" required>
+      <input type="number" step="0.01" class="form-control" id="edit_unitCost" name="edit_unitCost" readonly>
     </div>
 
     <div class="mb-3">
@@ -216,6 +216,22 @@
         <script>
               const requests = {{ requests | tojson | safe }};
 
+              const servicePrices = {
+                {% for service in service_list %}
+                "{{ service.service_id }}": {{ service.amount }},
+                {% endfor %}
+              };
+
+              document.getElementById('service_id').addEventListener('change', function () {
+                const selectedId = this.value;
+                const price = servicePrices[selectedId];
+                if (price !== undefined) {
+                  document.getElementById('unitCost').value = price.toFixed(2);
+                } else {
+                  document.getElementById('unitCost').value = '';
+                }
+              })
+
   function showForm(mode, request_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
@@ -227,9 +243,6 @@
       addForm.style.display = "none";
       editForm.style.display = "block";
 
-      // ✅ Replace this line:
-      // const request = requests.find(r => r.request_id === parseInt(request_id));
-      // 🔁 With this line:
       const request = requests.find(r => r.request_id == request_id);
 
       if (request) {
