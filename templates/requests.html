@@ -260,7 +260,7 @@
         document.getElementById("edit_unitCost").value = request.unitCost;
         document.getElementById("edit_totalCost").value = request.totalCost;
         document.getElementById("edit_status").value = request.status;
-        document.getElementById("edit_request_time").value = request.request_time;
+        document.getElementById("edit_request_time").value = new Date(request.request_time).toISOString().slice(0, 16);
       } else {
         console.error("Request not found:", request_id);
       }
