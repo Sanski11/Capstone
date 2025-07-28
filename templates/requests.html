@@ -74,6 +74,7 @@
                   <i class="bi bi-trash-fill"></i>
                 </a>
               {% endif %}
+              {% if request.status != "completed"%}
               <form action="{{ url_for('assigntask') }}" method="POST" style="display:inline;" class="d-inline-flex align-items-center gap-1 mt-1">
                 <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
                 <select name="assignTask_staff_id" class="form-select form-select-sm" style="width:auto;" required>
@@ -86,6 +87,7 @@
                 </select>
                 <button type="submit" class="btn btn-primary btn-sm px-2 py-1">Assign</button>
               </form>
+              {% endif %}
             </td>
             </tr>
             {% endfor %}
