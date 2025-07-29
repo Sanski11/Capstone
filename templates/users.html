@@ -26,7 +26,7 @@
       <!-- Search Form -->
       <form class="d-flex" method="GET" action="/users">
         <div class="input-group">
-          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
           <button class="btn btn-outline-secondary" type="submit">
             <i class="bi bi-search"></i>
           </button>
@@ -187,7 +187,7 @@
     }
   }
 
-  // ✅ Add this function to show add or edit forms
+  // Show add or edit forms
   function showForm(mode, user_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
@@ -211,13 +211,13 @@
     }
   }
 
-  // ✅ Add this function to hide both forms
+  // Function to hide both forms
   function hideForm() {
     document.getElementById("addForm").style.display = "none";
     document.getElementById("editForm").style.display = "none";
   }
 
-  // ✅ Add this function to show the delete modal and set the link
+  // Function to show the delete modal and set the link
   function confirmDelete(user_id, username) {
     document.getElementById("modalUserName").innerText = username;
     document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
@@ -225,7 +225,7 @@
     deleteModal.show();
   }
 
-  // ✅ Initialize role dropdown states on load
+  // Initialize role dropdown states on load
   document.addEventListener("DOMContentLoaded", function () {
     const roleAdd = document.getElementById("role");
     const deptAdd = document.getElementById("department");

@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <form class="d-flex" method="GET" action="/staff">
         <div class="input-group">
-          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
           <button class="btn btn-outline-secondary" type="submit">
             <i class="bi bi-search"></i>
           </button>

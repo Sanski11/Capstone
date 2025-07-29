@@ -18,7 +18,7 @@
       <!-- Search Form -->
       <form class="d-flex" method="GET" action="/roomGuest">
         <div class="input-group">
-          <input type="text" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
           <button class="btn btn-outline-secondary" type="submit">
             <i class="bi bi-search"></i>
           </button>
