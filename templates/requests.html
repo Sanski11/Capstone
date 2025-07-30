@@ -103,8 +103,13 @@
     <form id="addForm" action="/addRequest" method="POST" style="display: none;">
       <div class="mb-3">
         <label for="booking_id" class="form-label">Booking ID:</label>
-        <input type="text" class="form-control" id="booking_id" name="booking_id" required>
+        <select class="form-control" id="booking_id" name="booking_id" required>
+          {% for booking in booking_list %}
+          <option value="{{ booking.booking_id}}">Booking {{ booking.booking_id}} (Room {{booking.room_number}})</option>
+          {% endfor %}
+        </select>
       </div>
+
       <div class="mb-3">
         <label for="service_id" class="form-label">Service Name:</label>
         <select class="form-control" id="service_id" name="service_id" required>
@@ -144,11 +149,14 @@
     <!-- Edit Request Form  -->
   <form id="editForm" action="/updateRequest" method="POST" style="display: none;" class="mb-4 mt-3">
     <input type="hidden" id="edit_request_id" name="edit_request_id">
-    
 
     <div class="mb-3">
       <label for="edit_booking_id" class="form-label">Booking ID:</label>
-      <input type="text" class="form-control" id="edit_booking_id" name="edit_booking_id" required>
+      <select class="form-control" id="edit_booking_id" name="edit_booking_id" required>
+        {% for booking in booking_list %}
+        <option value="{{ booking.booking_id}}">Booking {{ booking.booking_id}} (Room {{booking.room_number}})</option>
+        {% endfor %}
+      </select>
     </div>
 
     <div class="mb-3">

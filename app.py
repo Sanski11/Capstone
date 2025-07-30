@@ -416,7 +416,7 @@ def editGuest(guest_id):
     cursor.close()
 
     if not guest:
-        # Instead of redirecting, render the template with guest=None or show an error
+        #Instead of redirecting, render the template with guest=None or show an error
         return render_template('editGuest.html', guest=None, error="Guest not found")
     return render_template('editGuest.html', guest=guest)
 
@@ -427,13 +427,24 @@ def show_requests():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch all staff for the dropdown
+    #Fetch all staff for the dropdown
     cursor.execute("SELECT * FROM staff")
     staff_list = cursor.fetchall()
     
-    # Fetch all services for the dropdown
+    #Fetch all services for the dropdown
     cursor.execute("SELECT * FROM services")
     service_list = cursor.fetchall()
+    
+    #Fetch all bookings for the dropdown
+    sql = """
+            SELECT
+            b.*,
+            r.room_number
+            FROM bookings b
+            JOIN room r ON b.room_id = r.room_id
+            """
+    cursor.execute(sql)
+    booking_list = cursor.fetchall()
 
     if query:
         search_pattern = f"%{query}%"
@@ -476,7 +487,7 @@ def show_requests():
 
     requests = cursor.fetchall()
     cursor.close()
-    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time, service_list=service_list)
+    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time, service_list=service_list, booking_list=booking_list)
 
 @app.route('/assignTask', methods=['POST'])
 def assigntask():
@@ -621,7 +632,20 @@ def show_roomGuest():
 def add_rooms():
     roomNumber = request.form['room_number']
     roomType = request.form['room_type']
-    roomStatus = request.form['room_status']
+    roomStatus = request.form['room_status']\
+        
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute(
+            "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
+            (roomNumber, roomType, roomStatus)
+        )
+        mysql.connection.commit()
+    except MySQLdb.IntegrityError:
+        flash("room number already exists. Please enter a unique room number.", "danger")
+    finally:
+        cursor.close()
+        return redirect('/rooms')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(

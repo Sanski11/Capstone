@@ -12,6 +12,17 @@
   <div class="container mt-5">
     <h1 class="mb-4">Rooms</h1>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show mt-2" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></buutton>
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+
     <!-- Search and Add Buttons -->
     <div class="d-flex justify-content-between align-items-center mb-3">
       <form class="d-flex" method="GET" action="/rooms">
@@ -87,7 +98,7 @@
       <input type="hidden" class="form-control" id="edit_room_id" name="edit_room_id">
       <div class="mb-3">
         <label for="edit_room_number" class="form-label">Room Number:</label>
-        <input type="number" class="form-control" id="edit_room_number" name="edit_room_number" required min="1000", max="9999", style="max-width: 100px,">
+        <input type="number" class="form-control" id="edit_room_number" name="edit_room_number" min="1000", max="9999", style="max-width: 100px," readonly>
       </div>
       <div class="mb-3">
         <label for="edit_room_type" class="form-label">Room Type:</label>

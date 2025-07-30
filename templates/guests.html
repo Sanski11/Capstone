@@ -91,6 +91,7 @@
       <div class="mb-3">
         <label for="email" class="form-label">Email:</label>
         <input type="email" class="form-control" id="email" name="email" required maxlength="50" style=max-width:500px;>
+        <div id="emailSuggestion" class="text-danger mt-1"></div>
       </div>
 
       <div class="mb-3">
@@ -123,6 +124,7 @@
           <div class="mb-3">
             <label for="edit_email" class="form-label">Email:</label>
             <input type="email" class="form-control" id="edit_email" name="edit_email" required maxlength="50" style=max-width:500px;>
+            <div id="edit_emailSuggestion" class="text-danger mt-1"></div>
           </div>
     
           <div class="mb-3">
@@ -224,6 +226,40 @@
       .catch(error => console.error("error checking services:", error));
     }
   </script>
-  </div>
+
+<!-- Mailcheck.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mailcheck/1.1.2/mailcheck.min.js"></script>
+  <script>
+    //Add form email suggestion
+    document.getElementById("email").addEventListener("blur", function () {
+      const emailInput = this;
+      Mailcheck.run({
+        email: emailInput.value,
+        suggested: function (suggestion) {
+          document.getElementById("emailSuggestion").innerHTML =
+          `Did you mean <strong>${suggestion.full}</strong>?`;
+        },
+        empty: function () {
+          document.getElementById("emailSuggestion").innerHTML = "";
+        }
+      });
+    });
+
+    //Edit form email suggestion
+    document.getElementById("edit_email").addEventListener("blur", function () {
+      const emailInput = this;
+      Mailcheck.run({
+        email: emailInput.value,
+        suggested: function (suggestion) {
+          document.getElementById("edit_emailSuggestion").innerHTML =
+          `Did you mean <strong>${suggestion.full}</strong>?`;
+        },
+        empty: function () {
+          document.getElementById("edit_emailSuggestion").innerHTML = "";
+        }
+      });
+    });
+</script>
+</div>
 </body>
 </html>
