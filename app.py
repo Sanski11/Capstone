@@ -360,7 +360,7 @@ def view_staffs():
         WHERE 
             first_name LIKE %s OR
             last_name LIKE %s OR
-            department LIKE %s OR
+            role LIKE %s OR
             email LIKE %s OR
             phone LIKE %s
     """
