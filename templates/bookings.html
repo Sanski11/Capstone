@@ -131,7 +131,7 @@
     </select>
     <div class="mb-3">
       <label for="edit_room_type" class="form-label">Room Type:</label>
-      <select id="edit_room_type" name="edit_room_type" class="form-control" onchange="filterRooms()" required>
+      <select id="edit_room_type" name="edit_room_type" class="form-control" onchange="filterEditBookingRooms()" required>
         <option value="Standard Twin Room">Standard Twin Room</option>
         <option value="Standard Double Room">Standard Double Room</option>
         <option value="Premium Twin Room">Premium Twin Room</option>
@@ -275,7 +275,7 @@
         document.getElementById("edit_room_type").value = booking.room_type;
 
         setTimeout(() => {
-          filterEditRooms();
+          filterEditBookingRooms();
           document.getElementById("edit_room_id").value = booking.room_id;
         }, 0);
 

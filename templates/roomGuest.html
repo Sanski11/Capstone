@@ -53,14 +53,16 @@
           <td>
 
             {% if not booking.actual_check_in %}
-              <button class="btn btn-success btn-sm" onclick="openCheckInModal('{{ booking.booking_id }}', '{{ booking.exp_check_in }}')">
-                <i class="bi bi-person-check"></i> Check-In
-              </button>   
-            {% else %}         
+            <!-- Show Check-In button -->
+            <button class="btn btn-success btn-sm" onclick="openCheckInModal('{{ booking.booking_id }}', '{{ booking.exp_check_in }}')">
+              <i class="bi bi-person-check"></i> Check-In
+            </button>
+          {% elif booking.actual_check_in and not booking.actual_check_out %}
+            <!-- Show Check-Out button -->
             <button class="btn btn-danger btn-sm" onclick="openCheckOutModal('{{ booking.booking_id }}', '{{ booking.exp_check_out }}')">
               <i class="bi bi-person-check"></i> Check-Out
             </button>
-            {% endif %}
+          {% endif %}
             
           </td>
         </tr>

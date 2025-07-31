@@ -36,7 +36,7 @@ HEADERS = {
     "Content-Type": "application/json" 
     }
 
-# MySQL Configuration
+#MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
@@ -62,7 +62,7 @@ def login():
     if 'login_attempts' not in session:
         session['login_attempts'] = 0
 
-    # Check for lockout
+    #Check for lockout
     lockout_until = session.get('lockout_until')
     if lockout_until:
         lockout_until_dt = datetime.strptime(lockout_until, "%Y-%m-%d %H:%M:%S")
@@ -79,7 +79,7 @@ def login():
 
     if request.method == 'POST':
         if session['login_attempts'] >= 3:
-            # Set lockout for 3 minutes
+            #Set lockout for 3 minutes
             lockout_time = datetime.now() + timedelta(minutes=3)
             session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
             return render_template('login.html', error="Maximum login attempts reached. Please try again in 3 minutes.")
@@ -161,7 +161,7 @@ def signup():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = request.form['password']  # ❌ Not hashed
+        password = request.form['password']  #Not hashed
         role = request.form['role']
         department = request.form.get('department') if role in ['manager'] else None
 
@@ -171,10 +171,10 @@ def signup():
             cursor.execute("""
                 INSERT INTO users (username, email, password, role, department, verified)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, email, password, role, department, False))  # 👈 password inserted directly
+            """, (username, email, password, role, department, False))  #password inserted directly
             mysql.connection.commit()
 
-            # ✅ Send email verification link
+            #Send email verification link
             token = serializer.dumps(email, salt='email-confirm-salt')
             send_verification_email(email, token)
 
@@ -196,18 +196,16 @@ def verify_email(token):
     except Exception:
         return render_template("verification_failed.html")
 
-    # mark user as verified
+    #Mark user as verified
     cursor = mysql.connection.cursor()
     cursor.execute("UPDATE users SET verified = 1 WHERE email = %s", (email,))
     mysql.connection.commit()
     cursor.close()
 
-    return render_template("email_verified.html")  # 🟢 Only happens here
+    return render_template("email_verified.html")
 
 @app.route('/dashboard')
 def dashboard():
-    if request.args.get('paid') == '1':
-        flash("✅ Payment successful. Welcome back to dashboard!")
 
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
@@ -333,7 +331,7 @@ def edit_profile():
     try:
         cursor.execute("UPDATE users SET username = %s WHERE username = %s", (new_username, current_username))
         mysql.connection.commit()
-        session['username'] = new_username  # Update session too
+        session['username'] = new_username  # Update session
         flash("✅ Username updated successfully!")
     except Exception as e:
         print("❌ Error updating username:", e)
@@ -710,7 +708,6 @@ def add_guests():
 
     return redirect('/guests')
 
-
 @app.route('/updateGuests', methods=['POST'])
 def updateGuests():
     guest_id = int(request.form['edit_guest_id'])
@@ -730,7 +727,6 @@ def updateGuests():
     cursor.close()
 
     return redirect('/guests')
-
 
 @app.route('/addRequest', methods=['POST'])
 def add_request():
@@ -767,14 +763,14 @@ def update_request():
     status = request.form.get('edit_status')
     request_time = request.form.get('edit_request_time')
 
-    # Debug: Print form data to terminal
+    #Print form data to terminal
     print("FORM DATA:", request.form)
 
-    # Validate required fields
+    #Validate required fields
     if not booking_id or not request_id:
         return "Missing required fields", 400
 
-    # Convert numeric values
+    #Convert numeric values
     try:
         quantity = int(quantity)
         unitCost = float(unitCost)
@@ -782,7 +778,7 @@ def update_request():
     except ValueError:
         return "Invalid numeric input", 400
 
-    # Execute SQL update
+    #Execute SQL update
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
         UPDATE requests
@@ -798,9 +794,9 @@ def update_request():
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])
 def deleteRequest(request_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Delete assignments first
+    #Delete assignments first
     cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
-    # Then delete the request
+    #Then delete the request
     cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
     mysql.connection.commit()
     cursor.close()
@@ -936,7 +932,7 @@ def check_guests(guest_id):
 def deleteGuest(guest_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
-    # Check if guest is in use
+    #Check if guest is in use
     cursor.execute("SELECT COUNT(*) AS count FROM roomguest WHERE guest_id = %s", (guest_id,))
     result = cursor.fetchone()
     if result['count'] > 0:
@@ -944,13 +940,13 @@ def deleteGuest(guest_id):
         flash("Cannot delete. Guest is in use.", "danger")
         return redirect('/guests')
 
-    # Proceed with deletion
+    #Proceed with deletion
     cursor.execute("DELETE FROM guest WHERE guest_id = %s", (guest_id,))
     mysql.connection.commit()
     cursor.close()
     return redirect('/guests')
 
-# ROUTE FOR BOOKINGS
+#Route for Bookings
 @app.route('/bookings')
 def view_bookings():
     search = request.args.get('search', '')
@@ -958,18 +954,18 @@ def view_bookings():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Get all guests
+    #Get all guests
     cursor.execute("SELECT * FROM guest")
     guests = cursor.fetchall()
 
-    # Get rooms (with optional room type filter)
+    #Get rooms (with optional room type filter)
     if selected_type:
         cursor.execute("SELECT * FROM room WHERE room_type = %s", (selected_type,))
     else:
         cursor.execute("SELECT * FROM room")
     rooms = cursor.fetchall()
 
-    # Get bookings with guest name and room number using JOIN
+    #Get bookings with guest name and room number using JOIN
     if search:
         like = f"%{search}%"
         query = """
@@ -1020,7 +1016,7 @@ def add_booking():
     exp_check_out = request.form.get('exp_check_out')
     status = request.form.get('status')
 
-    # Optional: Validate dates before inserting
+    #Validate dates before inserting
     if not exp_check_in or not exp_check_out:
         flash("Check-in and check-out dates are required.", "danger")
         return redirect('/bookings')
@@ -1071,7 +1067,7 @@ def delete_booking(booking_id):
     flash('Booking deleted successfully', 'success')
     return redirect(url_for('view_bookings'))
 
-# ROUTE FOR CHECKIN/OUT
+#Route for Check-in/Check-out
 
 @app.route('/checkin', methods=['POST'])
 def checkin():
@@ -1079,14 +1075,14 @@ def checkin():
     actual_check_in = request.form['actual_check_in']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Update booking table
+    #Update booking table
     cursor.execute("""
         UPDATE Bookings
         SET actual_check_in = %s, status='Checked-in'
         WHERE booking_id = %s
     """, (actual_check_in, booking_id))
 
-    # Get room_id and update room status
+    #Get room_id and update room status
     cursor.execute("SELECT room_id FROM Bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
@@ -1104,14 +1100,14 @@ def checkout():
     actual_check_out = request.form['actual_check_out']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Update booking
+    #Update booking
     cursor.execute("""
         UPDATE Bookings
         SET actual_check_out = %s, status='Checked-out'
         WHERE booking_id = %s
     """, (actual_check_out, booking_id))
 
-    # Get room_id and update status to Vacant
+    #Get room_id and update status to Vacant
     cursor.execute("SELECT room_id FROM Bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
@@ -1126,7 +1122,7 @@ def checkout():
 @app.route('/bill/<int:booking_id>')
 def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    # Get all requests for this booking
+    #Get all requests for this booking
     cursor.execute("""
         SELECT r.*, s.item, s.amount
         FROM Requests r
@@ -1161,9 +1157,9 @@ def add_user():
     username = request.form['username']
     email = request.form['email']
     role = request.form['role']
-    department = request.form.get('department')  # safer
+    department = request.form.get('department')
 
-    # Force department to None for admin/supervisor
+    #Force department to None for admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
@@ -1190,13 +1186,13 @@ def update_user():
     username = request.form['edit_username']
     email = request.form['edit_email']
     role = request.form['edit_role']
-    department = request.form.get('edit_department')  # Use .get() for safety
+    department = request.form.get('edit_department')
 
-    # ✅ Remove department if admin or supervisor
+    #Remove department if admin or supervisor
     if role in ['admin', 'supervisor', 'user']:
         department = None
 
-    print("🟡 Department submitted:", department)  # Debug: check what’s being submitted
+    print("🟡 Department submitted:", department)  #check what’s being submitted
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     try:
@@ -1217,21 +1213,21 @@ def update_user():
 
 @app.route('/checkout/<int:booking_id>', methods=['GET'])
 def show_checkout(booking_id):
-    # Fetch booking info if needed
+    #Fetch booking info if needed
     return render_template('checkout_form.html', booking_id=booking_id)
 
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form['booking_id']
     amount = int(request.form['amount'])
-    method = "card"  # Always use 'card' for PayMongo links
+    method = "card"  #Always use 'card' for PayMongo links
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
         "Content-Type": "application/json"
     }
 
-    # Create payment intent
+    #Create payment intent
     intent_payload = {
         "data": {
             "attributes": {
@@ -1251,7 +1247,7 @@ def pay():
         return "<h3>❌ Error creating payment intent.</h3><pre>{}</pre>".format(json.dumps(intent_data, indent=2))
     intent_id = intent_data["data"]["id"]
 
-    # Create checkout link
+    #Create checkout link
     checkout_payload = {
         "data": {
             "attributes": {
