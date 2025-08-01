@@ -1290,6 +1290,7 @@ def show_checkout(booking_id):
     #Fetch booking info if needed
     return render_template('checkout_form.html', booking_id=booking_id)
 
+
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form['booking_id']
