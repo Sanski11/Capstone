@@ -1,18 +1,38 @@
+# Core Flask modules
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
+
+# MySQL integration
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+
+# Utility modules
 from datetime import datetime, timedelta
-import requests
-import base64
-import json
 import os
+import json
+import base64
+import random
+import re
+import requests
+import smtplib
+
+# Email handling
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Environment variable loader
 from dotenv import load_dotenv
+
+# Security
 from werkzeug.security import generate_password_hash
-from utils import send_verification_email, verify_token 
-from flask import Flask
-from flask_mail import Mail, Message
-from extensions import mail
 from itsdangerous import URLSafeTimedSerializer
+
+# Flask-Mail setup
+from flask_mail import Mail, Message
+from extensions import mail  # Custom mail extension
+
+# Custom utility functions
+from utils import send_verification_email, verify_token
+
 
 app = Flask(__name__)
 app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
@@ -39,8 +59,8 @@ HEADERS = {
 #MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+#app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 mysql = MySQL(app)
@@ -109,52 +129,80 @@ def login():
             return render_template('login.html', error=error_msg)
     return render_template('login.html')
 
-@app.route('/forgot-password', methods=['GET', 'POST'])
+# Route to initiate password reset and send OTP
+@app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        username = request.form['username']
-        new_password = request.form['new_password']
-
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+        email = request.form['email']
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
+        cursor.close()
+
         if user:
-            cursor.execute('UPDATE users SET password = %s WHERE username = %s', (new_password, username))
-            mysql.connection.commit()
-            return redirect(url_for('login'))
+            otp = str(random.randint(100000, 999999))
+            session['reset_email'] = email
+            session['otp'] = otp
+
+            # Send OTP via email
+            print(f"🔐 [DEV MODE] OTP for {email}: {otp}")
+            return redirect(url_for('verify_otp'))  # Redirect to OTP verification
         else:
-            return render_template('forgot_password.html', error="Username not found")
+            return render_template('forgot_password.html', error="Email not found")
     
     return render_template('forgot_password.html')
 
-from flask import render_template, request, redirect, url_for, flash
-import MySQLdb.cursors
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if 'reset_email' not in session or 'otp' not in session:
+        print("🔴 Missing session data")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        entered_otp = request.form['otp']
+        print("🔵 Entered OTP:", entered_otp)
+        print("🟢 Session OTP:", session.get('otp'))
+
+        if entered_otp == session.get('otp'):
+            session.pop('otp', None)
+            print("✅ OTP matched. Redirecting to reset_password.")
+            return redirect(url_for('reset_password'))
+        else:
+            print("❌ OTP mismatch.")
+            return render_template('verify_otp.html', error="Invalid OTP")
+
+    return render_template('verify_otp.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
-    error = None
+    if 'reset_email' not in session:
+        return redirect(url_for('forgot_password'))
+
     if request.method == 'POST':
-        username = request.form['username']
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
 
         if new_password != confirm_password:
-            error = "Passwords do not match."
-        elif len(new_password) < 8 or len(new_password) > 60:
-            error = "Password must be 8-60 characters."
-        else:
-            cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-            cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
-            user = cursor.fetchone()
-            if not user:
-                error = "Username not found."
-            else:
-                cursor.execute("UPDATE users SET password=%s WHERE username=%s", (new_password, username))
-                mysql.connection.commit()
-                cursor.close()
-                flash("Password reset successful. Please log in.")
-                return redirect(url_for('login'))
-    return render_template('reset_password.html', error=error)
+            return render_template('reset_password.html', error="Passwords do not match")
+
+        raw_password = new_password  # For testing only
+
+        try:
+            # Always create cursor BEFORE the try block if you will use it later
+            cursor = mysql.connection.cursor()
+            cursor.execute("UPDATE users SET password = %s WHERE email = %s", (raw_password, session['reset_email']))
+            mysql.connection.commit()
+            cursor.close()
+
+            session.pop('reset_email', None)
+            flash("Password has been reset. You can now log in.")
+            return redirect(url_for('login'))
+
+        except Exception as e:
+            print("❌ Error updating password:", str(e))
+            return render_template('reset_password.html', error="Something went wrong. Please try again.")
+
+    return render_template('reset_password.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
