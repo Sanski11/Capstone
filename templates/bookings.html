@@ -249,23 +249,17 @@
     const checkinDate = new Date(checkinInput.value);
     if (isNaN(checkinDate)) return;
 
-    //Mininum checkout = check-in + 1 day
+    //Minimum or earliest checkout is the day after checkin
     const minCheckout = new Date(checkinDate);
     minCheckout.setDate(minCheckout.getDate() + 1);
 
-    //Maximum checkout = check-in + 90 days
+    //Maximum checkout is 90 days after checkin
     const maxCheckout = new Date(checkinDate);
     maxCheckout.setDate(maxCheckout.getDate() + 90);
 
     //Set attributes (disables other dates in calendar)
     checkoutInput.min = minCheckout.toISOString().split("T")[0];
     checkoutInput.max = maxCheckout.toISOString().split("T")[0];
-
-    //Clear checkout if out of new valid range
-    const selected = new Date(checkoutInput.value);
-    if (selected < minCheckout || selected > maxCheckout) {
-        checkoutInput.value = "";
-    }
   }
 
   //Show Add or Edit Form
