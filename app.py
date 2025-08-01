@@ -365,13 +365,13 @@ def view_staffs():
             email LIKE %s OR
             phone LIKE %s
     """
-        cursor.execute(query, (like,) * 5) #Execute. 3 for 3 search criteria (fname, lname, role, email, phone)
+        cursor.execute(query, (like,) * 5) #Execute. 5 for 5 search criteria (fname, lname, role, email, phone)
     else:
         cursor.execute("""
             SELECT * FROM staff ORDER BY last_name, first_name
         """)
     staffs = cursor.fetchall() #Fetch results
-    return render_template('staff.html', staffs=staffs) #Go to staff; pass the data
+    return render_template('staff.html', staffs=staffs) #pass the contents of staffs to staff.html
 
 #Called by STAFF Menu - check if staff exist in requests
 @app.route('/checkStaff/<int:staff_id>')
@@ -527,7 +527,7 @@ def view_rooms():
         """)
 
     rooms = cursor.fetchall()  #After executing sql, fetch results
-    return render_template('rooms.html', rooms=rooms) #Go to html; pass rooms data
+    return render_template('rooms.html', rooms=rooms) #pass the contents of rooms to rooms.html
   
 #Called by SERVICES Menu - display list of services
 @app.route('/services')
@@ -551,7 +551,7 @@ def view_services():
         """)
 
     services = cursor.fetchall() #After executing sql; fetch results
-    return render_template('services.html', services=services) #Go to services; pass the value of services
+    return render_template('services.html', services=services) #pass the contents of services to services.html
  
 #Called by GUESTS Menu - display list of guests
 @app.route('/guests')
@@ -578,7 +578,7 @@ def view_guests():
             SELECT * FROM guest ORDER BY last_name, first_name
         """)
     guests = cursor.fetchall() #After executing; fetch results
-    return render_template('guests.html', guests=guests) #Go to guests; pass the value of guests
+    return render_template('guests.html', guests=guests) #pass the contents of guests to guests.html
 
 #Called by CHECKIN / CHECKOUT MENU - display bookings
 @app.route('/roomGuest')
@@ -630,7 +630,7 @@ def show_roomGuest():
             """)
     bookings = cursor.fetchall() #After executing sql; fetch results
     cursor.close() #Close db connection
-    return render_template('roomGuest.html', bookings=bookings) #Go to roomGuest; pass data
+    return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
 
 #Called by ROOMS Menu; Add a new room
 @app.route('/addRoom', methods=['POST'])
@@ -642,14 +642,14 @@ def add_rooms():
     roomStatus = request.form['room_status']
         
     try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #connect to db
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
         cursor.execute(
             "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
             (roomNumber, roomType, roomStatus)
         ) 
         mysql.connection.commit()  #Save to database
     except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
-        flash("room number already exists. Please enter a unique room number.", "danger")
+        flash("Room number already exists. Please enter a unique room number.", "danger")
     finally:
         cursor.close() #Close db connection
         return redirect('/rooms') 
@@ -665,7 +665,7 @@ def updateRoom():
     room_type = request.form['edit_room_type']
     room_status = request.form['edit_room_status']
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #connect to db
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     cursor.execute(
         """
         UPDATE room
@@ -694,9 +694,9 @@ def check_room_booking(room_id):
     cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,)) #Count how many room_id are there in bookings
     result = cursor.fetchone() #Fetch results
     cursor.close() #Close db connection
-    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0; 
+    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0;  if in_use is TRUE (meaning, the room_id is used in bookings), then it will tell rooms.html that the room cannot be deleted
 
-#Called by GUESTS Men - add a new guest
+#Called by GUESTS Menu - add a new guest
 @app.route('/addGuests', methods=['POST'])
 def add_guests():
     
@@ -849,7 +849,7 @@ def add_staff():
         "INSERT INTO Staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
         (first_name, last_name, role, email, phone)
     )
-    mysql.connection.commit() #Save
+    mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
     return redirect('/staff')
@@ -866,7 +866,7 @@ def updateStaff():
     email = request.form['edit_email']
     phone = request.form['edit_phone']
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     cursor.execute(
         """
         UPDATE Staff 
@@ -947,7 +947,7 @@ def add_room_guest():
     cursor.close()
     return redirect('/roomGuest')
 
-#Called by GUESTS Menu - check if guest exists in bookngs
+#Called by GUESTS Menu - check if guest exists in bookings
 @app.route('/checkGuests/<int:guest_id>')
 def check_guests(guest_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -969,7 +969,7 @@ def deleteGuest(guest_id):
 @app.route('/bookings')
 def view_bookings():
     search = request.args.get('search', '')  #Get value of the search
-    selected_type = request.args.get('room_type', '')  #Get id of he selected room
+    selected_type = request.args.get('room_type', '')  #Get id of the selected room
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
@@ -1008,7 +1008,7 @@ def view_bookings():
                 g.last_name LIKE %s OR
                 r.room_number LIKE %s
         """
-        cursor.execute(query, (like,) * 10)
+        cursor.execute(query, (like,) * 10) #Execute sql; 10 for 10 search criteria
     else:
         cursor.execute("""
             SELECT 
@@ -1024,7 +1024,7 @@ def view_bookings():
     bookings = cursor.fetchall()
     cursor.close()
 
-    return render_template('bookings.html', bookings=bookings, guests=guests, rooms=rooms, selected_type=selected_type) #go to bokings; pass the data
+    return render_template('bookings.html', bookings=bookings, guests=guests, rooms=rooms, selected_type=selected_type) #Go to bookings; pass the data
 
 #Called by BOOKINGS Menu - add a new booking
 @app.route('/addBooking', methods=['POST'])
@@ -1082,7 +1082,7 @@ def check_booking_usage(booking_id):
     cursor.execute("SELECT COUNT(*) FROM requests WHERE booking_id = %s", (booking_id,)) #Count how many booking_id
     count = cursor.fetchone()[0]
     cursor.close()
-    return jsonify({'in_use': count > 0}) #Go bookings; set in_use if > 0
+    return jsonify({'in_use': count > 0}) #Go bookings; set in_use if > 0; it in_use is true, it means that the booking cannot be deleted because it exists in requests
 
 #Called by BOOKINGS Menu - delete a booking
 @app.route('/deleteBooking/<int:booking_id>')
@@ -1185,7 +1185,7 @@ def add_user():
     role = request.form['role']
     department = request.form.get('department')
 
-    #Force department to None for admin/supervisor
+    #Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
@@ -1214,7 +1214,7 @@ def update_user():
     role = request.form['edit_role']
     department = request.form.get('edit_department')
 
-    #Remove department if admin or supervisor
+    #Remove department (housekeeping, laundry, dining, massage)  if admin or supervisor
     if role in ['admin', 'supervisor', 'user']:
         department = None
 
