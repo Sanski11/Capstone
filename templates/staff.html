@@ -4,8 +4,8 @@
   <title>Staff</title>
 
   <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
 
 </head>
 <body>
@@ -59,12 +59,13 @@
               <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ staff.staff_id }}', '{{ staff.last_name }}')">
                 <i class="bi bi-trash-fill"></i>
               </a>
-    </td>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
 
+    <!-- Back Button -->
     <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
     <!-- Add Staff Form -->
@@ -108,104 +109,113 @@
       <button type="submit" class="btn btn-success">Submit</button>
     </form>
 
-        <!-- Edit Staff Form -->
-        <form id="editForm" action="/updateStaff" method="POST" style="display: none;" class="mb-4 mt-3">
-            <input type="hidden" class="form-control" id="edit_staff_id" name="edit_staff_id">
-            <div class="mb-3">
-              <label for="edit_first_name" class="form-label">First Name:</label>
-              <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required maxlength="50" style="max-width: 500px;">
-            </div>
-      
-            <div class="mb-3">
-              <label for="edit_last_name" class="form-label">Last Name:</label>
-              <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required maxlength="50" style="max-width: 500px;">
-            </div>
-      
-            <div class="mb-3">
-              <label for="edit_role" class="form-label">Role:</label>
-              <select id="edit_role" name="edit_role" required, maxlength="50">
-                <option value="Housekeeping - Manager">Housekeeping - Manager</option>
-                <option value="Housekeeping - Staff">Housekeeping - Staff</option>
-                <option value="Food/Dining - Manager">Food/Dining - Manager</option>
-                <option value="Food/Dining - Staff">Food/Dining - Staff</option>
-                <option value="Laundry - Manager">Laundry - Manager</option>
-                <option value="Laundry - Staff">Laundry - Staff</option>
-                <option value="Massage - Manager">Massage - Manager</option>
-                <option value="Massage - Staff">Massage - Staff</option>
-              </select>
-            </div>
-      
-            <div class="mb-3">
-              <label for="edit_email" class="form-label">Email:</label>
-              <input type="email" class="form-control" id="edit_email" name="edit_email" required maxlength="100" style="max-width: 500px;">
-              <div id="edit_emailSuggestion" class="text-danger mt-1"></div>
-            </div>
-      
-            <div class="mb-3">
-              <label for="edit_phone" class="form-label">Phone:</label>
-              <input type="tel" class="form-control" id="edit_phone" name="edit_phone" pattern="^09\d{9}$" placeholder="09XXXXXXXXX" required maxlength="11">
-            </div>
-      
-            <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-            <button type="submit" class="btn btn-success">Submit</button>
-          </form>
+    <!-- Edit Staff Form -->
+    <form id="editForm" action="/updateStaff" method="POST" style="display: none;" class="mb-4 mt-3">
+      <input type="hidden" class="form-control" id="edit_staff_id" name="edit_staff_id">
+      <div class="mb-3">
+        <label for="edit_first_name" class="form-label">First Name:</label>
+        <input type="text" class="form-control" id="edit_first_name" name="edit_first_name" required maxlength="50" style="max-width: 500px;">
+      </div>
+  
+      <div class="mb-3">
+        <label for="edit_last_name" class="form-label">Last Name:</label>
+        <input type="text" class="form-control" id="edit_last_name" name="edit_last_name" required maxlength="50" style="max-width: 500px;">
+      </div>
+  
+      <div class="mb-3">
+        <label for="edit_role" class="form-label">Role:</label>
+        <select id="edit_role" name="edit_role" required, maxlength="50">
+          <option value="Housekeeping - Manager">Housekeeping - Manager</option>
+          <option value="Housekeeping - Staff">Housekeeping - Staff</option>
+          <option value="Food/Dining - Manager">Food/Dining - Manager</option>
+          <option value="Food/Dining - Staff">Food/Dining - Staff</option>
+          <option value="Laundry - Manager">Laundry - Manager</option>
+          <option value="Laundry - Staff">Laundry - Staff</option>
+          <option value="Massage - Manager">Massage - Manager</option>
+          <option value="Massage - Staff">Massage - Staff</option>
+        </select>
+      </div>
+  
+      <div class="mb-3">
+        <label for="edit_email" class="form-label">Email:</label>
+        <input type="email" class="form-control" id="edit_email" name="edit_email" required maxlength="100" style="max-width: 500px;">
+        <div id="edit_emailSuggestion" class="text-danger mt-1"></div>
+      </div>
 
-          <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="mb-3">
+        <label for="edit_phone" class="form-label">Phone:</label>
+        <input type="tel" class="form-control" id="edit_phone" name="edit_phone" pattern="^09\d{9}$" placeholder="09XXXXXXXXX" required maxlength="11">
       </div>
-      <div class="modal-body">
-        Are you sure you want to delete Staff <span id="ModalStaffLastName"></span>?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- Staff In Use Modal -->
-<div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        This staff is currently used in requests and cannot be deleted.
-      </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+
+    <!-- Delete Confirmation Modal
+          Display this pop up dialog box if staff can be deleted
+    -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete Staff <span id="ModalStaffLastName"></span>?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Staff In Use Modal
+         Display this pop up dialog box if room cannot be deleted
+    -->
 
-<!-- Bootstrap JS Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            This staff is currently used in requests and cannot be deleted.
+          </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+            </div>
+          </div>
+        </div>
+
+    <!-- Bootstrap JS Bundle with Popper
+          Used by modal/pop up dialog box
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
       
+    <!-- Service JS and script -->
     <script>
-  const staffs = {{ staffs | tojson | safe }};
-</script>
+      const staffs = {{ staffs | tojson | safe }};
+    </script>
 
     <script>
+        //Show Add or Edit Form
         function showForm(mode, staff_id = null) {
         const addForm = document.getElementById("addForm");
         const editForm = document.getElementById("editForm");
 
-        if (mode === "add") {
+        if (mode === "add") { //If add, show Add Form and hide Edit Form
           addForm.style.display = "block";
           editForm.style.display = "none";
-        } else if (mode === "edit") {
+        } else if (mode === "edit") {  //If edit, show Edit Form and hide Add Form
           addForm.style.display = "none";
           editForm.style.display = "block";
 
+         //Find for the details of the selected staff. If found, display details in the Edit Form
           const staff = staffs.find(r => r.staff_id === parseInt(staff_id));
           if (staff) {
             document.getElementById("edit_staff_id").value = staff.staff_id;
@@ -220,28 +230,30 @@
         }
       }
     
-        function hideForm() {
-          document.getElementById("addForm").style.display = "none";
-          document.getElementById("editForm").style.display = "none";
-        }
+      //Hide Add and Edit Forms. Called when Cancel button is clicked
+      function hideForm() {
+        document.getElementById("addForm").style.display = "none";
+        document.getElementById("editForm").style.display = "none";
+      }
 
-        function confirmDelete(staff_id, last_name) {
-          fetch(`/checkStaff/${staff_id}`)
-          .then(response => response.json())
-          .then(data => {
-            if (data.in_use) {
-              const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
-              inUseModal.show();
-            } else {
-              document.getElementById("ModalStaffLastName").innerText = last_name;
-              document.getElementById("confirmDeleteBtn").href = `/deleteStaff/${staff_id}`;
-              const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-              deleteModal.show();
-            }
-          })
-          .catch(error => console.error("error checking services:", error));
-        }
-          </script>    
+      //Check before deleting a staff. Display correct message
+      function confirmDelete(staff_id, last_name) {
+        fetch(`/checkStaff/${staff_id}`) //Go to app.py to check how many staff_id in requests
+        .then(response => response.json())
+        .then(data => {
+          if (data.in_use) {  //If staff id is used in requests, display inUseModal (cannot delete staff)
+            const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
+            inUseModal.show();
+          } else {  //If staff id is ot used in requests, display deleteModal (or delete staff)
+            document.getElementById("ModalStaffLastName").innerText = last_name;
+            document.getElementById("confirmDeleteBtn").href = `/deleteStaff/${staff_id}`;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+          }
+        })
+        .catch(error => console.error("error checking services:", error));
+      }
+    </script>    
 
       <!-- Mailcheck.js -->
       <script src="https://cdnjs.cloudflare.com/ajax/libs/mailcheck/1.1.2/mailcheck.min.js"></script>
@@ -276,7 +288,6 @@
           });
         });
     </script>
-
   </div>
 </body>
 </html>

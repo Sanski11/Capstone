@@ -69,6 +69,7 @@
     </tbody>
   </table>
 
+  <!-- Back Button -->
   <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
   <!-- Add Booking Form -->
@@ -165,7 +166,10 @@
   {% endif %}
 </div>
 
-<!-- Modal: Room In Use -->
+<!-- Modal: Room In Use
+   Display this pop up dialog box if booking cannot be deleted
+-->
+
 <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -183,7 +187,10 @@
   </div>
 </div>
 
-<!-- Modal: Confirm Delete -->
+<!-- Modal: Confirm Delete
+     Display this pop up dialog box if booking can be deleted
+ -->
+
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -202,13 +209,16 @@
   </div>
 </div>
 
-<!-- Bootstrap JS Bundle with Popper -->
+<!-- Bootstrap JS Bundle with Popper
+       Used by modal/pop up dialog box
+-->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- Booking JS and script -->
 <script>
   const bookings = {{ bookings | tojson | safe }};
 
+  //Format date
   function formatDate(dateStr) {
     const date = new Date(dateStr);
     const yyyy = date.getFullYear();
@@ -217,57 +227,61 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-    function validateCheckout(checkinId, checkoutId, errorId) {
-      const checkin = document.getElementById(checkinId).value;
-      const checkout = document.getElementById(checkoutId).value;
-      const errorDiv = document.getElementById(errorId);
+  //Check if checkout > checkin
+  function validateCheckout(checkinId, checkoutId, errorId) {
+    const checkin = document.getElementById(checkinId).value;
+    const checkout = document.getElementById(checkoutId).value;
+    const errorDiv = document.getElementById(errorId);
 
-      if (checkin && checkout && new Date(checkout) <= new Date(checkin)) {
-        errorDiv.textContent = "Check-out must be after check-in.";
-        document.getElementById(checkoutId).value = "";
-      } else {
-        errorDiv.textContent = "";
-      }
+    if (checkin && checkout && new Date(checkout) <= new Date(checkin)) {
+      errorDiv.textContent = "Check-out must be after check-in.";
+      document.getElementById(checkoutId).value = "";
+    } else {
+      errorDiv.textContent = "";
     }
+  }
 
-    function limitCheckoutRange(checkinId, checkoutId) {
-      const checkinInput = document.getElementById(checkinId);
-      const checkoutInput = document.getElementById(checkoutId);
+  //Limit check-out date to 90 days
+  function limitCheckoutRange(checkinId, checkoutId) {
+    const checkinInput = document.getElementById(checkinId);
+    const checkoutInput = document.getElementById(checkoutId);
 
-      const checkinDate = new Date(checkinInput.value);
-      if (isNaN(checkinDate)) return;
+    const checkinDate = new Date(checkinInput.value);
+    if (isNaN(checkinDate)) return;
 
-      //Mininum checkout = check-in + 1 day
-      const minCheckout = new Date(checkinDate);
-      minCheckout.setDate(minCheckout.getDate() + 1);
+    //Mininum checkout = check-in + 1 day
+    const minCheckout = new Date(checkinDate);
+    minCheckout.setDate(minCheckout.getDate() + 1);
 
-      //Maximum checkout = check-in + 90 days
-      const maxCheckout = new Date(checkinDate);
-      maxCheckout.setDate(maxCheckout.getDate() + 90);
+    //Maximum checkout = check-in + 90 days
+    const maxCheckout = new Date(checkinDate);
+    maxCheckout.setDate(maxCheckout.getDate() + 90);
 
-      //Set attributes (disables other dates in calendar)
-      checkoutInput.min = minCheckout.toISOString().split("T")[0];
-      checkoutInput.max = maxCheckout.toISOString().split("T")[0];
+    //Set attributes (disables other dates in calendar)
+    checkoutInput.min = minCheckout.toISOString().split("T")[0];
+    checkoutInput.max = maxCheckout.toISOString().split("T")[0];
 
-      //Clear checkout if out of new valid range
-      const selected = new Date(checkoutInput.value);
-      if (selected < minCheckout || selected > maxCheckout) {
-          checkoutInput.value = "";
-      }
+    //Clear checkout if out of new valid range
+    const selected = new Date(checkoutInput.value);
+    if (selected < minCheckout || selected > maxCheckout) {
+        checkoutInput.value = "";
     }
+  }
 
+  //Show Add or Edit Form
   function showForm(mode, booking_id = null) {
     const addForm = document.getElementById("addForm");
     const editForm = document.getElementById("editForm");
 
-    if (mode === "add") {
+    if (mode === "add") { //If add, show Add Form and hide Edit Form
       addForm.style.display = "block";
       editForm.style.display = "none";
     } 
-    else if (mode === "edit") {
+    else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
       addForm.style.display = "none";
       editForm.style.display = "block";
 
+      //Find for the details of the selected booking. If found, display details in the Edit Form
       const booking = bookings.find(b => b.booking_id === parseInt(booking_id));
       if (booking) {
         document.getElementById("edit_booking_id").value = booking.booking_id;
@@ -288,19 +302,21 @@
     }
   }
 
+  //Hide Add and Edit Forms. Called when Cancel button is clicked
   function hideForm() {
     document.getElementById("addForm").style.display = "none";
     document.getElementById("editForm").style.display = "none";
   }
 
+  //Check before deleting a booking. Display correct message
   function confirmDelete(booking_id, guest_name) {
-  fetch(`/checkBookingUsage/${booking_id}`)
+  fetch(`/checkBookingUsage/${booking_id}`)  //Go to app.py to check how many booking_id in requests
     .then(response => response.json())
     .then(data => {
-      if (data.in_use) {
+      if (data.in_use) { //If booking id is used in requests, display inUseModal (cannot delete booking)
         const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
         inUseModal.show();
-      } else {
+      } else {  //If booking id is used in requests, display deleteModal (or delete booking)
         document.getElementById("modalBookingName").innerText = guest_name;
         document.getElementById("confirmDeleteBtn").href = `/deleteBooking/${booking_id}`;
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
@@ -310,6 +326,7 @@
     .catch(error => console.error("Error checking booking usage", error));
 }
 
+//In Add Form, limit the room numbers to be displayed based on room type
 function filterBookingRooms() {
   const selectedType = document.getElementById("room_type").value;
   const roomSelect = document.getElementById("room_id");
@@ -322,6 +339,7 @@ function filterBookingRooms() {
   roomSelect.value = "";
 }
 
+//In Edit Form, limit the room numbers to be displayed based on room type
 function filterEditBookingRooms() {
   const selectedType = document.getElementById("edit_room_type").value;
   const roomSelect = document.getElementById("edit_room_id");

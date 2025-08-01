@@ -4,8 +4,6 @@
   <title>Services</title>
 
   <!-- Bootstrap CSS -->
-  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"> -->
   <link href="/static/bootstrap.min.css" rel="stylesheet">
   <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
 
@@ -91,53 +89,58 @@
       <button type="submit" class="btn btn-success">Submit</button>
     </form>
 
-        <!-- Edit Service Form -->
-        <form id="editForm" action="/updateServices" method="POST" style="display: none;" class="mb-4 mt-3">
-          <input type="hidden" id="edit_service_id" name="edit_service_id" required>
-          <div class="mb-3">
-            <label for="edit_service_type" class="form-label">Service Type:</label>
-            <select id="edit_service_type" name="edit_service_type" required, maxlength="100", style="max-width: 1000px;">
-              <option value="Housekeeping">Housekeeping</option>
-              <option value="Dining">Dining</option>
-              <option value="Laundry">Laundry</option>
-              <option value="Massage">Massage</option>
-            </select>
-              </div>
-    
-          <div class="mb-3">
-            <label for="edit_item" class="form-label">Item:</label>
-            <input type="text" class="form-control" id="edit_item" name="edit_item" step="0.01" required>
-          </div>
-    
-          <div class="mb-3">
-            <label for="edit_amount" class="form-label">Amount:</label>
-            <input type="number" class="form-control" id="edit_amount" name="edit_amount" step="0.01" required min="0" max="99999999.99">
-          </div>    
-    
-          <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-          <button type="submit" class="btn btn-success">Submit</button>
-        </form>
+      <!-- Edit Service Form -->
+      <form id="editForm" action="/updateServices" method="POST" style="display: none;" class="mb-4 mt-3">
+        <input type="hidden" id="edit_service_id" name="edit_service_id" required>
+        <div class="mb-3">
+          <label for="edit_service_type" class="form-label">Service Type:</label>
+          <select id="edit_service_type" name="edit_service_type" required, maxlength="100", style="max-width: 1000px;">
+            <option value="Housekeeping">Housekeeping</option>
+            <option value="Dining">Dining</option>
+            <option value="Laundry">Laundry</option>
+            <option value="Massage">Massage</option>
+          </select>
+            </div>
+  
+        <div class="mb-3">
+          <label for="edit_item" class="form-label">Item:</label>
+          <input type="text" class="form-control" id="edit_item" name="edit_item" step="0.01" required>
+        </div>
+  
+        <div class="mb-3">
+          <label for="edit_amount" class="form-label">Amount:</label>
+          <input type="number" class="form-control" id="edit_amount" name="edit_amount" step="0.01" required min="0" max="99999999.99">
+        </div>    
+  
+        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        <button type="submit" class="btn btn-success">Submit</button>
+      </form>
 
-        <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        Are you sure you want to delete Service <span id="modalServiceItem"></span>?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+    <!-- Delete Confirmation Modal 
+          Display this pop up dialog box if service can be deleted
+    -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete Service <span id="modalServiceItem"></span>?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-<!-- Services In Use Modal -->
+  <!-- Services In Use Modal 
+  Display this pop up dialog box if room cannot be deleted
+  -->
+
  <div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -148,54 +151,61 @@
       <div class="modal-body">
         This service is currently used in request and cannot be deleted.
       </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
-        </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
       </div>
     </div>
+  </div>
 
-<!-- Bootstrap JS Bundle with Popper -->
+<!-- Bootstrap JS Bundle with Popper 
+      Used by modal/pop up dialog box
+-->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-      <!-- Rooms JS and script -->
-  <script>
-    const services = {{ services | tojson | safe }};
+  <!-- Service JS and script -->
+<script>
+  const services = {{ services | tojson | safe }};
 
-    function showForm(mode, service_id = null) {
-      const addForm = document.getElementById("addForm");
-      const editForm = document.getElementById("editForm");
+  //Show Add or Edit Form
+  function showForm(mode, service_id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
 
-      if (mode === "add") {
-        addForm.style.display = "block";
-        editForm.style.display = "none";
-      } else if (mode === "edit") {
-        addForm.style.display = "none";
-        editForm.style.display = "block";
+    if (mode === "add") { //If add, show Add Form and hide Edit Form
+      addForm.style.display = "block";
+      editForm.style.display = "none";
+    } else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
+      addForm.style.display = "none";
+      editForm.style.display = "block";
 
-        const service = services.find(r => r.service_id === parseInt(service_id));
-        if (service) {
-          document.getElementById("edit_service_id").value = service.service_id;
-          document.getElementById("edit_service_type").value = service.service_type;
-          document.getElementById("edit_item").value = service.item;
-          document.getElementById("edit_amount").value = service.amount;
-        } else {
-          console.error("Service not found:", service_id);
-        }
+      //Find for the details of the selected service. If found, display details in the Edit Form
+      const service = services.find(r => r.service_id === parseInt(service_id));
+      if (service) {
+        document.getElementById("edit_service_id").value = service.service_id;
+        document.getElementById("edit_service_type").value = service.service_type;
+        document.getElementById("edit_item").value = service.item;
+        document.getElementById("edit_amount").value = service.amount;
+      } else {
+        console.error("Service not found:", service_id);
       }
     }
+  }
 
-    function hideForm() {
-      document.getElementById("addForm").style.display = "none";
-      document.getElementById("editForm").style.display = "none";
-    }
+  //Hide Add and Edit Forms. Called when Cancel button is clicked
+  function hideForm() {
+    document.getElementById("addForm").style.display = "none";
+    document.getElementById("editForm").style.display = "none";
+  }
+
+  //Check before deleting a service. Display correct message
   function confirmDelete(service_id, item) {
-    fetch(`/checkServices/${service_id}`)
+    fetch(`/checkServices/${service_id}`)  //Go to app.py to check how many service_id in requests
     .then(response => response.json())
     .then(data => {
-      if (data.in_use) {
+      if (data.in_use) {  //If service id is used in requests, display inUseModal (cannot delete service)
         const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
         inUseModal.show();
-      } else {
+      } else {  //If service id is used in requests, display deleteModal (or delete service)
         document.getElementById("modalServiceItem").innerText = item;
         document.getElementById("confirmDeleteBtn").href = `/deleteServices/${service_id}`;
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
@@ -205,7 +215,7 @@
     .catch(error => console.error("error checking services:", error));
   }  
 
-  </script>
-  </div>
+</script>
+</div>
 </body>
 </html>
