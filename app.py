@@ -209,21 +209,23 @@ def signup():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = request.form['password']  #Not hashed
+        password = request.form['password']
         role = request.form['role']
         department = request.form.get('department') if role in ['manager'] else None
-
 
         cursor = mysql.connection.cursor()
         try:
             cursor.execute("""
                 INSERT INTO users (username, email, password, role, department, verified)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, email, password, role, department, False))  #Password inserted directly
+            """, (username, email, password, role, department, False))  # Password inserted directly
             mysql.connection.commit()
 
-            #Send email verification link
+            # Send email verification link
             token = serializer.dumps(email, salt='email-confirm-salt')
+            verification_link = url_for('verify_email', token=token, _external=True)
+            print(f"📬 Email verification link for {email}: {verification_link}")  # Print the link
+
             send_verification_email(email, token)
 
             flash("✅ Verification link sent!")
