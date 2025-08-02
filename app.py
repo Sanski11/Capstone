@@ -820,34 +820,39 @@ def update_request():
     booking_id = request.form.get('edit_booking_id')
     service_id = request.form.get('edit_service_id')
     quantity = request.form.get('edit_quantity')
-    unitCost = request.form.get('edit_unitCost')
-    totalCost = request.form.get('edit_totalCost')
     status = request.form.get('edit_status')
     request_time = request.form.get('edit_request_time')
 
-    #Print form data to terminal
     print("FORM DATA:", request.form)
 
-    #Validate required fields
-    if not booking_id or not request_id:
+    if not booking_id or not request_id or not service_id or not quantity or not status or not request_time:
         return "Missing required fields", 400
 
-    #Convert numeric values
     try:
         quantity = int(quantity)
-        unitCost = float(unitCost)
-        totalCost = float(totalCost)
     except ValueError:
-        return "Invalid numeric input", 400
+        return "Invalid quantity", 400
 
-    #Execute SQL update
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch correct unit cost based on service_id
+    cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
+    result = cursor.fetchone()
+    if not result:
+        cursor.close()
+        return "Service not found", 404
+
+    unitCost = float(result['amount'])
+    totalCost = unitCost * quantity
+
+    # Update the request with verified and recalculated values
     cursor.execute("""
         UPDATE requests
-        SET booking_id=%s, service_id=%s, quantity=%s,
-            unitCost=%s, totalCost=%s, status=%s, request_time=%s
-        WHERE request_id=%s
+        SET booking_id = %s, service_id = %s, quantity = %s,
+            unitCost = %s, totalCost = %s, status = %s, request_time = %s
+        WHERE request_id = %s
     """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
+    
     mysql.connection.commit()
     cursor.close()
 
