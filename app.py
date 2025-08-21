@@ -14,6 +14,7 @@ import random
 import re
 import requests
 import smtplib
+import uuid
 
 # Email handling
 from email.mime.text import MIMEText
@@ -21,34 +22,39 @@ from email.mime.multipart import MIMEMultipart
 
 # Environment variable loader
 from dotenv import load_dotenv
+load_dotenv()
 
 # Security
-from werkzeug.security import generate_password_hash
 from itsdangerous import URLSafeTimedSerializer
+
+# Flask-Login
+from flask_login import LoginManager
 
 # Flask-Mail setup
 from flask_mail import Mail, Message
 from extensions import mail  # Custom mail extension
+from flask import url_for
 
 # Custom utility functions
 from utils import send_verification_email, verify_token
 
 
 app = Flask(__name__)
-app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = 'ca7ae8bbfd6c40'
-app.config['MAIL_PASSWORD'] = '9c19be1575f571'
+app.secret_key = 'your_secret_key'
+serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+serializer = URLSafeTimedSerializer(app.secret_key)
+ 
+app.config['EMAIL_HOST'] = os.getenv('EMAIL_HOST')
+app.config['EMAIL_PORT'] = int(os.getenv('EMAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
-app.config['MAIL_DEFAULT_SENDER'] = 'no-reply@yourapp.com'
-app.secret_key = 'your_secret_key'
-serializer = URLSafeTimedSerializer(app.secret_key)
+app.config['EMAIL_USERNAME'] = os.getenv('EMAIL_USERNAME')
+app.config['EMAIL_PASSWORD'] = os.getenv('EMAIL_PASSWORD')
+app.config['EMAIL_DEFAULT_SENDER'] = os.getenv('EMAIL_DEFAULT_SENDER')
 
 mail = Mail(app)
 mail.init_app(app)
 
-load_dotenv()
 PAYMONGO_SECRET_KEY = os.getenv("PAYMONGO_SECRET_KEY")
 
 HEADERS = {
@@ -63,8 +69,37 @@ app.config['MYSQL_PASSWORD'] = 'Kitty_909'
 #app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 mysql = MySQL(app)
 
+@login_manager.user_loader
+def load_user(user_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM users WHERE user_id=%s", (user_id,))
+    return cursor.fetchone()
+
+def generate_verification_token():
+    return str(uuid.uuid4())
+
+def send_verification_email(email, username, verification_token):
+    verification_url = f"{request.url_root.rstrip('/')}/verify_email/{verification_token}"
+    subject = "Verify your email"
+    body = f"Hi {username},\n\nClick the link below to verify your email:\n{verification_url}\n\nThis link will expire in 24 hours."
+
+    message = f"Subject: {subject}\n\n{body}"
+
+    try:
+        server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
+        server.starttls()
+        server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])  # must be Gmail App Password
+        server.sendmail(app.config['EMAIL_USERNAME'], email, message)
+        server.quit()
+        return True
+    except Exception as e:
+        print("❌ Email send failed:", e)
+        return False
+    
 @app.context_processor
 def inject_user_details():
     return {
@@ -145,33 +180,25 @@ def forgot_password():
             session['otp'] = otp
 
             # Send OTP via email
-            print(f"🔐 [DEV MODE] OTP for {email}: {otp}")
+            subject = "Your Password Reset OTP"
+            body = f"Hello,\n\nYour OTP for password reset is: {otp}\n\nIf you did not request this, please ignore this email."
+            message = f"Subject: {subject}\n\n{body}"
+
+            try:
+                server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
+                server.starttls()
+                server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])
+                server.sendmail(app.config['EMAIL_USERNAME'], email, message)
+                server.quit()
+            except Exception as e:
+                print("❌ Failed to send OTP email:", e)
+                return render_template('forgot_password.html', error="Failed to send OTP email. Please try again.")
+
             return redirect(url_for('verify_otp'))  # Redirect to OTP verification
         else:
             return render_template('forgot_password.html', error="Email not found")
     
     return render_template('forgot_password.html')
-
-@app.route('/verify_otp', methods=['GET', 'POST'])
-def verify_otp():
-    if 'reset_email' not in session or 'otp' not in session:
-        print("🔴 Missing session data")
-        return redirect(url_for('forgot_password'))
-
-    if request.method == 'POST':
-        entered_otp = request.form['otp']
-        print("🔵 Entered OTP:", entered_otp)
-        print("🟢 Session OTP:", session.get('otp'))
-
-        if entered_otp == session.get('otp'):
-            session.pop('otp', None)
-            print("✅ OTP matched. Redirecting to reset_password.")
-            return redirect(url_for('reset_password'))
-        else:
-            print("❌ OTP mismatch.")
-            return render_template('verify_otp.html', error="Invalid OTP")
-
-    return render_template('verify_otp.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
@@ -204,55 +231,84 @@ def reset_password():
 
     return render_template('reset_password.html')
 
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Message
+import MySQLdb
+
+serializer = URLSafeTimedSerializer(app.secret_key)
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
-        username = request.form['username']
         email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
         role = request.form['role']
-        department = request.form.get('department') if role in ['manager'] else None
 
         cursor = mysql.connection.cursor()
-        try:
-            cursor.execute("""
-                INSERT INTO users (username, email, password, role, department, verified)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (username, email, password, role, department, False))  # Password inserted directly
-            mysql.connection.commit()
 
-            # Send email verification link
-            token = serializer.dumps(email, salt='email-confirm-salt')
-            verification_link = url_for('verify_email', token=token, _external=True)
-            print(f"📬 Email verification link for {email}: {verification_link}")  # Print the link
-
-            send_verification_email(email, token)
-
-            flash("✅ Verification link sent!")
+        # Check existing username
+        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
+        if cursor.fetchone():
+            flash("Username already taken.", "danger")
             return redirect(url_for('signup'))
 
-        except Exception as e:
-            print("Signup error:", e)
-            flash("❌ Username or email already exists or an error occurred.")
-        finally:
-            cursor.close()
+        # Check existing email
+        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for('signup'))
+
+        # Generate token + expiry
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+
+        # Save user with email_verified=False
+        cursor.execute("""
+            INSERT INTO users (username, email, password, role, email_verified, verification_token, token_expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (username, email, password, role, False, verification_token, token_expires_at))
+        mysql.connection.commit()
+
+        # Send email
+        if send_verification_email(email, username, verification_token):
+            flash("Check your email for a verification link.", "success")
+            return redirect(url_for('verification_pending'))
+        else:
+            flash("Could not send email. Contact support.", "danger")
 
     return render_template('signup.html')
 
-@app.route('/verify_email/<token>')
-def verify_email(token):
-    try:
-        email = serializer.loads(token, salt='email-confirm-salt', max_age=3600)
-    except Exception:
-        return render_template("verification_failed.html")
+@app.route('/verify_email/<verification_token>')
+def verify_email_token(verification_token):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # <-- FIXED
 
-    #Mark user as verified
-    cursor = mysql.connection.cursor()
-    cursor.execute("UPDATE users SET verified = 1 WHERE email = %s", (email,))
-    mysql.connection.commit()
-    cursor.close()
+    # Find user with valid token
+    cursor.execute("""
+        SELECT user_id FROM users 
+        WHERE verification_token = %s 
+        AND email_verified = False 
+        AND token_expires_at > NOW()
+    """, (verification_token,))
+    user = cursor.fetchone()
 
-    return render_template("email_verified.html")
+    if user:
+        # Mark as verified
+        cursor.execute("""
+            UPDATE users 
+            SET email_verified = True, verification_token = NULL 
+            WHERE user_id = %s
+        """, (user['user_id'],))
+        mysql.connection.commit()
+        flash("✅ Email verified successfully! You can now log in.", "success")
+        return redirect(url_for('login'))
+    else:
+        flash("⚠️ Invalid or expired verification link.", "danger")
+        return redirect(url_for('signup'))
+
+@app.route('/verification_pending')
+def verification_pending():
+    return render_template('verification_pending.html')
 
 @app.route('/dashboard')
 def dashboard():
@@ -709,7 +765,7 @@ def add_rooms():
 @app.route('/updateRoom', methods=['POST'])
 def updateRoom():
     
-    #Get the values entered in Edit Form
+    #Get the values entered in the Edit Form
     room_id = int(request.form['edit_room_id'])
     room_number = request.form['edit_room_number']
     room_type = request.form['edit_room_type']
@@ -771,7 +827,7 @@ def add_guests():
 @app.route('/updateGuests', methods=['POST'])
 def updateGuests():
     
-    #Get the values entered in Edit Form
+    #Get the values entered in the Edit Form
     guest_id = int(request.form['edit_guest_id'])
     first_name = request.form['edit_first_name']
     middle_name = request.form['edit_middle_name']
@@ -1009,7 +1065,7 @@ def check_guests(guest_id):
     cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE guest_id = %s", (guest_id,)) #Count how many times guest_id appeared in bookings
     result = cursor.fetchone()
     cursor.close()
-    return jsonify({"in_use": result['count'] > 0}) #Return to guests; set "in_use" to TRUE if count > 0; 
+    return jsonify({"in_use": result['count'] > 0}) #Return to guests; set "in_use" to TRUE if count > 0
 
 #Called by GUESTS Menu - delete a guest
 @app.route('/deleteGuest/<int:guest_id>', methods=['GET'])
@@ -1356,6 +1412,21 @@ def success():
 @app.route('/failed')
 def failed():
     return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1>"
+
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if 'otp' not in session or 'reset_email' not in session:
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        entered_otp = request.form['otp']
+        if entered_otp == session['otp']:
+            # OTP correct, allow password reset
+            return redirect(url_for('reset_password'))
+        else:
+            return render_template('verify_otp.html', error="Invalid OTP. Please try again.")
+
+    return render_template('verify_otp.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

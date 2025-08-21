@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verification Pending</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            background: #f7f7f7;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: #fff;
+            max-width: 400px;
+            margin: 60px auto 0 auto;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 32px 28px;
+            text-align: center;
+        }
+        h2 {
+            color: #2d7ff9;
+            margin-bottom: 18px;
+        }
+        p {
+            font-size: 1.08em;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Verify Your Email</h2>
+        <p>
+            We’ve sent a verification link to your email.<br>
+            Please check your inbox (and spam folder just in case).
+        </p>
+        <p>
+            The link will expire in 24 hours.
+        </p>
+    </div>
+</body>
+</html>
