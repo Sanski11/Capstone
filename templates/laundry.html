@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Laundry</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="/static/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
+
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4">Laundry</h1>
+
+    <!-- Search and Add Buttons -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <!-- Search Form -->
+      <form class="d-flex" method="GET" action="/laundry">
+        <div class="input-group">
+          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
+          <button class="btn btn-outline-secondary" type="submit">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </form>
+
+      <!-- Add Button -->
+      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+        <i class="bi bi-plus-circle"></i> Add
+      </a>
+    </div>
+
+      <!-- Table -->
+      <table class="table table-striped table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>Service ID</th>
+            <th>Category</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Type</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+          <tbody>
+          {% for laundry_service in laundry_services %}
+          <tr>
+            <td>{{ laundry_service.service_id }}</td>
+            <td>{{ laundry_service.category }}</td>
+            <td>{{ laundry_service.name }}</td>
+            <td>{{ laundry_service.description }}</td>
+            <td>{{ laundry_service.type }}</td>
+            <td style="text-align: right;">{{ "{:,}".format(laundry_service.price) }}</td>
+            <td>
+              <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ laundry_service.service_id }}')">
+                <i class="bi bi-pencil-square"></i>
+              </a>
+              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
+                <i class="bi bi-trash-fill"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+    <!-- Back Button -->
+    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+
+    <!-- Add Laundry Form -->
+    <form id="addForm" action="/addLaundry" method="POST" style="display: none;" class="mb-4 mt-3">
+      <div class="mb-3">
+        <label for="category" class="form-label">Category:</label>
+        <select id="category" name="category" required value="0" maxlength="100" style="max-width: 1000px;" readonly>
+          <option value="Housekeeping" disabled>Housekeeping</option>
+          <option value="Dining" disabled>Dining</option>
+          <option value="Laundry" selected>Laundry</option>
+          <option value="Massage" disabled>Massage</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label for="name" class="form-label">Name:</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="name" class="form-label">Description:</label>
+        <input type="text" class="form-control" id="description" name="description" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="price" class="form-label">Price:</label>
+        <input type="number" class="form-control" id="price" name="price" step="0.01" value="0" required  min="0" max="99999999.99">
+      </div>
+
+      <div class="mb-3">
+        <label for="name" class="form-label">Type:</label>
+        <input type="text" class="form-control" id="type" name="type" value="Service" required readonly>
+      </div>
+
+      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+      <button type="submit" class="btn btn-success">Submit</button>
+    </form>
+
+      <!-- Edit Laundry Form -->
+      <form id="editForm" action="/updateLaundry" method="POST" style="display: none;" class="mb-4 mt-3">
+        <input type="hidden" id="edit_service_id" name="service_id" required>
+        <div class="mb-3">
+          <label for="edit_category" class="form-label">Category:</label>
+          <select id="edit_category" name="edit_category" required readonly maxlength="100" style="max-width: 1000px;">
+            <option value="Housekeeping" disabled>Housekeeping</option>
+            <option value="Dining" disabled>Dining</option>
+            <option value="Laundry" selected>Laundry</option>
+            <option value="Massage" disabled>Massage</option>
+          </select>
+            </div>
+  
+        <div class="mb-3">
+          <label for="edit_name" class="form-label">Name:</label>
+          <input type="text" class="form-control" id="edit_name" name="edit_name" step="0.01" required>
+        </div>
+
+        <div class="mb-3">
+          <label for="edit_description" class="form-label">Description:</label>
+          <input type="text" class="form-control" id="edit_description" name="edit_description" required>
+        </div>  
+  
+        <div class="mb-3">
+          <label for="edit_price" class="form-label">Price:</label>
+          <input type="number" class="form-control" id="edit_price" name="edit_price" step="0.01" required min="0" max="99999999.99">
+        </div>
+
+        <div class="mb-3">
+          <label for="edit_type" class="form-label">Type:</label>
+          <input type="text" class="form-control" id="edit_type" name="edit_type" value="Service" required readonly>
+        </div>  
+  
+        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
+        <button type="submit" class="btn btn-success">Submit</button>
+      </form>
+
+    <!-- Delete Confirmation Modal 
+          Display this pop up dialog box if service can be deleted
+    -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-danger text-white">
+            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete Laundry <span id="modalServiceName"></span>?
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  <!-- Services In Use Modal 
+  Display this pop up dialog box if room cannot be deleted
+  -->
+
+ <div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This service is currently used in request and cannot be deleted.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Bootstrap JS Bundle with Popper
+      Used by modal/pop up dialog box
+-->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Service JS and script -->
+<script>
+  const laundry_services = {{ laundry_services | tojson | safe }};
+
+  //Show Add or Edit Form
+  function showForm(mode, service_id = null) {
+    const addForm = document.getElementById("addForm");
+    const editForm = document.getElementById("editForm");
+
+    if (mode === "add") { //If add, show Add Form and hide Edit Form
+      addForm.style.display = "block";
+      editForm.style.display = "none";
+    } else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
+      addForm.style.display = "none";
+      editForm.style.display = "block";
+
+      //Find for the details of the selected service. If found, display details in the Edit Form
+      const laundry_service = laundry_services.find(r => r.service_id === parseInt(service_id));
+      if (laundry_service) {
+        document.getElementById("edit_service_id").value = laundry_service.service_id;
+        document.getElementById("edit_category").value = laundry_service.category;
+        document.getElementById("edit_description").value = laundry_service.description;
+        document.getElementById("edit_name").value = laundry_service.name;
+        document.getElementById("edit_price").value = laundry_service.price;
+      } else {
+        console.error("Laundry not found:", service_id);
+      }
+    }
+  }
+
+  //Hide Add and Edit Forms. Called when Cancel button is clicked
+  function hideForm() {
+    document.getElementById("addForm").style.display = "none";
+    document.getElementById("editForm").style.display = "none";
+  }
+
+  //Check before deleting a housekeeping. Display correct message
+  function confirmDelete(service_id, name) {
+    fetch(`/checkServices/${service_id}`)  //Go to app.py to check how many housekeeping in requests
+    .then(response => response.json())
+    .then(data => {
+      if (data.in_use) {  //If housekeeping id is used in requests, display inUseModal (cannot delete housekeeping)
+        const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
+        inUseModal.show();
+      } else {  //If housekeeping id is used in requests, display deleteModal (or delete housekeeping)
+        document.getElementById("modalServiceName").innerText = name;
+        document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${service_id}`;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+      }    
+    })
+    .catch(error => console.error("Error checking services:", error));
+  }  
+
+</script>
+</div>
+</body>
+</html>
