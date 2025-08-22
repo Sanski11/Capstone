@@ -1,14 +1,10 @@
 # Core Flask modules
-# Core Flask modules
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
-
-# MySQL integration
+from flask_login import LoginManager
 
 # MySQL integration
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
-
-# Utility modules
 
 # Utility modules
 from datetime import datetime, timedelta
@@ -65,8 +61,8 @@ HEADERS = {
 #MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-#app.config['MYSQL_PASSWORD'] = 'admin'
+#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
@@ -194,27 +190,6 @@ def forgot_password():
             return render_template('forgot_password.html', error="Email not found")
     
     return render_template('forgot_password.html')
-
-@app.route('/verify_otp', methods=['GET', 'POST'])
-def verify_otp():
-    if 'reset_email' not in session or 'otp' not in session:
-        print("🔴 Missing session data")
-        return redirect(url_for('forgot_password'))
-
-    if request.method == 'POST':
-        entered_otp = request.form['otp']
-        print("🔵 Entered OTP:", entered_otp)
-        print("🟢 Session OTP:", session.get('otp'))
-
-        if entered_otp == session.get('otp'):
-            session.pop('otp', None)
-            print("✅ OTP matched. Redirecting to reset_password.")
-            return redirect(url_for('reset_password'))
-        else:
-            print("❌ OTP mismatch.")
-            return render_template('verify_otp.html', error="Invalid OTP")
-
-    return render_template('verify_otp.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
