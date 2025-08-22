@@ -526,89 +526,46 @@ def editGuest(guest_id):
         return render_template('editGuest.html', guest=None, error="Guest not found")
     return render_template('editGuest.html', guest=guest)
 
-@app.route('/requests')
+@app.route("/requests")
 def show_requests():
-    query = request.args.get('search', '')
-    current_time = datetime.now().strftime('%Y-%m-%dT%H:%M')
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    #Fetch all staff for the dropdown
-    cursor.execute("SELECT * FROM staff")
-    staff_list = cursor.fetchall()
-    
-    #Fetch all services for the dropdown
+    cursor.execute("""
+        SELECT r.request_id, r.booking_id, r.quantity, r.unitCost, r.totalCost,
+               r.status, r.request_time, r.staff_id,
+               s.item AS service_name, f.name AS food_name,
+               st.first_name, st.last_name,
+               r.service_id, r.item_id
+        FROM requests r
+        LEFT JOIN services s ON r.service_id = s.service_id
+        LEFT JOIN food_items f ON r.item_id = f.item_id
+        LEFT JOIN staff st ON r.staff_id = st.staff_id
+        ORDER BY r.request_time DESC
+    """)
+    requests = cursor.fetchall()
+
+    # Get services and food items for dropdowns
     cursor.execute("SELECT * FROM services")
     service_list = cursor.fetchall()
-    
-    #Fetch all bookings for the dropdown
-    sql = """
-            SELECT
-            b.*,
-            r.room_number
-            FROM bookings b
-            JOIN room r ON b.room_id = r.room_id
-            """
-    cursor.execute(sql)
+
+    cursor.execute("SELECT * FROM food_items")
+    item_list = cursor.fetchall()
+
+    cursor.execute("SELECT * FROM bookings")
     booking_list = cursor.fetchall()
 
-    if query:
-        search_pattern = f"%{query}%"
-        sql = """
-            SELECT 
-                r.*,
-                s.item,
-                st.first_name,
-                st.last_name,
-                st.staff_id
-            FROM requests r
-            JOIN services s ON r.service_id = s.service_id
-            LEFT JOIN staff st ON r.staff_id = st.staff_id
-            WHERE 
-                CAST(r.request_id AS CHAR) LIKE %s OR
-                CAST(r.booking_id AS CHAR) LIKE %s OR
-                CAST(r.service_id AS CHAR) LIKE %s OR
-                CAST(r.quantity AS CHAR) LIKE %s OR
-                CAST(r.unitCost AS CHAR) LIKE %s OR
-                CAST(r.totalCost AS CHAR) LIKE %s OR
-                CAST(r.status AS CHAR) LIKE %s OR
-                CAST(r.request_time AS CHAR) LIKE %s OR
-                CAST(r.completionTime AS CHAR) LIKE %s OR
-                CAST(r.staff_id AS CHAR) LIKE %s OR
-                CAST(s.item AS CHAR) LIKE %s
-        """
-        cursor.execute(sql, (search_pattern,) * 11)
-    else:
-        cursor.execute("""
-            SELECT 
-                r.*,
-                s.item,
-                st.first_name,
-                st.last_name,
-                st.staff_id
-            FROM requests r
-            JOIN services s ON r.service_id = s.service_id
-            LEFT JOIN staff st ON r.staff_id = st.staff_id
-        """)
+    cursor.execute("SELECT * FROM staff")
+    staff_list = cursor.fetchall()
 
-    requests = cursor.fetchall()
     cursor.close()
-    return render_template('requests.html', requests=requests, staff_list=staff_list, current_time=current_time, service_list=service_list, booking_list=booking_list)
-
-@app.route('/assignTask', methods=['POST'])
-def assigntask():
-    request_id = request.form['assignTask_request_id']
-    staff_id = request.form['assignTask_staff_id']
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "UPDATE requests SET staff_id = %s WHERE request_id = %s",
-        (staff_id, request_id)
+    return render_template(
+        "requests.html",
+        requests=requests,
+        service_list=service_list,
+        item_list=item_list,
+        booking_list=booking_list,
+        staff_list=staff_list
     )
-    mysql.connection.commit()
-    cursor.close()
-
-    return redirect('/requests')
 
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
@@ -1175,19 +1132,33 @@ def updateGuests():
 @app.route('/addRequest', methods=['POST'])
 def add_request():
     booking_id = request.form['booking_id']
-    service_id = request.form['service_id']
+    service_id = request.form.get('service_id') or None
+    item_id = request.form.get('item_id') or None
     quantity = int(request.form['quantity'])
-    unitCost = float(request.form['unitCost'])
     status = request.form['status']
     request_time = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Determine unit cost
+    unitCost = 0
+    if service_id:
+        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['amount'])
+    elif item_id:
+        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['price'])
+
     totalCost = quantity * unitCost
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        INSERT INTO Requests (booking_id, service_id, quantity, unitCost, totalCost, status, request_time)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time))
+        INSERT INTO requests (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time))
     mysql.connection.commit()
     cursor.close()
 
@@ -1200,41 +1171,42 @@ from flask import request, redirect
 def update_request():
     request_id = request.form.get('edit_request_id')
     booking_id = request.form.get('edit_booking_id')
-    service_id = request.form.get('edit_service_id')
-    quantity = request.form.get('edit_quantity')
+    service_id = request.form.get('edit_service_id') or None
+    item_id = request.form.get('edit_item_id') or None
+    quantity = int(request.form.get('edit_quantity'))
     status = request.form.get('edit_status')
     request_time = request.form.get('edit_request_time')
 
-    print("FORM DATA:", request.form)
-
-    if not booking_id or not request_id or not service_id or not quantity or not status or not request_time:
-        return "Missing required fields", 400
-
-    try:
-        quantity = int(quantity)
-    except ValueError:
-        return "Invalid quantity", 400
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch correct unit cost based on service_id
-    cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
-    result = cursor.fetchone()
-    if not result:
-        cursor.close()
-        return "Service not found", 404
+    # Determine unit cost
+    unitCost = 0
+    if service_id:
+        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['amount'])
+    elif item_id:
+        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['price'])
 
-    unitCost = float(result['amount'])
-    totalCost = unitCost * quantity
+    totalCost = quantity * unitCost
 
-    # Update the request with verified and recalculated values
     cursor.execute("""
-        UPDATE requests
-        SET booking_id = %s, service_id = %s, quantity = %s,
-            unitCost = %s, totalCost = %s, status = %s, request_time = %s
-        WHERE request_id = %s
-    """, (booking_id, service_id, quantity, unitCost, totalCost, status, request_time, request_id))
-    
+    UPDATE requests
+    SET booking_id = %s,
+        service_id = %s,
+        item_id = %s,
+        quantity = %s,
+        unitCost = %s,
+        totalCost = %s,
+        status = %s,
+        request_time = %s
+    WHERE request_id = %s
+""", (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time, request_id))
+
     mysql.connection.commit()
     cursor.close()
 
@@ -1753,6 +1725,27 @@ def verify_otp():
             return render_template('verify_otp.html', error="Invalid OTP. Please try again.")
 
     return render_template('verify_otp.html')
+
+@app.route('/assigntask', methods=['POST'])
+def assigntask():
+    request_id = request.form.get("assignTask_request_id")
+    staff_id = request.form.get("assignTask_staff_id")
+
+    if not request_id or not staff_id:
+        flash("Missing request or staff ID", "danger")
+        return redirect(url_for("show_requests"))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        UPDATE requests
+        SET staff_id = %s
+        WHERE request_id = %s
+    """, (staff_id, request_id))
+    mysql.connection.commit()
+    cursor.close()
+
+    flash("Staff assigned successfully", "success")
+    return redirect(url_for("show_requests"))
 
 if __name__ == '__main__':
     app.run(debug=True)
