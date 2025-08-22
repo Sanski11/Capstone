@@ -1,9 +1,14 @@
 # Core Flask modules
+# Core Flask modules
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
+
+# MySQL integration
 
 # MySQL integration
 from flask_mysqldb import MySQL
 import MySQLdb.cursors
+
+# Utility modules
 
 # Utility modules
 from datetime import datetime, timedelta
@@ -14,7 +19,6 @@ import random
 import re
 import requests
 import smtplib
-import uuid
 
 # Email handling
 from email.mime.text import MIMEText
@@ -22,18 +26,14 @@ from email.mime.multipart import MIMEMultipart
 
 # Environment variable loader
 from dotenv import load_dotenv
-load_dotenv()
 
 # Security
+from werkzeug.security import generate_password_hash
 from itsdangerous import URLSafeTimedSerializer
-
-# Flask-Login
-from flask_login import LoginManager
 
 # Flask-Mail setup
 from flask_mail import Mail, Message
 from extensions import mail  # Custom mail extension
-from flask import url_for
 
 # Custom utility functions
 from utils import send_verification_email, verify_token
@@ -166,12 +166,19 @@ def login():
 
 # Route to initiate password reset and send OTP
 @app.route('/forgot_password', methods=['GET', 'POST'])
+# Route to initiate password reset and send OTP
+@app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
         email = request.form['email']
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        email = request.form['email']
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
         user = cursor.fetchone()
+        cursor.close()
+
         cursor.close()
 
         if user:
@@ -180,28 +187,40 @@ def forgot_password():
             session['otp'] = otp
 
             # Send OTP via email
-            subject = "Your Password Reset OTP"
-            body = f"Hello,\n\nYour OTP for password reset is: {otp}\n\nIf you did not request this, please ignore this email."
-            message = f"Subject: {subject}\n\n{body}"
-
-            try:
-                server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
-                server.starttls()
-                server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])
-                server.sendmail(app.config['EMAIL_USERNAME'], email, message)
-                server.quit()
-            except Exception as e:
-                print("❌ Failed to send OTP email:", e)
-                return render_template('forgot_password.html', error="Failed to send OTP email. Please try again.")
-
+            print(f"🔐 [DEV MODE] OTP for {email}: {otp}")
             return redirect(url_for('verify_otp'))  # Redirect to OTP verification
         else:
+            return render_template('forgot_password.html', error="Email not found")
             return render_template('forgot_password.html', error="Email not found")
     
     return render_template('forgot_password.html')
 
+@app.route('/verify_otp', methods=['GET', 'POST'])
+def verify_otp():
+    if 'reset_email' not in session or 'otp' not in session:
+        print("🔴 Missing session data")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        entered_otp = request.form['otp']
+        print("🔵 Entered OTP:", entered_otp)
+        print("🟢 Session OTP:", session.get('otp'))
+
+        if entered_otp == session.get('otp'):
+            session.pop('otp', None)
+            print("✅ OTP matched. Redirecting to reset_password.")
+            return redirect(url_for('reset_password'))
+        else:
+            print("❌ OTP mismatch.")
+            return render_template('verify_otp.html', error="Invalid OTP")
+
+    return render_template('verify_otp.html')
+
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
+    if 'reset_email' not in session:
+        return redirect(url_for('forgot_password'))
+
     if 'reset_email' not in session:
         return redirect(url_for('forgot_password'))
 
@@ -230,12 +249,6 @@ def reset_password():
             return render_template('reset_password.html', error="Something went wrong. Please try again.")
 
     return render_template('reset_password.html')
-
-from itsdangerous import URLSafeTimedSerializer
-from flask_mail import Message
-import MySQLdb
-
-serializer = URLSafeTimedSerializer(app.secret_key)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -635,9 +648,9 @@ def view_rooms():
     rooms = cursor.fetchall()  #After executing sql, fetch results
     return render_template('rooms.html', rooms=rooms) #pass the contents of rooms to rooms.html
   
-#Called by SERVICES Menu - display list of services
-@app.route('/services')
-def view_services():
+#Called by LAUNDRY Menu - display list of laundry
+@app.route('/laundry')
+def view_laundry():
     search = request.args.get('search', '')  #Get the value entered in search 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
 
@@ -645,19 +658,70 @@ def view_services():
         like = f"%{search}%"
         query = """
             SELECT *
-            FROM services
-            WHERE 
-                service_type LIKE %s OR
-                item LIKE %s 
+            FROM hotel_services
+            WHERE category = 'Laundry'
+            AND (name LIKE %s OR description LIKE %s)
         """
-        cursor.execute(query, (like,) * 2)  #Execute for search criteria - type and item
+        cursor.execute(query, (like,) * 2)
     else:
         cursor.execute("""
-            SELECT * FROM services ORDER BY service_type, item
+            SELECT *
+            FROM hotel_services
+            WHERE category = 'Laundry'
+            ORDER BY name
         """)
 
-    services = cursor.fetchall() #After executing sql; fetch results
-    return render_template('services.html', services=services) #pass the contents of services to services.html
+    laundry_services = cursor.fetchall() #After executing sql; fetch results
+    return render_template('laundry.html', laundry_services=laundry_services) #pass the contents of laundry to laundry.html
+
+#Called by DINING Menu - display list of dining
+@app.route('/dining')
+def view_dining():
+    search = request.args.get('search','')
+    c = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    if search:
+        like = f"%{search}%"
+        c.execute("""
+            SELECT item_id, name, description, price, category, type
+            FROM food_items
+            WHERE name LIKE %s OR description LIKE %s OR category LIKE %s OR type LIKE %s
+            ORDER BY item_id
+        """, (like, like, like, like))
+    else:
+        c.execute("""
+            SELECT item_id, name, description, price, category, type
+            FROM food_items
+            ORDER BY item_id
+        """)
+    dining_services = c.fetchall()
+    c.close()
+    return render_template('dining.html', dining_services=dining_services)
+
+#Called by MASSAGE Menu - display list of massage
+@app.route('/massage')
+def view_massage():
+    search = request.args.get('search', '')  #Get the value entered in search 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+
+    if search:
+        like = f"%{search}%"
+        query = """
+            SELECT *
+            FROM hotel_services
+            WHERE category = 'Massage'
+            AND (name LIKE %s OR description LIKE %s)
+        """
+        cursor.execute(query, (like,) * 2)
+    else:
+        cursor.execute("""
+            SELECT *
+            FROM hotel_services
+            WHERE category = 'Massage'
+            ORDER BY name
+        """)
+
+    massage_services = cursor.fetchall() #After executing sql; fetch results
+    return render_template('massage.html', massage_services=massage_services) #pass the contents of massage to massage.html
  
 #Called by GUESTS Menu - display list of guests
 @app.route('/guests')
@@ -925,24 +989,116 @@ def deleteRequest(request_id):
     cursor.close()
     return redirect('/requests')
 
-#Called by SERVICES Menu - add new service
-@app.route('/addService', methods=['POST'])
-def add_service():
+#Called by HOUSEKEEPING Menu - display list of housekeeping
+@app.route('/housekeeping')
+def view_housekeeping():
+    search = request.args.get('search', '')  #Get the value entered in search 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+
+    if search:
+        like = f"%{search}%"
+        query = """
+            SELECT *
+            FROM hotel_services
+            WHERE category = 'Housekeeping'
+            AND (name LIKE %s OR description LIKE %s)
+        """
+        cursor.execute(query, (like,) * 2)
+    else:
+        cursor.execute("""
+            SELECT *
+            FROM hotel_services
+            WHERE category = 'Housekeeping'
+            ORDER BY name
+        """)
+
+    hotel_services = cursor.fetchall() #After executing sql; fetch results
+    return render_template('housekeeping.html', hotel_services=hotel_services) #pass the contents of housekeeping to housekeeping.html
+
+
+#Called by HOUSEKEEPING Menu - add new housekeeping
+@app.route('/addHousekeeping', methods=['POST'])
+def add_housekeeping():
     
     #Get the values entered in Add Form
-    service_type = request.form['service_type']
-    item = request.form['item']
-    amount = float(request.form['amount'])
+    category = request.form['category']
+    name = request.form['name']
+    description = request.form['description']
+    price = float(request.form['price'])
+    type = request.form['type']
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute(
-        "INSERT INTO Services (service_type, item, amount) VALUES (%s, %s, %s)",
-        (service_type, item, amount)
-    )
+        "INSERT INTO hotel_services (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
+        (category, name, description, price, type)
+    )    
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
-    return redirect('/services')
+    return redirect('/housekeeping')
+
+#Called by DINING Menu - add new dining
+@app.route('/addDining', methods=['POST'])
+def add_dining():
+    
+    #Get the values entered in Add Form
+    category = request.form['category']
+    name = request.form['name']
+    description = request.form['description']
+    price = float(request.form['price'])
+    type = request.form['type']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "INSERT INTO food_items (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
+        (category, name, description, price, type)
+    )    
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/dining')
+
+#Called by LAUNDRY Menu - add new laundry
+@app.route('/addLaundry', methods=['POST'])
+def add_laundry():
+    
+    #Get the values entered in Add Form
+    category = request.form['category']
+    name = request.form['name']
+    description = request.form['description']
+    price = float(request.form['price'])
+    type = request.form['type']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "INSERT INTO hotel_services (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
+        (category, name, description, price, type)
+    )    
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/laundry')
+
+# #Called by MASSAGE Menu - add new massage
+@app.route('/addMassage', methods=['POST'])
+def add_massage():
+    
+    #Get the values entered in Add Form
+    category = request.form['category']
+    name = request.form['name']
+    description = request.form['description']
+    price = float(request.form['price'])
+    type = request.form['type']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute(
+        "INSERT INTO hotel_services (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
+        (category, name, description, price, type)
+    )    
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/massage')
 
 #Called by STAFF Menu - add a new staff
 @app.route('/addStaff', methods=['POST'])
@@ -1009,38 +1165,145 @@ def check_services(service_id):
     cursor.close()
     return jsonify({"in_use": result['count'] > 0}) #Return to services; set "in_use" to true if count> 0
 
-#Called by SERVICES Menu - edit a service
-@app.route('/updateServices', methods=['POST'])
-def updateServices():
+#Called by HOUSEKEEPING Menu - edit a housekeeping
+@app.route('/updateHousekeeping', methods=['POST'])
+def updateHousekeeping():
     
     #Get the values entered in Edit Form
-    service_id = int(request.form['edit_service_id'])
-    service_type = request.form['edit_service_type']
-    item = request.form['edit_item']
-    amount = float(request.form['edit_amount'])
+    service_id = int(request.form['service_id'])
+    category = request.form['edit_category']
+    name = request.form['edit_name']
+    description = request.form['edit_description']
+    type = request.form['edit_type']
+    price = float(request.form['edit_price'])
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     cursor.execute(
         """
-        UPDATE Services 
-        SET service_type = %s, item = %s, amount = %s 
+        UPDATE hotel_services
+        SET category = %s, name = %s, price = %s, description =%s, type =%s 
         WHERE service_id = %s
         """,
-        (service_type, item, amount, service_id)
+        (category, name, price, description, type, service_id)
     )
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
-    return redirect('/services')
+    return redirect('/housekeeping')
 
-#Called by SERVICES Menu - delete a service
-@app.route('/deleteServices/<int:service_id>', methods=['GET'])
-def deleteServices(service_id):
+#Called by DINING Menu - edit a dining
+@app.route('/updateDining', methods=['POST'])
+def updateDining():
+    
+    #Get the values entered in Edit Form
+    item_id = int(request.form['item_id'])
+    category = request.form['edit_category']
+    name = request.form['edit_name']
+    description = request.form['edit_description']
+    type = request.form['edit_type']
+    price = float(request.form['edit_price'])
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute(
+        """
+        UPDATE food_items
+        SET category =%s, name = %s, description =%s, type =%s, price = %s 
+        WHERE item_id = %s
+        """,
+        (category, name, description, type, price, item_id)
+    )
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/dining')
+
+#Called by LAUNDRY Menu - edit a service
+@app.route('/updateLaundry', methods=['POST'])
+def updateLaundry():
+    
+    #Get the values entered in Edit Form
+    service_id = int(request.form['service_id'])
+    category = request.form['edit_category']
+    name = request.form['edit_name']
+    description = request.form['edit_description']
+    type = request.form['edit_type']
+    price = float(request.form['edit_price'])
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute(
+        """
+        UPDATE hotel_services
+        SET category = %s, name = %s, price = %s, description =%s, type =%s 
+        WHERE service_id = %s
+        """,
+        (category, name, price, description, type, service_id)
+    )
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/laundry')
+
+#Called by MASSAGE Menu - edit a massage
+@app.route('/updateMassage', methods=['GET', 'POST'])
+def updateMassage():
+    
+    #Get the values entered in Edit Form
+    service_id = int(request.form['service_id'])
+    category = request.form['edit_category']
+    name = request.form['edit_name']
+    description = request.form['edit_description']
+    price = float(request.form['edit_price'])
+    type = request.form['edit_type']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute(
+        """
+        UPDATE hotel_services
+        SET category = %s, name = %s, description = %s, price =%s, type =%s 
+        WHERE service_id = %s
+        """,
+        (category, name, description, price, type, service_id)
+    )
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/massage')
+
+#Called by HOUSEKEEPING Menu - delete a housekeeping
+@app.route('/deleteHousekeeping/<int:service_id>', methods=['GET'])
+def deleteHousekeeping(service_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("DELETE FROM Services WHERE service_id = %s", (service_id,))
+    cursor.execute("DELETE FROM hotel_services WHERE service_id = %s", (service_id,))
     mysql.connection.commit()
     cursor.close()
-    return redirect('/services')
+    return redirect('/housekeeping')
+
+#Called by DINING Menu - delete a dining
+@app.route('/deleteDining/<int:item_id>', methods=['GET'])
+def deleteDining(item_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM food_items WHERE item_id = %s", (item_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/dining')
+
+#Called by LAUNDRY Menu - delete a laundry
+@app.route('/deleteLaundry/<int:service_id>', methods=['GET'])
+def deleteLaundry(service_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM hotel_services WHERE service_id = %s", (service_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/laundry')
+
+#Called by MASSAGE Menu - delete a massage
+@app.route('/deleteMassage/<int:service_id>', methods=['GET'])
+def deleteMassage(service_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("DELETE FROM hotel_services WHERE service_id = %s", (service_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/massage')
 
 @app.route('/addRoomGuest', methods=['POST'])
 def add_room_guest():
@@ -1352,6 +1615,7 @@ def update_user():
 def show_checkout(booking_id):
     #Fetch booking info if needed
     return render_template('checkout_form.html', booking_id=booking_id)
+
 
 
 @app.route('/pay', methods=['POST'])
