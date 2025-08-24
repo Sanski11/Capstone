@@ -615,6 +615,306 @@ def view_services():
 
     services = cursor.fetchall() #After executing sql; fetch results
     return render_template('services.html', services=services) #pass the contents of services to services.html
+ 
+#Called by GUESTS Menu - display list of guests
+@app.route('/guests')
+def view_guests():
+    selected_guest = request.args.get('guest_id', '')  #Get the id of the selected guest
+    search = request.args.get('search', '')  #Get the value entered in search
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+
+    if search:
+        like = f"%{search}%"
+        query = """
+        SELECT *
+        FROM guest
+        WHERE 
+            first_name LIKE %s OR
+            middle_name LIKE %s OR
+            last_name LIKE %s OR
+            email LIKE %s OR
+            phone LIKE %s
+    """
+        cursor.execute(query, (like,) * 5) #Execute. 5 for 5 search criteria (first, middle, last, email, phone)
+    else:
+        cursor.execute("""
+            SELECT * FROM guest ORDER BY last_name, first_name
+        """)
+    guests = cursor.fetchall() #After executing; fetch results
+    return render_template('guests.html', guests=guests) #pass the contents of guests to guests.html
+
+#Called by CHECKIN / CHECKOUT MENU - display bookings
+@app.route('/roomGuest')
+def show_roomGuest():
+    query = request.args.get('search', '') #Get the value entered in search
+    selected_room = request.args.get('room_id', '') #Get the roomid of the selected booking
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+
+    #Get all guests
+    cursor.execute("SELECT * FROM guest")
+    guests = cursor.fetchall()
+
+    #Get rooms 
+    cursor.execute("SELECT * FROM room")
+    rooms = cursor.fetchall()
+
+    if query:
+        search_pattern = f"%{query}%"
+        query = """
+            SELECT 
+                b.*,
+                r.room_number as room_number,
+                g.last_name as last_name,
+                g.first_name as first_name 
+            FROM bookings b
+            JOIN room r ON b.room_id = r.room_id
+            JOIN guest g ON b.guest_id = g.guest_id
+            WHERE 
+                booking_id LIKE %s OR
+                room_number LIKE %s OR
+                last_name LIKE %s OR
+                first_name LIKE %s OR
+                exp_check_in LIKE %s OR
+                exp_check_out LIKE %s OR
+                actual_check_in LIKE %s OR
+                actual_check_out LIKE %s
+        """
+        cursor.execute(query, (search_pattern,) * 8) #Execute 8 for 8 search criteria
+    else:
+        cursor.execute("""
+                SELECT 
+                    b.*, 
+                    g.first_name,
+                    g.last_name,
+                    r.room_number
+                FROM bookings b
+                JOIN guest g ON b.guest_id = g.guest_id
+                JOIN room r ON b.room_id = r.room_id
+            """)
+    bookings = cursor.fetchall() #After executing sql; fetch results
+    cursor.close() #Close db connection
+    return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
+
+#Called by ROOMS Menu; Add a new room
+@app.route('/addRoom', methods=['POST'])
+def add_rooms():
+    
+    #Get the values entered in Add Form
+    roomNumber = request.form['room_number']
+    roomType = request.form['room_type']
+    roomStatus = request.form['room_status']
+        
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+        cursor.execute(
+            "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
+            (roomNumber, roomType, roomStatus)
+        ) 
+        mysql.connection.commit()  #Save to database
+    except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
+        flash("Room number already exists. Please enter a unique room number.", "danger")
+    finally:
+        cursor.close() #Close db connection
+        return redirect('/rooms') 
+
+
+#Called by ROOMS Menu - edit a room
+@app.route('/updateRoom', methods=['POST'])
+def updateRoom():
+    
+    #Get the values entered in the Edit Form
+    room_id = int(request.form['edit_room_id'])
+    room_number = request.form['edit_room_number']
+    room_type = request.form['edit_room_type']
+    room_status = request.form['edit_room_status']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute(
+        """
+        UPDATE room
+        SET room_number = %s, room_type = %s, room_status = %s
+        WHERE room_id = %s
+        """,
+        (room_number, room_type, room_status, room_id)
+    )
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close connection
+    return redirect('/rooms') #Return to rooms
+
+#Called by ROOMS Menu - delete a room
+@app.route('/deleteRoom/<int:room_id>', methods=['GET'])
+def deleteRoom(room_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,)) #Execute
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close connection
+    return redirect('/rooms') #Return to rooms
+
+#Called by ROOMS Menu - check if room exists in bookngs
+@app.route('/checkRoomBooking/<int:room_id>')
+def check_room_booking(room_id):
+    cursor  = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,)) #Count how many room_id are there in bookings
+    result = cursor.fetchone() #Fetch results
+    cursor.close() #Close db connection
+    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0;  if in_use is TRUE (meaning, the room_id is used in bookings), then it will tell rooms.html that the room cannot be deleted
+
+#Called by GUESTS Menu - add a new guest
+@app.route('/addGuests', methods=['POST'])
+def add_guests():
+    
+    #Get the values entered in Add Form
+    first_name = request.form['first_name']
+    middle_name = request.form['middle_name']
+    last_name = request.form['last_name']
+    email = request.form['email']
+    phone = request.form['phone']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  #Connect to db
+    cursor.execute("""
+        INSERT INTO Guest (first_name, middle_name, last_name, email, phone)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (first_name, middle_name, last_name, email, phone))
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close connection
+
+    return redirect('/guests')
+
+#Called by GUESTS Menu - edit a guest
+@app.route('/updateGuests', methods=['POST'])
+def updateGuests():
+    
+    #Get the values entered in the Edit Form
+    guest_id = int(request.form['edit_guest_id'])
+    first_name = request.form['edit_first_name']
+    middle_name = request.form['edit_middle_name']
+    last_name = request.form['edit_last_name']
+    email = request.form['edit_email']
+    phone = request.form['edit_phone']
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute("""
+        UPDATE Guest 
+        SET first_name = %s, middle_name = %s, last_name = %s, email = %s, phone = %s 
+        WHERE guest_id = %s
+    """, (first_name, middle_name, last_name, email, phone, guest_id))
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close connection
+
+    return redirect('/guests')
+
+@app.route('/addRequest', methods=['POST'])
+def add_request():
+    booking_id = request.form['booking_id']
+    service_id = request.form.get('service_id') or None
+    item_id = request.form.get('item_id') or None
+    quantity = int(request.form['quantity'])
+    status = request.form['status']
+    request_time = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Determine unit cost
+    unitCost = 0
+    if service_id:
+        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['amount'])
+    elif item_id:
+        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['price'])
+
+    totalCost = quantity * unitCost
+
+    cursor.execute("""
+    INSERT INTO requests (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time))
+    mysql.connection.commit()
+    cursor.close()
+
+    return redirect('/requests')
+
+from datetime import datetime
+from flask import request, redirect
+
+@app.route('/updateRequest', methods=['POST'])
+def update_request():
+    request_id = request.form.get('edit_request_id')
+    booking_id = request.form.get('edit_booking_id')
+    service_id = request.form.get('edit_service_id') or None
+    item_id = request.form.get('edit_item_id') or None
+    quantity = int(request.form.get('edit_quantity'))
+    status = request.form.get('edit_status')
+    request_time = request.form.get('edit_request_time')
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Determine unit cost
+    unitCost = 0
+    if service_id:
+        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['amount'])
+    elif item_id:
+        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
+        result = cursor.fetchone()
+        if result:
+            unitCost = float(result['price'])
+
+    totalCost = quantity * unitCost
+
+    cursor.execute("""
+    UPDATE requests
+    SET booking_id = %s,
+        service_id = %s,
+        item_id = %s,
+        quantity = %s,
+        unitCost = %s,
+        totalCost = %s,
+        status = %s,
+        request_time = %s
+    WHERE request_id = %s
+""", (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time, request_id))
+
+    mysql.connection.commit()
+    cursor.close()
+
+    return redirect('/requests')
+
+@app.route('/deleteRequest/<int:request_id>', methods=['GET'])
+def deleteRequest(request_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    #Delete assignments first
+    cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
+    #Then delete the request
+    cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return redirect('/requests')
+
+#Called by SERVICES Menu - add new service
+@app.route('/addService', methods=['POST'])
+def add_service():
+    
+    #Get the values entered in Add Form
+    service_type = request.form['service_type']
+    item = request.form['item']
+    amount = float(request.form['amount'])
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    cursor.execute(
+        "INSERT INTO Services (service_type, item, amount) VALUES (%s, %s, %s)",
+        (service_type, item, amount)
+    )
+    mysql.connection.commit() #Save to db
+    cursor.close() #Close db connection
+
+    return redirect('/services')
 
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
@@ -940,307 +1240,6 @@ def deleteMassage(service_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/massage')
-
- 
-#Called by GUESTS Menu - display list of guests
-@app.route('/guests')
-def view_guests():
-    selected_guest = request.args.get('guest_id', '')  #Get the id of the selected guest
-    search = request.args.get('search', '')  #Get the value entered in search
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-
-    if search:
-        like = f"%{search}%"
-        query = """
-        SELECT *
-        FROM guest
-        WHERE 
-            first_name LIKE %s OR
-            middle_name LIKE %s OR
-            last_name LIKE %s OR
-            email LIKE %s OR
-            phone LIKE %s
-    """
-        cursor.execute(query, (like,) * 5) #Execute. 5 for 5 search criteria (first, middle, last, email, phone)
-    else:
-        cursor.execute("""
-            SELECT * FROM guest ORDER BY last_name, first_name
-        """)
-    guests = cursor.fetchall() #After executing; fetch results
-    return render_template('guests.html', guests=guests) #pass the contents of guests to guests.html
-
-#Called by CHECKIN / CHECKOUT MENU - display bookings
-@app.route('/roomGuest')
-def show_roomGuest():
-    query = request.args.get('search', '') #Get the value entered in search
-    selected_room = request.args.get('room_id', '') #Get the roomid of the selected booking
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-
-    #Get all guests
-    cursor.execute("SELECT * FROM guest")
-    guests = cursor.fetchall()
-
-    #Get rooms 
-    cursor.execute("SELECT * FROM room")
-    rooms = cursor.fetchall()
-
-    if query:
-        search_pattern = f"%{query}%"
-        query = """
-            SELECT 
-                b.*,
-                r.room_number as room_number,
-                g.last_name as last_name,
-                g.first_name as first_name 
-            FROM bookings b
-            JOIN room r ON b.room_id = r.room_id
-            JOIN guest g ON b.guest_id = g.guest_id
-            WHERE 
-                booking_id LIKE %s OR
-                room_number LIKE %s OR
-                last_name LIKE %s OR
-                first_name LIKE %s OR
-                exp_check_in LIKE %s OR
-                exp_check_out LIKE %s OR
-                actual_check_in LIKE %s OR
-                actual_check_out LIKE %s
-        """
-        cursor.execute(query, (search_pattern,) * 8) #Execute 8 for 8 search criteria
-    else:
-        cursor.execute("""
-                SELECT 
-                    b.*, 
-                    g.first_name,
-                    g.last_name,
-                    r.room_number
-                FROM bookings b
-                JOIN guest g ON b.guest_id = g.guest_id
-                JOIN room r ON b.room_id = r.room_id
-            """)
-    bookings = cursor.fetchall() #After executing sql; fetch results
-    cursor.close() #Close db connection
-    return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
-
-#Called by ROOMS Menu; Add a new room
-@app.route('/addRoom', methods=['POST'])
-def add_rooms():
-    
-    #Get the values entered in Add Form
-    roomNumber = request.form['room_number']
-    roomType = request.form['room_type']
-    roomStatus = request.form['room_status']
-        
-    try:
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-        cursor.execute(
-            "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
-            (roomNumber, roomType, roomStatus)
-        ) 
-        mysql.connection.commit()  #Save to database
-    except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
-        flash("Room number already exists. Please enter a unique room number.", "danger")
-    finally:
-        cursor.close() #Close db connection
-        return redirect('/rooms') 
-
-
-#Called by ROOMS Menu - edit a room
-@app.route('/updateRoom', methods=['POST'])
-def updateRoom():
-    
-    #Get the values entered in the Edit Form
-    room_id = int(request.form['edit_room_id'])
-    room_number = request.form['edit_room_number']
-    room_type = request.form['edit_room_type']
-    room_status = request.form['edit_room_status']
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    cursor.execute(
-        """
-        UPDATE room
-        SET room_number = %s, room_type = %s, room_status = %s
-        WHERE room_id = %s
-        """,
-        (room_number, room_type, room_status, room_id)
-    )
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close connection
-    return redirect('/rooms') #Return to rooms
-
-#Called by ROOMS Menu - delete a room
-@app.route('/deleteRoom/<int:room_id>', methods=['GET'])
-def deleteRoom(room_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,)) #Execute
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close connection
-    return redirect('/rooms') #Return to rooms
-
-#Called by ROOMS Menu - check if room exists in bookngs
-@app.route('/checkRoomBooking/<int:room_id>')
-def check_room_booking(room_id):
-    cursor  = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,)) #Count how many room_id are there in bookings
-    result = cursor.fetchone() #Fetch results
-    cursor.close() #Close db connection
-    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0;  if in_use is TRUE (meaning, the room_id is used in bookings), then it will tell rooms.html that the room cannot be deleted
-
-#Called by GUESTS Menu - add a new guest
-@app.route('/addGuests', methods=['POST'])
-def add_guests():
-    
-    #Get the values entered in Add Form
-    first_name = request.form['first_name']
-    middle_name = request.form['middle_name']
-    last_name = request.form['last_name']
-    email = request.form['email']
-    phone = request.form['phone']
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  #Connect to db
-    cursor.execute("""
-        INSERT INTO Guest (first_name, middle_name, last_name, email, phone)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (first_name, middle_name, last_name, email, phone))
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close connection
-
-    return redirect('/guests')
-
-#Called by GUESTS Menu - edit a guest
-@app.route('/updateGuests', methods=['POST'])
-def updateGuests():
-    
-    #Get the values entered in the Edit Form
-    guest_id = int(request.form['edit_guest_id'])
-    first_name = request.form['edit_first_name']
-    middle_name = request.form['edit_middle_name']
-    last_name = request.form['edit_last_name']
-    email = request.form['edit_email']
-    phone = request.form['edit_phone']
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    cursor.execute("""
-        UPDATE Guest 
-        SET first_name = %s, middle_name = %s, last_name = %s, email = %s, phone = %s 
-        WHERE guest_id = %s
-    """, (first_name, middle_name, last_name, email, phone, guest_id))
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close connection
-
-    return redirect('/guests')
-
-@app.route('/addRequest', methods=['POST'])
-def add_request():
-    booking_id = request.form['booking_id']
-    service_id = request.form.get('service_id') or None
-    item_id = request.form.get('item_id') or None
-    quantity = int(request.form['quantity'])
-    status = request.form['status']
-    request_time = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Determine unit cost
-    unitCost = 0
-    if service_id:
-        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['amount'])
-    elif item_id:
-        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['price'])
-
-    totalCost = quantity * unitCost
-
-    cursor.execute("""
-        INSERT INTO requests (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time))
-    mysql.connection.commit()
-    cursor.close()
-
-    return redirect('/requests')
-
-from datetime import datetime
-from flask import request, redirect
-
-@app.route('/updateRequest', methods=['POST'])
-def update_request():
-    request_id = request.form.get('edit_request_id')
-    booking_id = request.form.get('edit_booking_id')
-    service_id = request.form.get('edit_service_id') or None
-    item_id = request.form.get('edit_item_id') or None
-    quantity = int(request.form.get('edit_quantity'))
-    status = request.form.get('edit_status')
-    request_time = request.form.get('edit_request_time')
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Determine unit cost
-    unitCost = 0
-    if service_id:
-        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['amount'])
-    elif item_id:
-        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['price'])
-
-    totalCost = quantity * unitCost
-
-    cursor.execute("""
-    UPDATE requests
-    SET booking_id = %s,
-        service_id = %s,
-        item_id = %s,
-        quantity = %s,
-        unitCost = %s,
-        totalCost = %s,
-        status = %s,
-        request_time = %s
-    WHERE request_id = %s
-""", (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time, request_id))
-
-    mysql.connection.commit()
-    cursor.close()
-
-    return redirect('/requests')
-
-@app.route('/deleteRequest/<int:request_id>', methods=['GET'])
-def deleteRequest(request_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    #Delete assignments first
-    cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
-    #Then delete the request
-    cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
-    mysql.connection.commit()
-    cursor.close()
-    return redirect('/requests')
-
-#Called by SERVICES Menu - add new service
-@app.route('/addService', methods=['POST'])
-def add_service():
-    
-    #Get the values entered in Add Form
-    service_type = request.form['service_type']
-    item = request.form['item']
-    amount = float(request.form['amount'])
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    cursor.execute(
-        "INSERT INTO Services (service_type, item, amount) VALUES (%s, %s, %s)",
-        (service_type, item, amount)
-    )
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close db connection
-
-    return redirect('/services')
 
 #Called by STAFF Menu - add a new staff
 @app.route('/addStaff', methods=['POST'])
