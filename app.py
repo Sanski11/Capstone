@@ -15,6 +15,7 @@ import random
 import re
 import requests
 import smtplib
+import random, string
 
 # Email handling
 from email.mime.text import MIMEText
@@ -1332,11 +1333,12 @@ def view_bookings():
                 b.exp_check_in LIKE %s OR
                 b.exp_check_out LIKE %s OR
                 b.status LIKE %s OR
+                b.random_booking_ref LIKE %s OR
                 g.first_name LIKE %s OR
                 g.last_name LIKE %s OR
                 r.room_number LIKE %s
         """
-        cursor.execute(query, (like,) * 10) #Execute sql; 10 for 10 search criteria
+        cursor.execute(query, (like,) * 11) #Execute sql; 11 for 11 search criteria
     else:
         cursor.execute("""
             SELECT 
@@ -1372,10 +1374,15 @@ def add_booking():
         return redirect('/bookings')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    while True:
+        random_booking_ref = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        cursor.execute("SELECT * FROM Bookings WHERE random_booking_ref=%s", (random_booking_ref,))
+        if not cursor.fetchone(): #Still checking if any row exists
+            break
     cursor.execute("""
-        INSERT INTO Bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status))
+        INSERT INTO Bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref))
     mysql.connection.commit()
     cursor.close()
     return redirect('/bookings')
