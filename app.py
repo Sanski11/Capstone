@@ -16,6 +16,7 @@ import re
 import requests
 import smtplib
 import random, string
+import uuid
 
 # Email handling
 from email.mime.text import MIMEText
@@ -62,8 +63,8 @@ HEADERS = {
 #MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+#app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
