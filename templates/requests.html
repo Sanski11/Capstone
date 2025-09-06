@@ -54,8 +54,8 @@
           {% endif %}
         </td>
         <td>{{ request.quantity }}</td>
-        <td style="text-align: right;">{{ "{:,.2f}".format(request.unitCost | float) }}</td>
-        <td style="text-align: right;">{{ "{:,.2f}".format(request.totalCost | float) }}</td>
+        <td style="text-align: right;">{{ "{:,.2f}".format(request.unit_cost | float) }}</td>
+        <td style="text-align: right;">{{ "{:,.2f}".format(request.total_cost | float) }}</td>
         <td>{{ request.status|capitalize }}</td>
         <td>{{ request.request_time }}</td>
         <td>
@@ -111,25 +111,37 @@
     <div class="mb-3">
       <label class="form-label">Request Type:</label>
       <select class="form-control" id="request_type" onchange="toggleRequestType()" required>
-        <option value="service">Service</option>
+        <option value="Service">Service</option>
         <option value="food">Food</option>
       </select>
     </div>
 
-    <div class="mb-3" id="service_div">
-      <label for="service_id" class="form-label">Service:</label>
-      <select class="form-control" id="service_id" name="service_id">
-        {% for service in service_list %}
-        <option value="{{ service.service_id }}">{{ service.item }}</option>
-        {% endfor %}
-      </select>
+    <div class="mb-3">
+        <label class="form-label">Category:</label>
+        <select class="form-control" id="category" name="category" onchange="filterCategoryNames()" required>
+        <optgroup id="service_categories" label="Service Categories">
+          {% for service_category in service_category_list %}
+          <option value="{{ service_category.category }}">{{ service_category.category }}</option>
+          {% endfor %}
+        </optgroup>
+
+        <optgroup id="food_categories" label="Food Categories" style="display: none;">
+          {% for food_category in food_category_list %}
+          <option value="{{ food_category.category }}">{{ food_category.category }}</option>
+          {% endfor %}
+        </optgroup>
+    </select>
     </div>
 
-    <div class="mb-3" id="food_div" style="display:none;">
-      <label for="item_id" class="form-label">Food Item:</label>
-      <select class="form-control" id="item_id" name="item_id">
-        {% for item in item_list %}
-        <option value="{{ item.item_id }}">{{ item.name }}</option>
+    <div class="mb-3">
+      <label for="name" class="form-label">Name:</label>
+      <select class="form-control" id="name" name="name" required>
+        {% for service_name in service_names %}
+          <option value="{{ service_name.service_id }}" data-category="{{ service_name.category }}" data-price="{{ service_name.price }}">{{ service_name.name }}</option>
+        {% endfor %}
+
+        {% for food_name in food_names %}
+          <option value="{{ food_name.item_id }}" data-category="{{ food_name.category }}" data-price="{{ food_name.price}}">{{ food_name.name }}</option>
         {% endfor %}
       </select>
     </div>
@@ -139,8 +151,8 @@
       <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
     </div>
     <div class="mb-3">
-      <label for="unitCost" class="form-label">Unit Cost:</label>
-      <input type="text" class="form-control" id="unitCost" name="unitCost" readonly>
+      <label for="unit_cost" class="form-label">Unit Cost:</label>
+      <input type="text" class="form-control" id="unit_cost" name="unit_cost" readonly>
     </div>
     <div class="mb-3">
       <label for="status" class="form-label">Status:</label>
@@ -202,8 +214,8 @@
       <input type="number" class="form-control" id="edit_quantity" name="edit_quantity" required>
     </div>
     <div class="mb-3">
-      <label for="edit_unitCost" class="form-label">Unit Cost:</label>
-      <input type="number" step="0.01" class="form-control" id="edit_unitCost" name="edit_unitCost" readonly>
+      <label for="edit_unit_cost" class="form-label">Unit Cost:</label>
+      <input type="number" step="0.01" class="form-control" id="edit_unit_cost" name="edit_unit_cost" readonly>
     </div>
     <div class="mb-3">
       <label for="edit_status" class="form-label">Status:</label>
@@ -229,8 +241,23 @@
 
   function toggleRequestType() {
     const type = document.getElementById("request_type").value;
-    document.getElementById("service_div").style.display = (type === "service") ? "block" : "none";
-    document.getElementById("food_div").style.display = (type === "food") ? "block" : "none";
+    const serviceOptions = document.getElementById("service_categories");
+    const foodOptions = document.getElementById("food_categories");
+    const categorySelect = document.getElementById("category");
+
+    //Clear any previously selected category
+    categorySelect.selectedIndex = -1;
+
+    if (type === "Service") {
+      serviceOptions.style.display = "";
+      foodOptions.style.display = "none";
+    } else if (type === "food") {
+      serviceOptions.style.display = "none";
+      foodOptions.style.display = "";
+    }
+
+    //Re-filter names whenever type changes
+    filterCategoryNames();
   }
 
   function toggleEditRequestType() {
@@ -263,7 +290,7 @@
         document.getElementById("edit_request_id").value = request.request_id;
         document.getElementById("edit_booking_id").value = request.booking_id;
         document.getElementById("edit_quantity").value = request.quantity;
-        document.getElementById("edit_unitCost").value = request.unitCost;
+        document.getElementById("edit_unit_cost").value = request.unit_cost;
         document.getElementById("edit_status").value = request.status;
         document.getElementById("edit_request_time").value = new Date(request.request_time).toISOString().slice(0, 16);
 
@@ -291,6 +318,56 @@
     var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     deleteModal.show();
   }
+
+  //Used by Add Form - limit the names to be displayed on category
+  function filterCategoryNames()
+  {
+    const selectedCategory = document.getElementById("category").value;
+    const type = document.getElementById("request_type").value;
+    const wantedSource = (type === "Service") ? "service" : "food"
+    const nameSelect = document.getElementById("name");
+
+    [...nameSelect.options].forEach(option => {
+      const matchesType = option.getAttribute("data-category") === selectedCategory;
+      const matchesSource = option.getAttribute("data-source") === wantedSource;
+      option.style.display = matchesType || option.value === "" ? "block" : "none";
+    });
+
+    nameSelect.value = "";
+  }
+
+  function updateAddUnitCost() {
+    const sel = document.getElementById('name');
+    const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+    const price = opt && opt.dataset ? opt.dataset.price : '';
+    document.getElementById('unit_cost').value = price ? Number(price).toFixed(2) : '';
+  }
+
+  function syncFieldNames() {
+    const type = document.getElementById('request_type').value; //"Service" or "Food"
+    const sel = document.getElementById('name'); //Keep id-"name"
+    sel.name = (type === 'Service') ? 'service_id' : 'item_id'; //If Service, the value of name is service_id; if food, the value of name is item_id
+  }
+
+  //Run once on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    toggleRequestType();
+    filterCategoryNames();
+    syncFieldNames();
+
+  //Update unit cost when dropdowns change
+  document.getElementById("category").addEventListener("change", updateAddUnitCost);
+  document.getElementById("name").addEventListener("change", updateAddUnitCost);
+  document.getElementById("request_type").addEventListener("change", () => {
+    toggleRequestType();
+    filterCategoryNames();
+    syncFieldNames();
+    updateAddUnitCost();
+  });
+  
+  //Ensure final rename before submit
+  document.getElementById("addForm").addEventListener("submit", syncFieldNames);
+  });
 </script>
 </body>
 </html>

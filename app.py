@@ -63,8 +63,8 @@ HEADERS = {
 #MySQL Configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-#app.config['MYSQL_PASSWORD'] = 'admin'
+#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
@@ -519,34 +519,59 @@ def editGuest(guest_id):
 @app.route("/requests")
 def show_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
+    selectedCategory = request.args.get('category', '') #Get selected category
+    
     cursor.execute("""
-        SELECT r.request_id, r.booking_id, r.quantity, r.unitCost, r.totalCost,
+        SELECT r.request_id, r.booking_id, r.quantity, r.unit_cost, r.total_cost,
                r.status, r.request_time, r.staff_id,
-               s.item AS service_name, f.name AS food_name,
+               s.name AS service_name, f.name AS food_name,
                st.first_name, st.last_name,
-               r.service_id, r.item_id
+               r.service_id, r.item_id,
+               r.completion_time, r.notes, r.room_number, r.guest_id
         FROM requests r
-        LEFT JOIN services s ON r.service_id = s.service_id
+        LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
         LEFT JOIN staff st ON r.staff_id = st.staff_id
         ORDER BY r.request_time DESC
     """)
     requests = cursor.fetchall()
 
-    # Get services and food items for dropdowns
-    cursor.execute("SELECT * FROM services")
+    # Get requests for dropdowns
+    cursor.execute("SELECT * FROM hotel_services")
     service_list = cursor.fetchall()
+    
+    #Get names (with optional category filter)
+    if selectedCategory:
+        cursor.execute(
+    "SELECT service_id, price, name, category FROM hotel_services WHERE category = %s ORDER BY name",
+    (selectedCategory,)
+)
+    else:
+        cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
+    service_names = cursor.fetchall()
+    
+    #Get food names (with optional category filter)
+    if selectedCategory:
+        cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category =%s ORDER BY name", (selectedCategory,))
+    else:
+        cursor.execute("SELECT item_id, price, name, category FROM food_items ORDER BY name")
+    food_names = cursor.fetchall()
 
     cursor.execute("SELECT * FROM food_items")
     item_list = cursor.fetchall()
-
-    cursor.execute("SELECT * FROM bookings")
+    
+    cursor.execute("SELECT b.*, r.room_number FROM bookings b LEFT JOIN room r ON b.room_id = r.room_id")
     booking_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM staff")
     staff_list = cursor.fetchall()
+    
+    cursor.execute("SELECT DISTINCT category FROM food_items")
+    food_category_list = cursor.fetchall()
 
+    cursor.execute("SELECT DISTINCT category FROM hotel_services")
+    service_category_list = cursor.fetchall()
+    
     cursor.close()
     return render_template(
         "requests.html",
@@ -554,8 +579,13 @@ def show_requests():
         service_list=service_list,
         item_list=item_list,
         booking_list=booking_list,
-        staff_list=staff_list
+        staff_list=staff_list,
+        food_category_list=food_category_list,
+        service_category_list=service_category_list,
+        service_names=service_names,
+        food_names=food_names
     )
+    
 
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
@@ -781,25 +811,13 @@ def add_request():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Determine unit cost
-    unitCost = 0
-    if service_id:
-        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['amount'])
-    elif item_id:
-        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['price'])
-
-    totalCost = quantity * unitCost
+    unit_cost = float(request.form['unit_cost'])
+    total_cost = quantity * unit_cost
 
     cursor.execute("""
-    INSERT INTO requests (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time)
+    INSERT INTO requests (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time))
+    """, (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time))
     mysql.connection.commit()
     cursor.close()
 
@@ -863,10 +881,6 @@ def deleteRequest(request_id):
     mysql.connection.commit()
     cursor.close()
     return redirect('/requests')
-
-
-
-
 
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
