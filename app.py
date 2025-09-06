@@ -90,12 +90,27 @@ def send_verification_email(email, username, verification_token):
     try:
         server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
         server.starttls()
-        server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])  # must be Gmail App Password
+        server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])
         server.sendmail(app.config['EMAIL_USERNAME'], email, message)
         server.quit()
         return True
     except Exception as e:
         print("❌ Email send failed:", e)
+        return False
+    
+    # Utility function to send email
+def send_email(recipient, subject, body):
+    try:
+        # Use smtplib directly (not Flask-Mail) for custom SMTP
+        server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
+        server.starttls()
+        server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])
+        message = f"Subject: {subject}\n\n{body}"
+        server.sendmail(app.config['EMAIL_USERNAME'], recipient, message)
+        server.quit()
+        return True
+    except Exception as e:
+        print("Email error:", e)
         return False
     
 @app.context_processor
@@ -115,7 +130,7 @@ def login():
     if 'login_attempts' not in session:
         session['login_attempts'] = 0
 
-    #Check for lockout
+    # Check for lockout
     lockout_until = session.get('lockout_until')
     if lockout_until:
         lockout_until_dt = datetime.strptime(lockout_until, "%Y-%m-%d %H:%M:%S")
@@ -124,7 +139,7 @@ def login():
             return render_template(
                 'login.html',
                 lockout_remaining=remaining,
-                error="Maximum login attempts reached. Try again in {minutes}m {seconds}s."
+                error=f"Maximum login attempts reached. Try again in {remaining//60}m {remaining%60}s."
             )
         else:
             session.pop('lockout_until')
@@ -132,7 +147,6 @@ def login():
 
     if request.method == 'POST':
         if session['login_attempts'] >= 3:
-            #Set lockout for 3 minutes
             lockout_time = datetime.now() + timedelta(minutes=3)
             session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
             return render_template('login.html', error="Maximum login attempts reached. Please try again in 3 minutes.")
@@ -142,15 +156,26 @@ def login():
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
         cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
         user = cursor.fetchone()
+        cursor.close()
+
         if user:
-    
-         session['username'] = user['username']
-         session['role'] = user['role']
-         session['department'] = user['department']
-         session['login_attempts'] = 0
-         session.pop('lockout_until', None)
-         flash(f"Welcome back, {user['username']}!", "success")
-         return redirect(url_for('dashboard'))
+            otp = str(random.randint(100000, 999999))
+            session['otp'] = otp
+            session['otp_expiry'] = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+            session['pending_user'] = {
+                "username": user['username'],
+                "role": user['role'],
+                "department": user['department']
+            }
+
+            send_email(user['email'], "EzStay Login OTP", f"Your OTP is {otp}. It expires in 5 minutes.")
+
+            # Reset failed attempts since credentials were correct
+            session['login_attempts'] = 0
+            session.pop('lockout_until', None)
+
+            flash("An OTP has been sent to your email. Please verify.", "info")
+            return redirect(url_for('verify_otp'))
         else:
             session['login_attempts'] += 1
             attempts_left = 3 - session['login_attempts']
@@ -160,11 +185,9 @@ def login():
             else:
                 error_msg = "Maximum login attempts reached. Please try again in 3 minutes."
             return render_template('login.html', error=error_msg)
+
     return render_template('login.html')
 
-# Route to initiate password reset and send OTP
-@app.route('/forgot_password', methods=['GET', 'POST'])
-# Route to initiate password reset and send OTP
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -188,7 +211,6 @@ def forgot_password():
             print(f"🔐 [DEV MODE] OTP for {email}: {otp}")
             return redirect(url_for('verify_otp'))  # Redirect to OTP verification
         else:
-            return render_template('forgot_password.html', error="Email not found")
             return render_template('forgot_password.html', error="Email not found")
     
     return render_template('forgot_password.html')
@@ -1653,20 +1675,32 @@ def success():
 def failed():
     return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1>"
 
-@app.route('/verify_otp', methods=['GET', 'POST'])
+@app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
-    if 'otp' not in session or 'reset_email' not in session:
-        return redirect(url_for('forgot_password'))
+    if request.method == "POST":
+        entered_otp = request.form["otp"]
+        saved_otp = session.get("otp")
+        expiry = session.get("otp_expiry")
 
-    if request.method == 'POST':
-        entered_otp = request.form['otp']
-        if entered_otp == session['otp']:
-            # OTP correct, allow password reset
-            return redirect(url_for('reset_password'))
+        if saved_otp and entered_otp == saved_otp and datetime.now() <= datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S"):
+            user = session.pop("pending_user", None)
+            session.pop("otp", None)
+            session.pop("otp_expiry", None)
+
+            if user:
+                session["loggedin"] = True
+                session["username"] = user["username"]
+                session["role"] = user["role"]
+                session["department"] = user["department"]
+
+                flash(f"Welcome back, {user['username']}!", "success")
+                return redirect(url_for("dashboard"))
         else:
-            return render_template('verify_otp.html', error="Invalid OTP. Please try again.")
+            flash("Invalid or expired OTP. Please log in again.", "danger")
+            return redirect(url_for("login"))
 
-    return render_template('verify_otp.html')
+    return render_template("verify_otp.html")
+
 
 @app.route('/assigntask', methods=['POST'])
 def assigntask():
