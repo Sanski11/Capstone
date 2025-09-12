@@ -60,11 +60,18 @@ HEADERS = {
     "Content-Type": "application/json" 
     }
 
-#MySQL Configuration
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
+# #MySQL Configuration local
+# app.config['MYSQL_HOST'] = 'localhost'
+# app.config['MYSQL_USER'] = 'root'
+# #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+# app.config['MYSQL_PASSWORD'] = 'admin'
+# app.config['MYSQL_DB'] = 'staff_portal'
+
+#MySQL AivenMySQL
+app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
+app.config['MYSQL_PORT'] = 17710
+app.config['MYSQL_USER'] = 'avnadmin'
+app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
 app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
@@ -334,32 +341,32 @@ def dashboard():
     def get_stats_and_charts():
         cursor.execute("""
             SELECT COUNT(*) AS count 
-            FROM Requests r 
-            JOIN Services s ON r.service_id = s.service_id 
+            FROM requests r 
+            JOIN services s ON r.service_id = s.service_id 
             WHERE s.service_type = 'Housekeeping'
         """)
         housekeeping = cursor.fetchone()['count']
 
         cursor.execute("""
             SELECT COUNT(*) AS count 
-            FROM Requests r 
-            JOIN Services s ON r.service_id = s.service_id 
+            FROM requests r 
+            JOIN services s ON r.service_id = s.service_id 
             WHERE s.service_type = 'Dining'
         """)
         food = cursor.fetchone()['count']
 
         cursor.execute("""
             SELECT COUNT(*) AS count 
-            FROM Requests r 
-            JOIN Services s ON r.service_id = s.service_id 
+            FROM requests r 
+            JOIN services s ON r.service_id = s.service_id 
             WHERE s.service_type = 'Laundry'
         """)
         laundry = cursor.fetchone()['count']
 
         cursor.execute("""
             SELECT COUNT(*) AS count 
-            FROM Requests r 
-            JOIN Services s ON r.service_id = s.service_id 
+            FROM requests r 
+            JOIN services s ON r.service_id = s.service_id 
             WHERE s.service_type = 'Massage'
         """)
         spa = cursor.fetchone()['count']
@@ -1523,8 +1530,8 @@ def view_bill(booking_id):
     #Get all requests for this booking
     cursor.execute("""
         SELECT r.*, s.item, s.amount
-        FROM Requests r
-        JOIN Services s ON r.service_id = s.service_id
+        FROM requests r
+        JOIN services s ON r.service_id = s.service_id
         WHERE r.booking_id = %s
     """, (booking_id,))
     requests = cursor.fetchall()
