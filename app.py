@@ -61,18 +61,18 @@ HEADERS = {
     }
 
 # #MySQL Configuration local
-# app.config['MYSQL_HOST'] = 'localhost'
-# app.config['MYSQL_USER'] = 'root'
-# #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-# app.config['MYSQL_PASSWORD'] = 'admin'
-# app.config['MYSQL_DB'] = 'staff_portal'
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
+app.config['MYSQL_PASSWORD'] = 'admin'
+app.config['MYSQL_DB'] = 'staff_portal'
 
 #MySQL AivenMySQL
-app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
-app.config['MYSQL_PORT'] = 17710
-app.config['MYSQL_USER'] = 'avnadmin'
-app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
-app.config['MYSQL_DB'] = 'staff_portal'
+# app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
+# app.config['MYSQL_PORT'] = 17710
+# app.config['MYSQL_USER'] = 'avnadmin'
+# app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
+# app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -552,15 +552,19 @@ def show_requests():
     
     cursor.execute("""
         SELECT r.request_id, r.booking_id, r.quantity, r.unit_cost, r.total_cost,
-               r.status, r.request_time, r.staff_id,
+               r.status, r.request_time, r.staff_id, r.notes,
                s.name AS service_name, f.name AS food_name,
+               s.category as service_category, f.category as food_category,
+               s.type as service_type, f.type as food_type,
                st.first_name, st.last_name,
                r.service_id, r.item_id,
-               r.completion_time, r.notes, r.room_number, r.guest_id
+               r.completion_time, r.notes, r.room_number, r.guest_id,
+               g.last_name as guest_last_name, g.first_name as guest_first_name
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
         LEFT JOIN staff st ON r.staff_id = st.staff_id
+        LEFT JOIN guest g ON r.guest_id = g.guest_id
         ORDER BY r.request_time DESC
     """)
     requests = cursor.fetchall()
@@ -615,7 +619,6 @@ def show_requests():
         food_names=food_names
     )
     
-
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
 def view_rooms():
@@ -842,11 +845,21 @@ def add_request():
 
     unit_cost = float(request.form['unit_cost'])
     total_cost = quantity * unit_cost
+    notes = request.form['notes']
+    
+    #Pull guest_id from bookings
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    cursor.execute("SELECT b.guest_id, r.room_number FROM bookings b JOIN room r ON b.room_id = r.room_id WHERE booking_id = %s", (booking_id,))
+    #cursor.execute("SELECT guest_id FROM bookings WHERE booking_id = %s", (booking_id,))
+    row = cursor.fetchone()
+    guest_id = row['guest_id'] if row else None
+    room_number = row['room_number'] if row else None
 
     cursor.execute("""
-    INSERT INTO requests (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time)
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time))
+    INSERT INTO requests (booking_id, guest_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, room_number, notes)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (booking_id, guest_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, room_number, notes))
     mysql.connection.commit()
     cursor.close()
 
@@ -867,20 +880,8 @@ def update_request():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Determine unit cost
-    unitCost = 0
-    if service_id:
-        cursor.execute("SELECT amount FROM services WHERE service_id = %s", (service_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['amount'])
-    elif item_id:
-        cursor.execute("SELECT price FROM food_items WHERE item_id = %s", (item_id,))
-        result = cursor.fetchone()
-        if result:
-            unitCost = float(result['price'])
-
-    totalCost = quantity * unitCost
+    total_cost = quantity * unit_cost
+    unit_cost = float(request.form['unit_cost'])
 
     cursor.execute("""
     UPDATE requests
@@ -888,12 +889,12 @@ def update_request():
         service_id = %s,
         item_id = %s,
         quantity = %s,
-        unitCost = %s,
-        totalCost = %s,
+        unit_cost = %s,
+        total_cost = %s,
         status = %s,
         request_time = %s
     WHERE request_id = %s
-""", (booking_id, service_id, item_id, quantity, unitCost, totalCost, status, request_time, request_id))
+""", (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, request_id))
 
     mysql.connection.commit()
     cursor.close()
