@@ -1710,8 +1710,8 @@ def verify_otp():
     return render_template("verify_otp.html")
 
 
-@app.route('/assigntask', methods=['POST'])
-def assigntask():
+@app.route('/forceassigntask', methods=['POST'])
+def forceassigntask():
     request_id = request.form.get("assignTask_request_id")
     staff_id = request.form.get("assignTask_staff_id")
 
@@ -1731,5 +1731,101 @@ def assigntask():
     flash("Staff assigned successfully", "success")
     return redirect(url_for("show_requests"))
 
+def _resolve_target_role(cursor, request_id):
+    
+    #Figure out which department this request belongs to and return the matching staff role.
+    #Rules:
+    #Service Request: Role = "<service.category> - Staff" (e.g., 'Housekeeping - Staff')
+    #Food Request: Role = "Food/Dining" - "Staff"
+    
+    cursor.execute("""
+        SELECT r.service_id, r.item_id,
+                hs.category AS service_category,
+                fi.category AS food_category
+        FROM requests r
+        LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
+        LEFT JOIN food_items fi     ON r.item_id = fi.item_id
+        WHERE r.request_id = %s
+    """, (request_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    
+    if row['service_id']:
+        dept = row['service_category'] or ''
+        target_role = f"{dept} - Staff"
+    else:
+        #Any food item belongs to Food/Dining team
+        target_role = "Food/Dining - Staff"
+    return target_role
+
+def _pick_least_loaded_staff(cursor, target_role):
+    
+    #Choose the staff with the fewest *active* requests (status != 'completed') for the role.
+    #Ties are broken by lowest staff_id.
+    
+    cursor.execute("""
+        SELECT s.staff_id,
+                COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
+        FROM staff s
+        LEFT JOIN requests r ON r.staff_id = s.staff_id
+        WHERE s.role = %s
+        GROUP BY s.staff_id
+        ORDER BY load_now ASC, s.staff_id ASC
+        LIMIT 1
+    """, (target_role,))
+    return cursor.fetchone()
+
+    
+
+@app.route('/assigntask', methods=['POST'])
+def assigntask():
+    req_id = request.form.get('assignTask_request_id')
+    if not req_id:
+        flash("No request id.", "danger")
+        return redirect('/requests')
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #If already assigned, keep current assignment (avoid accidental reassigns)
+    cur.execute("SELECT staff_id, status FROM requests WHERE request_id = %s", (req_id,))
+    req_row = cur.fetchone()
+    if not req_row:
+        cur.close()
+        flash("Request not found.", "danger")
+        return redirect('/requests')
+    if req_row['staff_id']:
+        cur.close()
+        flash("Request already assigned.", "info")
+        return redirect('/requests')
+    target_role = _resolve_target_role(cur, req_id)
+    if not target_role:
+        cur.close()
+        flash("Could not resolve request category.", "danger")
+        return redirect('/requests')
+    
+    staff = _pick_least_loaded_staff(cur, target_role)
+    
+    #Fallback: If no Staff found, try the Manager of the same department
+    if not staff and " - Staff" in target_role:
+        mgr_role = target_role.replace(" - Staff", " - Manager")
+        staff = _pick_least_loaded_staff(cur, mgr_role)
+        
+    if not staff:
+        cur.close()
+        flash(f"No available staff for role '{target_role}'.", "warning")
+        return redirect('/requests')
+    cur.execute("""
+        UPDATE requests
+        SET staff_id = %s,
+            -- Optionally auto-move from 'pending' to 'approved' when assigned:
+            status  = CASE WHEN status = 'pending' THEN 'approved' ELSE status END
+        WHERE request_id = %s
+    """, (staff['staff_id'], req_id))
+    mysql.connection.commit()
+    cur.close()
+    
+    flash("Request assigned successfully.", "success")
+    return redirect('/requests')
+    
 if __name__ == '__main__':
     app.run(debug=True)

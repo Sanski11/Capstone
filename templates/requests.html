@@ -14,12 +14,13 @@
 
   <!-- Search and Add Button Row -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <form class="d-flex" method="GET" action="/requests">
+    <!-- <form class="d-flex" method="GET" action="/requests">
       <input class="form-control me-2" type="search" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
       <button class="btn btn-outline-secondary" type="submit">
         <i class="bi bi-search"></i>
       </button>
-    </form>
+    </form> -->
+    <div id="requestsTable_filter" class="dataTables_filter"></div> <!-- DataTables puts search here -->
     {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
     <a href="#" class="btn btn-primary" onclick="showForm('add')">
       <i class="bi bi-plus-circle"></i> Add
@@ -89,14 +90,14 @@
           {% if request.status != "completed"%}
           <form action="{{ url_for('assigntask') }}" method="POST" style="display:inline;" class="d-inline-flex align-items-center gap-1 mt-1">
             <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
-            <select name="assignTask_staff_id" class="form-select form-select-sm" style="width:auto;" required>
+            <!-- <select name="assignTask_staff_id" class="form-select form-select-sm" style="width:auto;" required>
               <option value="">Assign Staff</option>
               {% for staff in staff_list %}
                 <option value="{{ staff.staff_id }}" {% if staff.staff_id == request.staff_id %}selected{% endif %}>
                   {{ staff.first_name }} {{ staff.last_name }}
                 </option>
               {% endfor %}
-            </select>
+            </select> -->
             <button type="submit" class="btn btn-primary btn-sm px-2 py-1">Assign</button>
           </form>
           {% endif %}
@@ -394,23 +395,26 @@
   // DataTables init
   $(function () {
   const dt = $('#requestsTable').DataTable({
-  pageLength: 5,
-  order: [[0, 'desc']], // sort by Request ID desc
-  lengthChange: false,
-  searching: false,
+    pageLength: 5,
+    order: [[0, 'desc']], // sort by Request ID desc
+    lengthChange: false,
+    searching: true,
   // make number columns right-aligned
   columnDefs: [
   { targets: [4,5], className: 'text-end' } // Unit/Total Cost
-  ]
+  ],
+  dom: "<'row mb-3'<'col-sm-6 d-flex align-items-center'l><'col-sm-6 d-flex justify-content-end'f>>" +
+  "rt" +
+  "<'row'<'col-sm-5'i><'col-sm-7'p>>"
   });
   
   // Wire your header search to DataTables live search
-  const $form = $('form[action="/requests"]');
-  const $input = $form.find('input[name="search"]');
-  $form.on('submit', function(e){ e.preventDefault(); });
-  $input.on('keyup change', function () {
-  dt.search(this.value).draw();
-  });
+    //const $form = $('form[action="/requests"]');
+    //const $input = $form.find('input[name="search"]');
+    //$form.on('submit', function(e){ e.preventDefault(); });
+    //$input.on('keyup change', function () {
+    //dt.search(this.value).draw();
+    //});
   });
   </script>
   
