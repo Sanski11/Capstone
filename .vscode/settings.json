@@ -12,6 +12,20 @@
             "database": "staff_portal",
             "username": "root",
             "name": "MyLocalDB"
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "mysql-3dabe135-benilde-ac16.k.aivencloud.com",
+            "port": 17710,
+            "driver": "MySQL",
+            "name": "Aiven MySQL",
+            "username": "avnadmin",
+            "database": "staff_portal"
         }
     ]
 }

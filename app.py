@@ -61,18 +61,18 @@ HEADERS = {
     }
 
 # #MySQL Configuration local
-app.config['MYSQL_HOST'] = 'localhost'
-app.config['MYSQL_USER'] = 'root'
+#app.config['MYSQL_HOST'] = 'localhost'
+#app.config['MYSQL_USER'] = 'root'
 #app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-app.config['MYSQL_PASSWORD'] = 'admin'
-app.config['MYSQL_DB'] = 'staff_portal'
+#app.config['MYSQL_PASSWORD'] = 'admin'
+#app.config['MYSQL_DB'] = 'staff_portal'
 
 #MySQL AivenMySQL
-# app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
-# app.config['MYSQL_PORT'] = 17710
-# app.config['MYSQL_USER'] = 'avnadmin'
-# app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
-# app.config['MYSQL_DB'] = 'staff_portal'
+app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
+app.config['MYSQL_PORT'] = 17710
+app.config['MYSQL_USER'] = 'avnadmin'
+app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
+app.config['MYSQL_DB'] = 'staff_portal'
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
