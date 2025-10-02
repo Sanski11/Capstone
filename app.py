@@ -565,6 +565,8 @@ def show_requests():
         LEFT JOIN food_items f ON r.item_id = f.item_id
         LEFT JOIN staff st ON r.staff_id = st.staff_id
         LEFT JOIN guest g ON r.guest_id = g.guest_id
+        LEFT JOIN bookings b ON r.booking_id = b.booking_id
+        WHERE b.status = "Checked-in"
         ORDER BY r.request_time DESC
     """)
     requests = cursor.fetchall()
@@ -593,7 +595,7 @@ def show_requests():
     cursor.execute("SELECT * FROM food_items")
     item_list = cursor.fetchall()
     
-    cursor.execute("SELECT b.*, r.room_number FROM bookings b LEFT JOIN room r ON b.room_id = r.room_id")
+    cursor.execute("SELECT b.*, r.room_number FROM bookings b LEFT JOIN room r ON b.room_id = r.room_id WHERE b.status='Checked-in'")
     booking_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM staff")
@@ -835,27 +837,38 @@ def updateGuests():
 @app.route('/addRequest', methods=['POST'])
 def add_request():
     booking_id = request.form['booking_id']
-    service_id = request.form.get('service_id') or None
-    item_id = request.form.get('item_id') or None
+    service_id = request.form.get('service_id')
+    item_id = request.form.get('item_id')
     quantity = int(request.form['quantity'])
     status = request.form['status']
     request_time = datetime.strptime(request.form['request_time'], '%Y-%m-%dT%H:%M')
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
     unit_cost = float(request.form['unit_cost'])
     total_cost = quantity * unit_cost
     notes = request.form['notes']
-    
-    #Pull guest_id from bookings
+
+      # Get the name value and parse it
+    name_value = request.form.get('name')  # e.g., "service_11" or "food_5"
+
+    service_id = None
+    item_id = None
+   
+    if name_value:
+            if name_value.startswith('service_'):
+                service_id = name_value.replace('service_', '')
+                item_id = None
+            elif name_value.startswith('food_'):
+                item_id = name_value.replace('food_', '')
+                service_id = None
+
+    # pull guest_id from bookings
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
+
     cursor.execute("SELECT b.guest_id, r.room_number FROM bookings b JOIN room r ON b.room_id = r.room_id WHERE booking_id = %s", (booking_id,))
-    #cursor.execute("SELECT guest_id FROM bookings WHERE booking_id = %s", (booking_id,))
     row = cursor.fetchone()
     guest_id = row['guest_id'] if row else None
     room_number = row['room_number'] if row else None
 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
     INSERT INTO requests (booking_id, guest_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, room_number, notes)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -876,12 +889,26 @@ def update_request():
     item_id = request.form.get('edit_item_id') or None
     quantity = int(request.form.get('edit_quantity'))
     status = request.form.get('edit_status')
-    request_time = request.form.get('edit_request_time')
+    request_time = datetime.strptime(request.form['edit_request_time'], '%Y-%m-%dT%H:%M')
+    unit_cost = float(request.form['edit_unit_cost'])
+    total_cost = quantity * unit_cost
+    notes = request.form['edit_notes']
+
+      # Get the name value and parse it
+    name_value = request.form.get('edit_name')  # e.g., "service_11" or "food_5"
+
+    service_id = None
+    item_id = None
+   
+    if name_value:
+            if name_value.startswith('service_'):
+                service_id = name_value.replace('service_', '')
+                item_id = None
+            elif name_value.startswith('food_'):
+                item_id = name_value.replace('food_', '')
+                service_id = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    total_cost = quantity * unit_cost
-    unit_cost = float(request.form['unit_cost'])
 
     cursor.execute("""
     UPDATE requests
@@ -892,9 +919,10 @@ def update_request():
         unit_cost = %s,
         total_cost = %s,
         status = %s,
-        request_time = %s
+        request_time = %s,
+        notes = %s
     WHERE request_id = %s
-""", (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, request_id))
+""", (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, notes, request_id))
 
     mysql.connection.commit()
     cursor.close()
@@ -905,7 +933,7 @@ def update_request():
 def deleteRequest(request_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     #Delete assignments first
-    cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
+    #cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
     #Then delete the request
     cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
     mysql.connection.commit()
