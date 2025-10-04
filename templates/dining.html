@@ -55,8 +55,8 @@
             <td>{{ dining_service.type }}</td>
             <td>
               <a href="#" class="btn btn-warning btn-sm"
-                 onclick="openEditModal({{ dining_service | tojson | safe }})"
-                 data-bs-toggle="modal" data-bs-target="#editDiningModal">
+                data-bs-toggle="modal" data-bs-target="#editDiningModal"
+                data-dining='{{ dining_service | tojson | safe }}'>
                 <i class="bi bi-pencil-square"></i>
               </a>
               <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ dining_service.item_id }}', '{{ dining_service.name | escape }}')">
@@ -218,37 +218,21 @@
 <script>
   const dining_services = {{ dining_services | tojson | safe }};
 
-  //Show Add or Edit Form
-  function showForm(mode, item_id = null) {
-    const addForm = document.getElementById("addForm");
-    const editForm = document.getElementById("editForm");
+  // Attach event listener when modal is about to open
+const editModal = document.getElementById('editDiningModal');
+editModal.addEventListener('show.bs.modal', function (event) {
+  const button = event.relatedTarget;
+  const dining_service = JSON.parse(button.getAttribute('data-dining'));
 
-    if (mode === "add") { //If add, show Add Form and hide Edit Form
-      addForm.style.display = "block";
-      editForm.style.display = "none";
-    } else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
-      addForm.style.display = "none";
-      editForm.style.display = "block";
+  // Populate fields
+  document.getElementById("edit_item_id").value = dining_service.item_id;
+  document.getElementById("edit_category").value = dining_service.category;
+  document.getElementById("edit_name").value = dining_service.name;
+  document.getElementById("edit_description").value = dining_service.description;
+  document.getElementById("edit_price").value = dining_service.price;
+  document.getElementById("edit_type").value = dining_service.type;
+});
 
-      //Find for the details of the selected dining. If found, display details in the Edit Form
-      const dining_service = dining_services.find(r => r.item_id === parseInt(item_id));
-      if (dining_service) {
-        document.getElementById("edit_item_id").value = dining_service.item_id;
-        document.getElementById("edit_category").value = dining_service.category;
-        document.getElementById("edit_description").value = dining_service.description;
-        document.getElementById("edit_name").value = dining_service.name;
-        document.getElementById("edit_price").value = dining_service.price;
-      } else {
-        console.error("Dining not found:", item_id);
-      }
-    }
-  }
-
-  //Hide Add and Edit Forms. Called when Cancel button is clicked
-  function hideForm() {
-    document.getElementById("addForm").style.display = "none";
-    document.getElementById("editForm").style.display = "none";
-  }
 
   //Check before deleting a dining. Display correct message
   function confirmDelete(item_id, name) {
@@ -275,15 +259,6 @@
       "lengthMenu": [5, 10, 25, 50, 100]
     });
   });
-
-  function openEditModal(dining_service) {
-  document.getElementById("edit_item_id").value = dining_service.item_id;
-  document.getElementById("edit_category").value = dining_service.category;
-  document.getElementById("edit_name").value = dining_service.name;
-  document.getElementById("edit_description").value = dining_service.description;
-  document.getElementById("edit_price").value = dining_service.price;
-  document.getElementById("edit_type").value = dining_service.type;
-}
 </script>
 </div>
 </body>

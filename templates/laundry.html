@@ -6,6 +6,7 @@
   <!-- Bootstrap CSS -->
   <link href="/static/bootstrap.min.css" rel="stylesheet">
   <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
 </head>
 <body>
@@ -25,13 +26,13 @@
       </form>
 
       <!-- Add Button -->
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addLaundryModal">
         <i class="bi bi-plus-circle"></i> Add
-      </a>
+      </button>
     </div>
 
       <!-- Table -->
-      <table class="table table-striped table-bordered">
+      <table id="laundryTable" class="table table-striped table-bordered">
         <thead class="table-dark">
           <tr>
             <th>Service ID</th>
@@ -53,7 +54,10 @@
             <td>{{ laundry_service.type }}</td>
             <td style="text-align: right;">{{ "{:,}".format(laundry_service.price) }}</td>
             <td>
-              <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ laundry_service.service_id }}')">
+              <a href="#" 
+                class="btn btn-warning btn-sm edit-btn"
+                data-laundry='{{ laundry_service | tojson | safe }}'
+                data-bs-toggle="modal" data-bs-target="#editLaundryModal">
                 <i class="bi bi-pencil-square"></i>
               </a>
               <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
@@ -68,78 +72,90 @@
     <!-- Back Button -->
     <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
 
-    <!-- Add Laundry Form -->
-    <form id="addForm" action="/addLaundry" method="POST" style="display: none;" class="mb-4 mt-3">
-      <div class="mb-3">
-        <label for="category" class="form-label">Category:</label>
-        <select id="category" name="category" required value="0" maxlength="100" style="max-width: 1000px;" readonly>
-          <option value="Housekeeping" disabled>Housekeeping</option>
-          <option value="Dining" disabled>Dining</option>
-          <option value="Laundry" selected>Laundry</option>
-          <option value="Massage" disabled>Massage</option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label for="name" class="form-label">Name:</label>
-        <input type="text" class="form-control" id="name" name="name" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="name" class="form-label">Description:</label>
-        <input type="text" class="form-control" id="description" name="description" required>
-      </div>
-
-      <div class="mb-3">
-        <label for="price" class="form-label">Price:</label>
-        <input type="number" class="form-control" id="price" name="price" step="0.01" value="0" required  min="0" max="99999999.99">
-      </div>
-
-      <div class="mb-3">
-        <label for="name" class="form-label">Type:</label>
-        <input type="text" class="form-control" id="type" name="type" value="Service" required readonly>
-      </div>
-
-      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-      <button type="submit" class="btn btn-success">Submit</button>
-    </form>
-
-      <!-- Edit Laundry Form -->
-      <form id="editForm" action="/updateLaundry" method="POST" style="display: none;" class="mb-4 mt-3">
-        <input type="hidden" id="edit_service_id" name="service_id" required>
-        <div class="mb-3">
-          <label for="edit_category" class="form-label">Category:</label>
-          <select id="edit_category" name="edit_category" required readonly maxlength="100" style="max-width: 1000px;">
-            <option value="Housekeeping" disabled>Housekeeping</option>
-            <option value="Dining" disabled>Dining</option>
-            <option value="Laundry" selected>Laundry</option>
-            <option value="Massage" disabled>Massage</option>
-          </select>
+    <!-- Add Laundry Modal -->
+    <div class="modal fade" id="addLaundryModal" tabindex="-1" aria-labelledby="addLaundryModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="addForm" action="/addLaundry" method="POST">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addLaundryModalLabel">Add Laundry</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-  
-        <div class="mb-3">
-          <label for="edit_name" class="form-label">Name:</label>
-          <input type="text" class="form-control" id="edit_name" name="edit_name" step="0.01" required>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="category" class="form-label">Category:</label>
+                <select id="category" name="category" required readonly>
+                  <option value="Laundry" selected>Laundry</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="name" class="form-label">Name:</label>
+                <input type="text" class="form-control" id="name" name="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">Description:</label>
+                <input type="text" class="form-control" id="description" name="description" required>
+              </div>
+              <div class="mb-3">
+                <label for="price" class="form-label">Price:</label>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" value="0" required min="0" max="99999999.99">
+              </div>
+              <div class="mb-3">
+                <label for="type" class="form-label">Type:</label>
+                <input type="text" class="form-control" id="type" name="type" value="Service" required readonly>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Submit</button>
+            </div>
+          </form>
         </div>
+      </div>
+    </div>
 
-        <div class="mb-3">
-          <label for="edit_description" class="form-label">Description:</label>
-          <input type="text" class="form-control" id="edit_description" name="edit_description" required>
-        </div>  
-  
-        <div class="mb-3">
-          <label for="edit_price" class="form-label">Price:</label>
-          <input type="number" class="form-control" id="edit_price" name="edit_price" step="0.01" required min="0" max="99999999.99">
+    <!-- Edit Laundry Modal -->
+    <div class="modal fade" id="editLaundryModal" tabindex="-1" aria-labelledby="editLaundryModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="editForm" action="/updateLaundry" method="POST">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editLaundryModalLabel">Edit Laundry</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="edit_service_id" name="service_id" required>
+              <div class="mb-3">
+                <label for="edit_category" class="form-label">Category:</label>
+                <select id="edit_category" name="edit_category" required readonly>
+                  <option value="Laundry" selected>Laundry</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="edit_name" class="form-label">Name:</label>
+                <input type="text" class="form-control" id="edit_name" name="edit_name" required>
+              </div>
+              <div class="mb-3">
+                <label for="edit_description" class="form-label">Description:</label>
+                <input type="text" class="form-control" id="edit_description" name="edit_description" required>
+              </div>
+              <div class="mb-3">
+                <label for="edit_price" class="form-label">Price:</label>
+                <input type="number" class="form-control" id="edit_price" name="edit_price" step="0.01" required min="0" max="99999999.99">
+              </div>
+              <div class="mb-3">
+                <label for="edit_type" class="form-label">Type:</label>
+                <input type="text" class="form-control" id="edit_type" name="edit_type" value="Service" required readonly>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Update</button>
+            </div>
+          </form>
         </div>
-
-        <div class="mb-3">
-          <label for="edit_type" class="form-label">Type:</label>
-          <input type="text" class="form-control" id="edit_type" name="edit_type" value="Service" required readonly>
-        </div>  
-  
-        <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-        <button type="submit" class="btn btn-success">Submit</button>
-      </form>
+      </div>
+    </div>
 
     <!-- Delete Confirmation Modal 
           Display this pop up dialog box if service can be deleted
@@ -186,41 +202,27 @@
       Used by modal/pop up dialog box
 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
   <!-- Service JS and script -->
 <script>
   const laundry_services = {{ laundry_services | tojson | safe }};
 
-  //Show Add or Edit Form
-  function showForm(mode, service_id = null) {
-    const addForm = document.getElementById("addForm");
-    const editForm = document.getElementById("editForm");
-
-    if (mode === "add") { //If add, show Add Form and hide Edit Form
-      addForm.style.display = "block";
-      editForm.style.display = "none";
-    } else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
-      addForm.style.display = "none";
-      editForm.style.display = "block";
-
-      //Find for the details of the selected service. If found, display details in the Edit Form
-      const laundry_service = laundry_services.find(r => r.service_id === parseInt(service_id));
-      if (laundry_service) {
-        document.getElementById("edit_service_id").value = laundry_service.service_id;
-        document.getElementById("edit_category").value = laundry_service.category;
-        document.getElementById("edit_description").value = laundry_service.description;
-        document.getElementById("edit_name").value = laundry_service.name;
-        document.getElementById("edit_price").value = laundry_service.price;
-      } else {
-        console.error("Laundry not found:", service_id);
-      }
+ function openEditModal(laundry_service) {
+    // Parse the passed JSON string (if needed)
+    if (typeof laundry_service === 'string') {
+      laundry_service = JSON.parse(laundry_service);
     }
-  }
 
-  //Hide Add and Edit Forms. Called when Cancel button is clicked
-  function hideForm() {
-    document.getElementById("addForm").style.display = "none";
-    document.getElementById("editForm").style.display = "none";
+    // Populate modal fields
+    document.getElementById("edit_service_id").value = laundry_service.service_id;
+    document.getElementById("edit_category").value = laundry_service.category;
+    document.getElementById("edit_name").value = laundry_service.name;
+    document.getElementById("edit_description").value = laundry_service.description;
+    document.getElementById("edit_price").value = laundry_service.price;
+    document.getElementById("edit_type").value = laundry_service.type;
   }
 
   //Check before deleting a housekeeping. Display correct message
@@ -241,6 +243,30 @@
     .catch(error => console.error("Error checking services:", error));
   }  
 
+  document.addEventListener("DOMContentLoaded", function () {
+
+  // Attach event listener for all edit buttons
+  document.querySelectorAll(".edit-btn").forEach(button => {
+    button.addEventListener("click", function () {
+      const laundry_service = JSON.parse(this.getAttribute("data-laundry"));
+
+      // Populate modal fields
+      document.getElementById("edit_service_id").value = laundry_service.service_id;
+      document.getElementById("edit_category").value = laundry_service.category;
+      document.getElementById("edit_name").value = laundry_service.name;
+      document.getElementById("edit_description").value = laundry_service.description;
+      document.getElementById("edit_price").value = laundry_service.price;
+      document.getElementById("edit_type").value = laundry_service.type;
+    });
+  });
+
+  // DataTable initialization
+  $('#laundryTable').DataTable({
+    "order": [[0, "asc"]],
+    "pageLength": 10,
+    "lengthMenu": [5, 10, 25, 50, 100]
+  });
+});
 </script>
 </div>
 </body>

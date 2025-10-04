@@ -1564,7 +1564,7 @@ def view_bill(booking_id):
         WHERE r.booking_id = %s
     """, (booking_id,))
     requests = cursor.fetchall()
-    total_bill = sum(r['totalCost'] for r in requests)
+    total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
     cursor.close()
     return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
 
@@ -1692,7 +1692,7 @@ def pay():
                 "description": f"Booking #{booking_id} Payment",
                 "amount": amount,
                 "currency": "PHP",
-                "success_url": url_for('success', _external=True),
+                "success_url": url_for('success', booking_id=booking_id, _external=True),
                 "cancel_url": url_for('failed', _external=True)
             }
         }
@@ -1705,11 +1705,48 @@ def pay():
 
 @app.route('/success')
 def success():
-    return render_template("bill.html")
+    # Get booking ID from query parameters if you passed it earlier (optional)
+    booking_id = request.args.get('booking_id')
+
+    if booking_id:
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("UPDATE bookings SET status = %s WHERE booking_id = %s", ('Paid', booking_id))
+            mysql.connection.commit()
+            cur.close()
+            message = f"✅ Payment successful for Booking #{booking_id}. Status updated to 'Paid'."
+        except Exception as e:
+            message = f"❌ Payment succeeded, but database update failed: {e}"
+    else:
+        message = "✅ Payment successful! Booking status will be updated shortly."
+
+    return f"""
+    <html>
+      <head>
+        <title>Payment Success</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      </head>
+      <body class='text-center p-5'>
+        <h2>{message}</h2>
+        <a href='/bookings' class='btn btn-primary mt-3'>Back to Bookings</a>
+      </body>
+    </html>
+    """
 
 @app.route('/failed')
 def failed():
-    return "<h1 style='color:red;'>❌ Payment Failed or Cancelled.</h1>"
+    return """
+    <html>
+      <head>
+        <title>Payment Failed</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+      </head>
+      <body class='text-center p-5'>
+        <h2>❌ Payment was cancelled or failed. Please try again.</h2>
+        <a href='/bookings' class='btn btn-secondary mt-3'>Back to Bookings</a>
+      </body>
+    </html>
+    """
 
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():

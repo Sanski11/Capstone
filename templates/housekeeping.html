@@ -59,8 +59,9 @@
             <td style="text-align: right;">{{ "{:,}".format(hotel_service.price) }}</td>
             <td>
               <a href="#" class="btn btn-warning btn-sm"
-                 onclick="openEditModal({{ hotel_service | tojson | safe }})"
-                 data-bs-toggle="modal" data-bs-target="#editHousekeepingModal">
+                data-bs-toggle="modal"
+                data-bs-target="#editHousekeepingModal"
+                data-service='{{ hotel_service | tojson | safe }}'>
                 <i class="bi bi-pencil-square"></i>
               </a>
               <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ hotel_service.service_id }}', '{{ hotel_service.name | escape }}')">
@@ -211,37 +212,22 @@
 <script>
   const hotel_services = {{ hotel_services | tojson | safe }};
 
-  //Show Add or Edit Form
-  function showForm(mode, service_id = null) {
-    const addForm = document.getElementById("addForm");
-    const editForm = document.getElementById("editForm");
+  // When the Edit Modal is about to open, populate its fields
+const editModal = document.getElementById('editHousekeepingModal');
 
-    if (mode === "add") { //If add, show Add Form and hide Edit Form
-      addForm.style.display = "block";
-      editForm.style.display = "none";
-    } else if (mode === "edit") { //If edit, show Edit Form and hide Add Form
-      addForm.style.display = "none";
-      editForm.style.display = "block";
+editModal.addEventListener('show.bs.modal', function (event) {
+  const button = event.relatedTarget; // The button that triggered the modal
+  const hotel_service = JSON.parse(button.getAttribute('data-service'));
 
-      //Find for the details of the selected service. If found, display details in the Edit Form
-      const hotel_service = hotel_services.find(r => r.service_id === parseInt(service_id));
-      if (hotel_service) {
-        document.getElementById("edit_service_id").value = hotel_service.service_id;
-        document.getElementById("edit_category").value = hotel_service.category;
-        document.getElementById("edit_description").value = hotel_service.description;
-        document.getElementById("edit_name").value = hotel_service.name;
-        document.getElementById("edit_price").value = hotel_service.price;
-      } else {
-        console.error("Service not found:", service_id);
-      }
-    }
-  }
+  // Fill form fields with selected service details
+  document.getElementById("edit_service_id").value = hotel_service.service_id;
+  document.getElementById("edit_category").value = hotel_service.category;
+  document.getElementById("edit_name").value = hotel_service.name;
+  document.getElementById("edit_description").value = hotel_service.description;
+  document.getElementById("edit_price").value = hotel_service.price;
+  document.getElementById("edit_type").value = hotel_service.type;
+});
 
-  //Hide Add and Edit Forms. Called when Cancel button is clicked
-  function hideForm() {
-    document.getElementById("addForm").style.display = "none";
-    document.getElementById("editForm").style.display = "none";
-  }
 
   //Check before deleting a housekeeping. Display correct message
   function confirmDelete(service_id, name) {
@@ -269,15 +255,6 @@
       "lengthMenu": [5, 10, 25, 50, 100]
     });
   });
-
-  function openEditModal(hotel_service) {
-  document.getElementById("edit_service_id").value = hotel_service.service_id;
-  document.getElementById("edit_category").value = hotel_service.category;
-  document.getElementById("edit_name").value = hotel_service.name;
-  document.getElementById("edit_description").value = hotel_service.description;
-  document.getElementById("edit_price").value = hotel_service.price;
-  document.getElementById("edit_type").value = hotel_service.type;
-}
 </script>
 </div>
 </body>
