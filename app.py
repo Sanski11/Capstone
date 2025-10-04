@@ -552,7 +552,7 @@ def show_requests():
     
     cursor.execute("""
         SELECT r.request_id, r.booking_id, r.quantity, r.unit_cost, r.total_cost,
-               r.status, r.request_time, r.staff_id, r.notes,
+               r.status, r.request_time, r.staff_id, 
                s.name AS service_name, f.name AS food_name,
                s.category as service_category, f.category as food_category,
                s.type as service_type, f.type as food_type,
@@ -566,7 +566,7 @@ def show_requests():
         LEFT JOIN staff st ON r.staff_id = st.staff_id
         LEFT JOIN guest g ON r.guest_id = g.guest_id
         LEFT JOIN bookings b ON r.booking_id = b.booking_id
-        WHERE b.status = "Checked-in"
+        WHERE b.status = 'Checked-in'
         ORDER BY r.request_time DESC
     """)
     requests = cursor.fetchall()
@@ -935,7 +935,7 @@ def deleteRequest(request_id):
     #Delete assignments first
     #cursor.execute("DELETE FROM StaffAssignments WHERE request_id = %s", (request_id,))
     #Then delete the request
-    cursor.execute("DELETE FROM Requests WHERE request_id = %s", (request_id,))
+    cursor.execute("DELETE FROM requests WHERE request_id = %s", (request_id,))
     mysql.connection.commit()
     cursor.close()
     return redirect('/requests')
@@ -1449,11 +1449,11 @@ def add_booking():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     while True:
         random_booking_ref = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-        cursor.execute("SELECT * FROM Bookings WHERE random_booking_ref=%s", (random_booking_ref,))
+        cursor.execute("SELECT * FROM bookings WHERE random_booking_ref=%s", (random_booking_ref,))
         if not cursor.fetchone(): #Still checking if any row exists
             break
     cursor.execute("""
-        INSERT INTO Bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref)
+        INSERT INTO bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref))
     mysql.connection.commit()
@@ -1475,7 +1475,7 @@ def updateBooking():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        UPDATE Bookings
+        UPDATE bookings
         SET guest_id=%s, room_type=%s, room_id=%s, exp_check_in=%s, exp_check_out=%s, status=%s
         WHERE booking_id=%s
     """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, booking_id))
@@ -1511,16 +1511,16 @@ def checkin():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     #Update booking table
     cursor.execute("""
-        UPDATE Bookings
+        UPDATE bookings
         SET actual_check_in = %s, status='Checked-in'
         WHERE booking_id = %s
     """, (actual_check_in, booking_id))
 
     #Get room_id and update room status
-    cursor.execute("SELECT room_id FROM Bookings WHERE booking_id = %s", (booking_id,))
+    cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
-        cursor.execute("UPDATE Room SET room_status = 'Occupied' WHERE room_id = %s", (room['room_id'],))
+        cursor.execute("UPDATE room SET room_status = 'Occupied' WHERE room_id = %s", (room['room_id'],))
     else:
         return "Room not found", 404
 
@@ -1536,13 +1536,13 @@ def checkout():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     #Update booking
     cursor.execute("""
-        UPDATE Bookings
+        UPDATE bookings
         SET actual_check_out = %s, status='Checked-out'
         WHERE booking_id = %s
     """, (actual_check_out, booking_id))
 
     #Get room_id and update status to Vacant
-    cursor.execute("SELECT room_id FROM Bookings WHERE booking_id = %s", (booking_id,))
+    cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
         cursor.execute("UPDATE Room SET room_status = 'Vacant' WHERE room_id = %s", (room['room_id'],))
