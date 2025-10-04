@@ -1278,7 +1278,7 @@ def add_staff():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     cursor.execute(
-        "INSERT INTO Staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
+        "INSERT INTO staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
         (first_name, last_name, role, email, phone)
     )
     mysql.connection.commit() #Save to db
@@ -1301,7 +1301,7 @@ def updateStaff():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     cursor.execute(
         """
-        UPDATE Staff 
+        UPDATE staff 
         SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s 
         WHERE staff_id = %s
         """,
@@ -1316,7 +1316,7 @@ def updateStaff():
 @app.route('/deleteStaff/<int:staff_id>', methods=['GET'])
 def deleteStaff(staff_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("DELETE FROM Staff WHERE staff_id = %s", (staff_id,))
+    cursor.execute("DELETE FROM staff WHERE staff_id = %s", (staff_id,))
     mysql.connection.commit()
     cursor.close()
     return redirect('/staff')
