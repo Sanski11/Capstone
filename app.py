@@ -845,6 +845,7 @@ def add_request():
     unit_cost = float(request.form['unit_cost'])
     total_cost = quantity * unit_cost
     notes = request.form['notes']
+    status = request.form['status']
 
       # Get the name value and parse it
     name_value = request.form.get('name')  # e.g., "service_11" or "food_5"
