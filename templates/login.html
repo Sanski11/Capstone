@@ -1,98 +1,80 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Login</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Capstone</title>
+
+  <!-- Vyzor Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='icons.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
 </head>
-<body>
 
-  <!-- Toast Notification (Top-Right Corner) -->
-  {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="toast-container">
-      <div id="customToast" class="custom-toast">
-        <div class="toast-body">
-          {{ messages[0] }}
-          <button class="close-toast" onclick="closeToast()">&times;</button>
+<body class="d-flex align-items-center justify-content-center" style="min-height:100vh; background-color: rgb(248, 249, 253);">
+
+  <div class="card shadow-lg p-4" style="width: 380px; border-radius: 1rem;">
+    <h3 class="text-center mb-4" style="color: rgb(152,95,253);">Sign In</h3>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+            <div class="alert alert-{{ 'success' if category == 'success' else ('danger' if category == 'danger' else 'warning') }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Login Form -->
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Username or Email</label>
+        <input type="text" name="username_or_email" class="form-control" placeholder="Enter your username or email" required>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" id="password" class="form-control" placeholder="Enter your password" required>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" id="showPassword" onclick="togglePassword()">
+          <label class="form-check-label" for="showPassword">Show Password</label>
         </div>
       </div>
-    </div>
-  {% endif %}
-{% endwith %}
 
-  <!-- Login Form -->
-  <div class="form-box">
-    <h2>Login</h2>
+      <button type="submit" class="btn btn-primary w-100 mb-3">Login</button>
 
-    <form method="POST">
-      <label>Username</label>
-      <input type="text" name="username" placeholder="Username" required>
-
-      <label>Password</label>
-      <input type="password" name="password" id="password" placeholder="Password" required>
-
-      <div style="margin-bottom: 10px;">
-        <input type="checkbox" id="showPassword" onclick="togglePassword()">
-        <label for="showPassword" style="font-size: 0.95em;">Show Password</label>
+      <div class="text-center">
+        <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">Forgot your password?</a><br>
+        <a href="{{ url_for('signup') }}" class="text-decoration-none">Create an account</a>
       </div>
-
-      <button type="submit">Sign in</button>
     </form>
-
-    <p><a href="{{ url_for('forgot_password') }}">Forgot your password?</a></p>
-    <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></p>
-
-    {% if lockout_remaining %}
-      <p class="error" id="lockout-msg">
-        Maximum login attempts reached. Try again in <span id="timer"></span>.
-      </p>
-      <script>
-        var remaining = '{{ lockout_remaining }}';
-        function updateTimer() {
-          if (remaining <= 0) {
-            document.getElementById('lockout-msg').innerText = "You may now try logging in again.";
-            return;
-          }
-          var m = Math.floor(remaining / 60);
-          var s = remaining % 60;
-          document.getElementById('timer').innerText = m + "m " + s + "s";
-          remaining--;
-          setTimeout(updateTimer, 1000);
-        }
-        updateTimer();
-      </script>
-    {% elif error %}
-      <p class="error">{{ error }}</p>
-    {% endif %}
   </div>
 
-  <!-- Password Toggle Script -->
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
+
   <script>
+    // Show/hide password
     function togglePassword() {
       const pw = document.getElementById("password");
       pw.type = pw.type === "password" ? "text" : "password";
     }
 
-    function closeToast() {
-    const toast = document.getElementById("customToast");
-    if (toast) {
-      toast.style.display = "none";
-    }
-  }
-
-  // Auto-hide after 3 seconds
-  document.addEventListener("DOMContentLoaded", function () {
-    const toast = document.getElementById("customToast");
-    if (toast) {
+    // Auto-hide flash messages after 3 seconds
+    document.addEventListener("DOMContentLoaded", function () {
+      const alerts = document.querySelectorAll('.alert');
       setTimeout(() => {
-        toast.style.display = "none";
+        alerts.forEach(alert => {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        });
       }, 3000);
-    }
-  });
+    });
   </script>
-
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

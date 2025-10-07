@@ -156,28 +156,40 @@ def login():
         if session['login_attempts'] >= 3:
             lockout_time = datetime.now() + timedelta(minutes=3)
             session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
-            return render_template('login.html', error="Maximum login attempts reached. Please try again in 3 minutes.")
+            return render_template(
+                'login.html',
+                error="Maximum login attempts reached. Please try again in 3 minutes."
+            )
 
-        username = request.form['username']
-        password = request.form['password']
+        username_or_email = request.form.get('username') or request.form.get('username_or_email')
+        password = request.form.get('password')
+
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM users WHERE username = %s AND password = %s', (username, password))
+
+        # Updated: allow login with either username or email
+        cursor.execute(
+            'SELECT * FROM users WHERE (username = %s OR email = %s) AND password = %s',
+            (username_or_email, username_or_email, password)
+        )
         user = cursor.fetchone()
         cursor.close()
 
         if user:
+            # Generate OTP valid for 5 minutes
             otp = str(random.randint(100000, 999999))
             session['otp'] = otp
             session['otp_expiry'] = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
             session['pending_user'] = {
                 "username": user['username'],
                 "role": user['role'],
-                "department": user['department']
+                "department": user['department'],
+                "email": user['email']
             }
 
+            # Send OTP to user’s email
             send_email(user['email'], "EzStay Login OTP", f"Your OTP is {otp}. It expires in 5 minutes.")
 
-            # Reset failed attempts since credentials were correct
+            # Reset failed attempts after successful login
             session['login_attempts'] = 0
             session.pop('lockout_until', None)
 
@@ -186,14 +198,15 @@ def login():
         else:
             session['login_attempts'] += 1
             attempts_left = 3 - session['login_attempts']
-            error_msg = "Invalid credentials"
             if attempts_left > 0:
-                error_msg += f". Attempts left: {attempts_left}"
+                flash(f"Invalid username/email or password. Attempts left: {attempts_left}", "danger")
             else:
-                error_msg = "Maximum login attempts reached. Please try again in 3 minutes."
-            return render_template('login.html', error=error_msg)
+                lockout_time = datetime.now() + timedelta(minutes=3)
+                session['lockout_until'] = lockout_time.strftime("%Y-%m-%d %H:%M:%S")
+                flash("Maximum login attempts reached. Please try again in 3 minutes.", "danger")
 
     return render_template('login.html')
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -1756,7 +1769,16 @@ def verify_otp():
         saved_otp = session.get("otp")
         expiry = session.get("otp_expiry")
 
-        if saved_otp and entered_otp == saved_otp and datetime.now() <= datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S"):
+        # Validate OTP and expiration
+        if not saved_otp or not expiry:
+            flash("Session expired. Please log in again.", "danger")
+            return redirect(url_for("login"))
+
+        if datetime.now() > datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S"):
+            flash("OTP has expired. Please request a new one.", "danger")
+            return redirect(url_for("verify_otp"))
+
+        if entered_otp == saved_otp:
             user = session.pop("pending_user", None)
             session.pop("otp", None)
             session.pop("otp_expiry", None)
@@ -1770,11 +1792,45 @@ def verify_otp():
                 flash(f"Welcome back, {user['username']}!", "success")
                 return redirect(url_for("dashboard"))
         else:
-            flash("Invalid or expired OTP. Please log in again.", "danger")
-            return redirect(url_for("login"))
+            flash("Invalid OTP. Please try again.", "danger")
 
     return render_template("verify_otp.html")
 
+@app.route('/resend_otp', methods=['POST'])
+def resend_otp():
+    """Regenerate a new OTP and resend it to the user's email"""
+    user = session.get('pending_user')
+
+    if not user:
+        flash("Your session has expired. Please sign up or log in again.", "danger")
+        return redirect(url_for("login"))
+
+    # Generate new OTP valid for 5 minutes
+    new_otp = str(random.randint(100000, 999999))
+    expiry = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+
+    # Save to session
+    session['otp'] = new_otp
+    session['otp_expiry'] = expiry
+
+    # Attempt to send email
+    user_email = user.get('email')
+    if not user_email:
+        flash("Unable to find your email in the session. Please log in again.", "danger")
+        return redirect(url_for('login'))
+
+    try:
+        send_email(
+            user_email,
+            "Your new OTP code",
+            f"Your new OTP is: {new_otp}\n\nThis code will expire in 5 minutes."
+        )
+        flash("✅ A new OTP has been sent to your email. It will expire in 5 minutes.", "success")
+    except Exception as e:
+        print("Email sending error:", e)
+        flash("⚠️ Failed to send OTP. Please try again later.", "danger")
+
+    return redirect(url_for('verify_otp'))
 
 @app.route('/forceassigntask', methods=['POST'])
 def forceassigntask():

@@ -1,87 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr" data-theme-mode="light">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap -->
+  <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
+
+  <!-- Vyzor Styles -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body>
-  <div class="form-box">
-    <h2>Sign Up</h2>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul class="flash">
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-    <form method="POST" action="{{ url_for('signup') }}">
-      <label>Username</label>
-      <input type="text" name="username" placeholder="Username" required>
 
-      <label>Email Address</label>
-      <input type="email" name="email" placeholder="Email" required>
-
-      <label>Password</label>
-      <input type="password" name="password" id="password" placeholder="Password" required>
-
-      <div style="margin-bottom: 10px;">
-        <input type="checkbox" onclick="togglePassword()"> Show Password
-      </div>
-
-      <label>Role</label>
-      <select name="role" id="role" onchange="toggleDepartment()" required>
-        <option value="">--Select--</option>
-        <option value="admin">Admin</option>
-        <option value="manager">Manager</option>
-        <option value="supervisor">Supervisor</option>
-        <option value="user">User</option>
-      </select>
-
-      <div id="departmentDiv">
-        <label>Department</label>
-        <select name="department" id="department">
-          <option value="Housekeeping">Housekeeping</option>
-          <option value="Dining">Dining</option>
-          <option value="Laundry">Laundry</option>
-          <option value="Massage">Massage</option>
-          <option value="All">All</option>
-        </select>
-      </div>
-
-      <button type="submit">Create Account</button>
-    </form>
-
-    <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
-
-    {% if error %}
-      <div class="error">{{ error }}</div>
-    {% endif %}
+<body class="authentication-background">
+  <div class="authentication-basic-background">
+    <img src="{{ url_for('static', filename='images/media/backgrounds/9.png') }}" alt="">
   </div>
 
-<script>
-  function togglePassword() {
-    const pw = document.getElementById("password");
-    pw.type = pw.type === "password" ? "text" : "password";
-  }
+  <!-- Toast Notification -->
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+      <div id="customToast" class="toast show text-bg-primary border-0">
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ messages[0] }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="closeToast()"></button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% endwith %}
 
-  function toggleDepartment() {
-    const role = document.getElementById("role").value;
-    const departmentDiv = document.getElementById("departmentDiv");
-    const departmentSelect = document.getElementById("department");
+  <div class="container">
+    <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+      <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+        <div class="card custom-card border-0 my-4">
+          <div class="card-body p-5">
+            <div class="mb-4 text-center">
+              <img src="{{ url_for('static', filename='images/brand-logos/toggle-logo.png') }}" alt="logo" class="desktop-dark">
+            </div>
 
-    if (role === "manager") {
-      departmentDiv.style.display = "block";
-      departmentSelect.setAttribute("name", "department");
-    } else {
-      departmentDiv.style.display = "none";
-      departmentSelect.removeAttribute("name");
-      departmentSelect.value = ""; // Clear value if hidden
+            <div class="text-center mb-4">
+              <h4 class="fw-semibold">Create Your Account</h4>
+              <p class="text-muted fw-normal">Please fill in the details below</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('signup') }}">
+              <div class="mb-3">
+                <label class="form-label text-default">Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-default">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="Enter email" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-default d-block">Password</label>
+                <div class="position-relative">
+                  <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()" id="button-addon2"><i class="ri-eye-off-line align-middle"></i></a>
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-default">Role</label>
+                <select name="role" id="role" class="form-select" onchange="toggleDepartment()" required>
+                  <option value="">--Select--</option>
+                  <option value="admin">Admin</option>
+                  <option value="manager">Manager</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="user">User</option>
+                </select>
+              </div>
+
+              <div id="departmentDiv" class="mb-3">
+                <label class="form-label text-default">Department</label>
+                <select name="department" id="department" class="form-select">
+                  <option value="Housekeeping">Housekeeping</option>
+                  <option value="Dining">Dining</option>
+                  <option value="Laundry">Laundry</option>
+                  <option value="Massage">Massage</option>
+                  <option value="All">All</option>
+                </select>
+              </div>
+
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary">Create Account</button>
+              </div>
+
+              <div class="text-center mt-3 fw-medium">
+                Already have an account? <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
+              </div>
+
+              {% if error %}
+                <p class="text-danger text-center mt-3">{{ error }}</p>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    function togglePassword() {
+      const pw = document.getElementById("password");
+      pw.type = pw.type === "password" ? "text" : "password";
     }
-  }
 
-  window.onload = toggleDepartment;
-</script>
+    function toggleDepartment() {
+      const role = document.getElementById("role").value;
+      const departmentDiv = document.getElementById("departmentDiv");
+      const departmentSelect = document.getElementById("department");
+
+      if (role === "manager") {
+        departmentDiv.style.display = "block";
+        departmentSelect.setAttribute("name", "department");
+      } else {
+        departmentDiv.style.display = "none";
+        departmentSelect.removeAttribute("name");
+        departmentSelect.value = "";
+      }
+    }
+
+    function closeToast() {
+      const toast = document.getElementById("customToast");
+      if (toast) toast.style.display = "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      toggleDepartment();
+      const toast = document.getElementById("customToast");
+      if (toast) {
+        setTimeout(() => { toast.style.display = "none"; }, 3000);
+      }
+    });
+  </script>
+
+  <!-- Bootstrap JS -->
+  <script src="{{ url_for('static', filename='assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>

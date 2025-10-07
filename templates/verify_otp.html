@@ -1,29 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr" data-theme-mode="light">
 <head>
-  <title>Verify OTP</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Verify OTP | Capstone</title>
+
+  <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+  <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body>
-  <div class="form-box">
-    <h2>Enter OTP</h2>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div id="flashPopup" class="flash-popup">
-          <ul>
-            {% for category, message in messages %}
-              <li class="{{ category }}">{{ message }}</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-    {% endwith %}
-    <form method="POST">
-      <label for="otp">One-Time Password (OTP)</label>
-      <input type="text" name="otp" id="otp" placeholder="Enter the OTP sent to your email" required>
-      <button type="submit">Verify</button>
-    </form>
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<body class="authentication-background">
+  <div class="authentication-basic-background">
+    <img src="{{ url_for('static', filename='images/media/backgrounds/9.png') }}" alt="">
   </div>
+
+  <div class="container">
+    <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+      <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+        <div class="card custom-card border-0 my-4">
+          <div class="card-body p-5 text-center">
+
+            <div class="mb-4">
+              <img src="{{ url_for('static', filename='images/brand-logos/toggle-logo.png') }}" alt="logo" class="desktop-dark">
+            </div>
+
+            <h4 class="fw-semibold text-primary mb-3">Enter OTP</h4>
+            <p class="text-muted mb-4">Please enter the one-time password sent to your registered email address.</p>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
+                <div id="flashPopup" class="alert-container mb-3">
+                  {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show" role="alert">
+                      {{ message }}
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
+            <!-- OTP Verification Form -->
+            <form method="POST" action="{{ url_for('verify_otp') }}">
+              <div class="mb-3">
+                <label for="otp" class="form-label text-default">One-Time Password (OTP)</label>
+                <input type="text" name="otp" id="otp" class="form-control form-control-lg text-center" placeholder="Enter OTP" required>
+                <p id="otp-timer" class="text-muted small mt-2"></p>
+              </div>
+
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary">Verify OTP</button>
+              </div>
+            </form>
+
+            <!-- Resend OTP -->
+            <form method="POST" action="{{ url_for('resend_otp') }}" class="mt-3">
+              <button type="submit" class="btn btn-outline-primary w-100" id="resendBtn">Resend Code</button>
+            </form>
+
+            <div class="text-center mt-4">
+              <a href="{{ url_for('login') }}" class="text-muted text-decoration-none">Back to Login</a>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
+
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const resendBtn = document.getElementById("resendBtn");
+    const timer = document.getElementById("otp-timer");
+
+    // Disable resend button for 5 seconds to prevent spamming
+    resendBtn.addEventListener("click", function () {
+      resendBtn.disabled = true;
+      resendBtn.innerText = "Sending...";
+      setTimeout(() => {
+        resendBtn.disabled = false;
+        resendBtn.innerText = "Resend Code";
+      }, 5000);
+    });
+
+    // 5-minute countdown timer
+    let timeLeft = 300; // seconds
+    function updateTimer() {
+      if (timeLeft <= 0) {
+        timer.textContent = "OTP expired. Please resend a new code.";
+        timer.classList.add("text-danger");
+      } else {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timer.textContent = `OTP expires in ${minutes}:${seconds < 10 ? "0" + seconds : seconds}`;
+        timeLeft--;
+        setTimeout(updateTimer, 1000);
+      }
+    }
+    updateTimer();
+  });
+  </script>
 </body>
 </html>

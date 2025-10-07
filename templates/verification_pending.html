@@ -1,46 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr" data-theme-mode="light">
 <head>
-    <meta charset="UTF-8">
-    <title>Email Verification Pending</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        body {
-            background: #f7f7f7;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            color: #222;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            background: #fff;
-            max-width: 400px;
-            margin: 60px auto 0 auto;
-            border-radius: 10px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            padding: 32px 28px;
-            text-align: center;
-        }
-        h2 {
-            color: #2d7ff9;
-            margin-bottom: 18px;
-        }
-        p {
-            font-size: 1.08em;
-            margin-bottom: 12px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>Email Verification Pending</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap -->
+  <link href="{{ url_for('static', filename='bootstrap.min.css') }}" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
+
+  <!-- Vyzor Styles -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
-<body>
-    <div class="container">
-        <h2>Verify Your Email</h2>
-        <p>
-            We’ve sent a verification link to your email.<br>
-            Please check your inbox (and spam folder just in case).
-        </p>
-        <p>
-            The link will expire in 24 hours.
-        </p>
+
+<body class="authentication-background">
+  <div class="authentication-basic-background">
+    <img src="{{ url_for('static', filename='images/media/backgrounds/9.png') }}" alt="">
+  </div>
+
+  <div class="container">
+    <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+      <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+        <div class="card custom-card border-0 my-4">
+          <div class="card-body p-5 text-center">
+
+            <!-- Logo -->
+            <div class="mb-4">
+              <img src="{{ url_for('static', filename='images/brand-logos/toggle-logo.png') }}" alt="logo" class="desktop-dark">
+            </div>
+
+            <!-- Content -->
+            <h4 class="fw-semibold text-primary mb-3">Verify Your Email</h4>
+            <p class="text-muted mb-2">
+              We’ve sent a verification link to your registered email address.  
+              Please check your inbox and spam folder just in case.
+            </p>
+            <p class="text-secondary mb-4">The link will expire in 24 hours.</p>
+
+            <div class="d-grid">
+              <a href="{{ url_for('login') }}" class="btn btn-primary">Back to Login</a>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>
