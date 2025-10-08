@@ -1,152 +1,507 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
 <head>
-  <meta charset="UTF-8">
-  <title>Homepage</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>ezStay - Hotel Management Dashboard</title>
+
+    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
+    
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
+
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Custom Styles for the Purple Theme */
+        :root {
+            --ez-primary: #8a2be2; /* BlueViolet for main sidebar/accents */
+            --ez-light-primary: #f0f0ff; 
+        }
+        .app-sidebar {
+            background-color: var(--ez-primary) !important;
+        }
+        .main-sidebar-header, .main-sidebar, .main-menu, .doublemenu_bottom-menu {
+            background-color: var(--ez-primary) !important;
+        }
+        .main-menu .slide a, .doublemenu_bottom-menu .slide a {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+        /* Active/Hover Highlight - Creates the solid purple block */
+        .main-menu .slide a.active, .main-menu .slide a:hover {
+            color: #fff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .card.custom-card.primary {
+            background-color: var(--ez-light-primary) !important;
+        }
+        .dashboard-banner-card {
+            background-color: #d8bfd8 !important; 
+        }
+        .text-purple { color: #8a2be2 !important; }
+        .bg-purple-transparent { background-color: rgba(138, 43, 226, 0.1) !important; }
+        .text-fixed-white { color: white !important; }
+        
+        /* Ensures the text portion of links is white/light when collapsed */
+        .main-menu .slide-menu a,
+        .slide__category .category-name {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        /* Styling for the custom dropdown menu */
+        .dropdown-menu {
+            position: absolute;
+            z-index: 1000;
+            display: none;
+            right: 0 !important; /* Forces it to open to the left/align with avatar */
+            left: auto !important;
+            min-width: 12rem;
+            padding: 0;
+            margin-top: 0.5rem;
+            font-size: 1rem;
+            color: #212529;
+            text-align: left;
+            list-style: none;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            border-radius: 0.25rem;
+        }
+    </style>
 </head>
+
 <body>
-  <div class="navbar">
-  <div class="navbar-left">
-    <h1>ezStay</h1>
-  </div>
-  <div class="nav-links">
-    {% if role == "admin" %}
-      <a href="/users">Authorized Users</a>
-    {% elif role == "manager" %}
-      <a href="/rooms">Rooms</a>
-      <a href="/housekeeping">Housekeeping</a>
-      <a href="/dining">In-Room Dining</a>
-      <a href="/laundry">Laundry</a>
-      <a href="/massage">Massage</a>
-      <a href="/guests">Guests</a>
-      <a href="/staff">Staff</a>
-      <a href="/bookings">Bookings</a>
-      <a href="/roomGuest">Check-in/Checkout</a>  
-      <a href="/requests">Requests</a>
-    {% elif role in ["supervisor", "staff"] %}
-      <a href="/requests">Requests</a>
-    {% endif %}
-  </div>
+    <div class="page">
+        
+        <header class="app-header header-sticky" id="header">
+    
+    <div class="main-header-container container-fluid">
 
-  <div class="dropdown">
-    <img src="{{ url_for('static', filename='images/profile-icon.svg') }}" alt="Profile" class="profile-icon" onclick="toggleDropdown()">
-    <div id="dropdownMenu" class="dropdown-menu">
-      <a href="{{ url_for('profile') }}">Profile</a>
-      <a href="{{ url_for('logout') }}">Logout</a>
+        <div class="header-content-left">
+        </div>
+
+        <ul class="header-content-right align-items-center"> 
+            <li class="header-element">
+                <div class="dropdown">
+                    <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" 
+                         alt="User Profile" 
+                         class="avatar avatar-sm avatar-rounded profile-icon" 
+                         onclick="toggleDropdown()">
+                    
+                    <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display: none;">
+                        
+                        <div class="p-3 bg-primary text-fixed-white" style="background-color: var(--ez-primary) !important;">
+                            <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
+                            <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
+                        </div>
+
+                        <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center">
+                            <i class="ri-user-line me-2 fs-16"></i>View Profile
+                        </a>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center">
+                            <i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out
+                        </a>
+                    </div>
+                </div>
+            </li>
+        </ul>
     </div>
-  </div>
-</div>
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div id="flashPopup" class="flash-popup">
-      <ul>
-        {% for category, message in messages %}
-          <li class="{{ category }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
+</header>
+        
+        <aside class="app-sidebar sticky" id="sidebar">
+            <div class="main-sidebar-header p-3 text-center">
+                <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+            </div>
+            
+            <div class="main-sidebar" id="sidebar-scroll">
+                <nav class="main-menu-container nav nav-pills flex-column sub-open">
+                    
+                    <li class="slide__category"><span class="category-name">Dashboards</span></li>
+                    
+                    <ul class="main-menu">
+                        
+                        <li class="slide">
+                            <a href="{{ url_for('dashboard') }}" class="side-menu__item active">
+                                <i class="ri-home-2-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Dashboard</span>
+                            </a>
+                        </li>
+                        
+                        {% if role == "manager" or role == "admin" %}
+                        <li class="slide">
+                            <a href="/rooms" class="side-menu__item">
+                                <i class="ri-door-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Rooms</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/housekeeping" class="side-menu__item">
+                                <i class="ri-brush-3-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Housekeeping</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/dining" class="side-menu__item">
+                                <i class="ri-restaurant-line side-menu__icon"></i>
+                                <span class="side-menu__label">In-Room Dining</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/laundry" class="side-menu__item">
+                                <i class="ri-t-shirt-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Laundry</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/massage" class="side-menu__item">
+                                <i class="ri-body-scan-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Massage/Spa</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/guests" class="side-menu__item">
+                                <i class="ri-group-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Guests</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/staff" class="side-menu__item">
+                                <i class="ri-team-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Staff</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/bookings" class="side-menu__item">
+                                <i class="ri-calendar-check-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Bookings</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/roomGuest" class="side-menu__item">
+                                <i class="ri-exchange-line side-menu__icon"></i>
+                                <span class="side-menu__label">Check-in/Checkout</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="/requests" class="side-menu__item">
+                                <i class="ri-task-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Requests</span>
+                            </a>
+                        </li>
+                         <li class="slide">
+                            <a href="/calendar" class="side-menu__item">
+                                <i class="ri-calendar-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Calendar</span>
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {% if role == "admin" %}
+                        <li class="slide">
+                            <a href="/users" class="side-menu__item">
+                                <i class="ri-shield-user-line side-menu__icon"></i>
+                                <span class="side-menu__label">Authorized Users</span>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+                        <li class="slide">
+                            <a href="{{ url_for('profile') }}" class="side-menu__item">
+                                <i class="ri-user-settings-line side-menu__icon"></i> 
+                                <span class="side-menu__label">Profile</span>
+                            </a>
+                        </li>
+
+                    </ul>
+                </nav>
+            </div>
+            <ul class="doublemenu_bottom-menu main-menu mb-0 border-top">
+                <li class="slide">
+                    <a href="{{ url_for('profile') }}" class="side-menu__item p-1 rounded-circle mb-0">
+                        <span class="avatar avatar-md avatar-rounded">
+                            <img src="{{ url_for('static', filename='images/faces/10.jpg') }}" alt="User Profile">
+                        </span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+        
+        <div class="main-content app-content">
+            <div class="container-fluid page-container main-body-container">
+
+                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+                    <h1 class="page-title fw-medium fs-20 mb-0">Dashboard</h1>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div id="flashPopup" class="mb-4">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+
+                {% if role in ['admin', 'manager', 'supervisor'] %}
+                    <div class="row g-3">
+                        <div class="col-xxl-9 col-xl-8">
+                            <div class="row g-3">
+                                <div class="col-xl-4 col-md-6">
+                                    <div class="card custom-card primary">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="flex-fill">
+                                                    <span class="fs-13 fw-medium text-muted">Housekeeping Requests</span>
+                                                    <h4 class="fw-semibold my-2 lh-1 text-purple">{{ stats.housekeeping }}</h4>
+                                                    <span class="fs-12 d-block text-muted">Total Pending</span>
+                                                </div>
+                                                <div>
+                                                    <span class="avatar avatar-md avatar-rounded bg-purple-transparent">
+                                                        <i class="ti ti-broom fs-4 text-purple"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card custom-card mt-3">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="flex-fill">
+                                                    <span class="fs-13 fw-medium text-muted">In-Room Dining Orders</span>
+                                                    <h4 class="fw-semibold my-2 lh-1 text-purple">{{ stats.food }}</h4>
+                                                    <span class="fs-12 d-block text-muted">Orders this Month</span>
+                                                </div>
+                                                <div>
+                                                    <span class="avatar avatar-md avatar-rounded bg-purple-transparent">
+                                                        <i class="ti ti-plate fs-4 text-purple"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card custom-card mt-3">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="flex-fill">
+                                                    <span class="fs-13 fw-medium text-muted">Laundry Requests</span>
+                                                    <h4 class="fw-semibold my-2 lh-1 text-purple">{{ stats.laundry }}</h4>
+                                                    <span class="fs-12 d-block text-muted">Active Requests</span>
+                                                </div>
+                                                <div>
+                                                    <span class="avatar avatar-md avatar-rounded bg-purple-transparent">
+                                                        <i class="ti ti-wash-dry fs-4 text-purple"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card custom-card mt-3">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-start gap-3">
+                                                <div class="flex-fill">
+                                                    <span class="fs-13 fw-medium text-muted">Massage/Spa Bookings</span>
+                                                    <h4 class="fw-semibold my-2 lh-1 text-purple">{{ stats.spa }}</h4>
+                                                    <span class="fs-12 d-block text-muted">Bookings this Month</span>
+                                                </div>
+                                                <div>
+                                                    <span class="avatar avatar-md avatar-rounded bg-purple-transparent">
+                                                        <i class="ti ti-massage fs-4 text-purple"></i>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="col-xl-8 col-md-6">
+                                    <div class="card custom-card">
+                                        <div class="card-header justify-content-between">
+                                            <div class="card-title">Daily Staff Activity</div>
+                                        </div>
+                                        <div class="card-body pb-0 pt-3">
+                                            <div style="height: 300px;">
+                                                <canvas id="barChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xxl-3 col-xl-4">
+                            <div class="card custom-card shadow-none dashboard-banner-card overflow-hidden" style="position: relative;">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center justify-content-between gap-3" style="position: relative; z-index: 2;">
+                                        <div>
+                                            <h5 class="fw-semibold mb-1 text-fixed-white">Hi, {{ current_user.username if current_user.is_authenticated else 'Manager' }} 👋</h5>
+                                            <span class="d-block fs-14 mb-3 pe-5 text-fixed-white">Check out the latest service updates.</span>
+                                            <a href="/requests" class="btn btn-warning btn-wave mt-1 btn-sm">View Requests <i class="ti ti-arrow-narrow-right"></i></a>
+                                        </div>
+                                        <div>
+                                            <i class="ri-user-settings-line fs-1 text-fixed-white opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                             <div class="card custom-card mt-3">
+                                <div class="card-header justify-content-between">
+                                    <div class="card-title">Requests By Service Type</div>
+                                </div>
+                                <div class="card-body d-flex justify-content-center align-items-center">
+                                    <div style="max-width: 350px; max-height: 350px;">
+                                        <canvas id="pieChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if role in ['user'] %}
+                    <div class="row justify-content-center">
+                        <div class="col-xl-8">
+                            <div class="card custom-card overflow-hidden dashboard-banner-card" style="background-color: #d8bfd8 !important;">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center justify-content-between gap-3 text-dark">
+                                        <div>
+                                            <h2 class="fw-semibold mb-1 text-dark">Welcome to ezStay Hotels! ✨</h2>
+                                            <p class="fs-14 mb-3 pe-5 text-dark">
+                                                Enjoy exclusive offers: **Free breakfast** for all guests! **20% off Spa services** this month!
+                                            </p>
+                                            <a href="/bookings" class="btn btn-primary btn-wave mt-1 fw-semibold">Book Your Stay</a>
+                                        </div>
+                                        <div>
+                                            <i class="ti ti-hotel-service fs-1 text-dark opacity-50"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+        <footer class="footer mt-auto py-3 text-center">
+            <div class="container-fluid">
+                <span class="text-muted"> Copyright © <span id="year">2025</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+            </div>
+        </footer>
     </div>
-  {% endif %}
-{% endwith %}
-{% if role in ['admin', 'manager', 'supervisor'] %}
-  <section class="stats-box">
-    <table class="table table-bordered">
-      <tr><td>Housekeeping</td><td>{{ stats.housekeeping }}</td></tr>
-      <tr><td>Food</td><td>{{ stats.food }}</td></tr>
-      <tr><td>Laundry</td><td>{{ stats.laundry }}</td></tr>
-      <tr><td>Spa</td><td>{{ stats.spa }}</td></tr>
-    </table>
-  </section>
 
-  <section class="chart-section">
-    <div style="max-width: 400px;">
-      <canvas id="barChart"></canvas>
-    </div>
-    <h2>Daily Staff Activity</h2>
-    <div style="max-width: 400px;">
-      <canvas id="pieChart"></canvas>
-    </div>
-  </section>
-{% endif %}
+    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/@tarekraafat/autocomplete.js/autoComplete.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/@simonwep/pickr/pickr.es5.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/flatpickr/flatpickr.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/apexcharts/apexcharts.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/%40simonwep/pickr/pickr.es5.min.js') }}"></script>
 
-{% if role in ['user'] %}
-  <section class="advertising-box" style="max-width:500px;margin:30px auto;padding:24px;border-radius:12px;background:#f8f8f8;box-shadow:0 2px 8px rgba(0,0,0,0.07);text-align:center;">
-    <h2 style="color:#2c2c2c;">Welcome to ezStay Hotels!</h2>
-    <p style="font-size:18px;color:#555;">
-      Enjoy exclusive offers: <br>
-      <strong>Free breakfast</strong> for all guests! <br>
-      <strong>20% off Spa services</strong> this month! <br>
-      Book now and experience luxury, comfort, and world-class service.
-    </p>
-    <img src="{{ url_for('static', filename='images/hotel-ad.jpg') }}" alt="Hotel Promotion" style="max-width:100%;border-radius:8px;margin-top:16px;">
-    <p style="margin-top:12px;">
-      <a href="/bookings" class="btn btn-success">Book Your Stay</a>
-    </p>
-  </section>
-{% endif %}
+    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sales-dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom-switcher.min.js') }}"></script>
 
-<script>
-  const barLabels = [{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-  const requestsData = [{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}];
-  const completedData = [{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}];
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('year').textContent = new Date().getFullYear();
 
-  new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels: barLabels,
-      datasets: [
-        { label: 'Requests', backgroundColor: '#7fd3f7', data: requestsData },
-        { label: 'Completed', backgroundColor: '#ff8c6b', data: completedData }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: true } },
-      scales: { y: { beginAtZero: true } }
-    }
-  });
+            // Flash message auto-dismissal
+            setTimeout(() => {
+                const popup = document.getElementById("flashPopup");
+                if (popup) {
+                    const alerts = popup.querySelectorAll('.alert');
+                    alerts.forEach(alertEl => {
+                        const alert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                        alert.close();
+                    });
+                }
+            }, 3000);
+            
+            {% if role in ['admin', 'manager', 'supervisor'] %}
+                // Chart Data Extraction (Assuming staff_data and service_data are passed)
+                const barLabels = [{% for staff in staff_data %}"{{ staff.staff }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+                const requestsData = [{% for staff in staff_data %}{{ staff.requests }}{% if not loop.last %}, {% endif %}{% endfor %}];
+                const completedData = [{% for staff in staff_data %}{{ staff.completed }}{% if not loop.last %}, {% endif %}{% endfor %}];
 
-  const pieLabels = [{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-  const pieData = [{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
-  const pieColors = ['#5fd3bc', '#7fd3f7', '#8cb6e6', '#b3b3c6', '#f7c873'];
+                const chartPurple = 'rgba(138, 43, 226, 1)';
+                const chartPink = 'rgba(255, 105, 180, 1)';
 
-  new Chart(document.getElementById('pieChart'), {
-    type: 'pie',
-    data: {
-      labels: pieLabels,
-      datasets: [{ data: pieData, backgroundColor: pieColors }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: true, position: 'bottom' } }
-    }
-  });
+                if(document.getElementById('barChart')) {
+                    new Chart(document.getElementById('barChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: barLabels,
+                            datasets: [
+                                { label: 'Pending Requests', backgroundColor: chartPurple, data: requestsData },
+                                { label: 'Completed Requests', backgroundColor: chartPink, data: completedData }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: true } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
 
-  function toggleDropdown() {
-    var menu = document.getElementById("dropdownMenu");
-    menu.style.display = (menu.style.display === "block") ? "none" : "block";
-  }
+                const pieLabels = [{% for s in service_data %}"{{ s.service_type }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+                const pieData = [{% for s in service_data %}{{ s.count }}{% if not loop.last %}, {% endif %}{% endfor %}];
+                const pieColors = ['#8A2BE2', '#FF69B4', '#DA70D6', '#9370DB', '#BA55D3']; 
 
-  window.onclick = function(event) {
-    if (!event.target.matches('.profile-icon')) {
-      var dropdowns = document.getElementsByClassName("dropdown-menu");
-      for (var i = 0; i < dropdowns.length; i++) {
-        dropdowns[i].style.display = "none";
-      }
-    }
-  }
+                if(document.getElementById('pieChart')) {
+                    new Chart(document.getElementById('pieChart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: pieLabels,
+                            datasets: [{ 
+                                data: pieData, 
+                                backgroundColor: pieColors 
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: true, position: 'bottom' } }
+                        }
+                    });
+                }
+            {% endif %}
+            
+            // This function must exist to handle the click event
+            window.toggleDropdown = function() {
+                var menu = document.getElementById("dropdownMenu");
+                // Simple toggle logic
+                menu.style.display = (menu.style.display === "block") ? "none" : "block";
+            }
 
-  setTimeout(() => {
-    const popup = document.getElementById("flashPopup");
-    if (popup) {
-      popup.style.transition = "opacity 0.5s";
-      popup.style.opacity = 0;
-      setTimeout(() => popup.remove(), 500);
-    }
-  }, 3000);
-</script>
-
+            // Optional: Hide dropdown when clicking anywhere else
+            window.onclick = function(event) {
+                if (!event.target.matches('.profile-icon')) {
+                    var menu = document.getElementById("dropdownMenu");
+                    if (menu && menu.style.display === "block") {
+                        menu.style.display = "none";
+                    }
+                }
+            }
+        });
+    </script>
 </body>
 </html>

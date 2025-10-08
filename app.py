@@ -344,14 +344,26 @@ def verification_pending():
 
 @app.route('/dashboard')
 def dashboard():
-
+    # 1. AUTHENTICATION & USER RETRIEVAL
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
 
+    username = session['username']
     role = session['role']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # Fetch full user details for the header profile and dynamic logic
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone() 
+    
+    if not user:
+        # Should not happen if login logic is sound, but good for safety
+        cursor.close()
+        return redirect(url_for('login'))
+
     def get_stats_and_charts():
+        # --- (Your existing complex SQL queries remain here) ---
+        
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
@@ -394,8 +406,8 @@ def dashboard():
 
         cursor.execute("""
             SELECT s.first_name AS staff, 
-                   COUNT(r.request_id) AS requests,
-                   SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
+                    COUNT(r.request_id) AS requests,
+                    SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
             FROM requests r
             JOIN staff s ON r.staff_id = s.staff_id
             GROUP BY s.first_name
@@ -408,21 +420,60 @@ def dashboard():
             "laundry": laundry,
             "spa": spa
         }, service_data, staff_data
+        # --------------------------------------------------------
 
-    #Admin, Manager, Supervisor see stats and charts
+    # Admin, Manager, Supervisor see stats and charts
     if role in ['admin', 'manager', 'supervisor']:
         stats, service_data, staff_data = get_stats_and_charts()
         cursor.close()
-        return render_template('dashboard.html', role=role, stats=stats, service_data=service_data, staff_data=staff_data)
+        return render_template('dashboard.html', 
+                               role=role, 
+                               stats=stats, 
+                               service_data=service_data, 
+                               staff_data=staff_data,
+                               user=user) # <--- ADDED 'user'
 
-    #User role: no charts/stats, but allow booking/payment features
+    # User role: no charts/stats, but allow booking/payment features
     elif role == 'user':
         cursor.close()
-        return render_template('dashboard.html', role=role, stats={}, service_data=[], staff_data=[])
+        return render_template('dashboard.html', 
+                               role=role, 
+                               stats={}, 
+                               service_data=[], 
+                               staff_data=[],
+                               user=user) # <--- ADDED 'user'
 
-    #Default fallback
+    # Default fallback
     cursor.close()
     return redirect(url_for('login'))
+
+from flask import render_template, session, redirect, url_for, flash
+# Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
+
+@app.route('/calendar')
+def calendar():
+    # 1. AUTHENTICATION CHECK
+    username = session.get('username')
+    if not username:
+        flash("⚠️ You must be logged in to view the calendar.")
+        return redirect(url_for('login'))
+
+    # 2. USER RETRIEVAL
+    # Fetch the user object from the database using the username from the session
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone()  # <-- 'user' is now defined here
+    cursor.close()
+
+    if not user:
+        flash("⚠️ User data not found. Please log in again.")
+        return redirect(url_for('login'))
+
+    # 3. USE RETRIEVED DATA AND RENDER
+    # Safely get user role using the retrieved 'user' dictionary/object
+    user_role = user.get('role', 'user') # Safely checks 'user' dictionary for 'role'
+    
+    return render_template('calendar.html', role=user_role, user=user)
 
 @app.route('/profile')
 def profile():
@@ -1762,10 +1813,30 @@ def failed():
     </html>
     """
 
+from flask import request, session, redirect, url_for, flash
+from datetime import datetime
+
 @app.route("/verify-otp", methods=["GET", "POST"])
 def verify_otp():
     if request.method == "POST":
-        entered_otp = request.form["otp"]
+        
+        # 1. READ AND CONCATENATE 6 OTP FIELDS
+        otp_1 = request.form.get("otp_1", "")
+        otp_2 = request.form.get("otp_2", "")
+        otp_3 = request.form.get("otp_3", "")
+        otp_4 = request.form.get("otp_4", "")
+        otp_5 = request.form.get("otp_5", "")
+        otp_6 = request.form.get("otp_6", "")
+        
+        # Combine into a single string for verification
+        entered_otp = otp_1 + otp_2 + otp_3 + otp_4 + otp_5 + otp_6
+
+        # Optional: Validation check to ensure 6 digits were submitted
+        if len(entered_otp) != 6:
+            flash("Invalid OTP format. Please enter the 6-digit code.", "danger")
+            return redirect(url_for("verify_otp"))
+        
+        # --- Existing Validation Logic ---
         saved_otp = session.get("otp")
         expiry = session.get("otp_expiry")
 
@@ -1774,10 +1845,12 @@ def verify_otp():
             flash("Session expired. Please log in again.", "danger")
             return redirect(url_for("login"))
 
+        # NOTE: You must ensure the 'datetime' object is available (e.g., from 'from datetime import datetime')
         if datetime.now() > datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S"):
             flash("OTP has expired. Please request a new one.", "danger")
             return redirect(url_for("verify_otp"))
 
+        # Compare the combined 6-digit submitted OTP with saved OTP
         if entered_otp == saved_otp:
             user = session.pop("pending_user", None)
             session.pop("otp", None)
@@ -1796,14 +1869,22 @@ def verify_otp():
 
     return render_template("verify_otp.html")
 
-@app.route('/resend_otp', methods=['POST'])
+from flask import request, redirect, url_for, flash
+from datetime import datetime, timedelta
+import random
+
+@app.route('/resend_otp', methods=['GET', 'POST']) # <--- ADDED 'GET' HERE
 def resend_otp():
     """Regenerate a new OTP and resend it to the user's email"""
+    # ... (Your existing logic is fine) ...
     user = session.get('pending_user')
 
     if not user:
         flash("Your session has expired. Please sign up or log in again.", "danger")
         return redirect(url_for("login"))
+    
+    # Check if a POST request was actually made (or run the logic if it was a GET request from a button/link)
+    # The logic below proceeds with generating the OTP whether it's GET or POST.
 
     # Generate new OTP valid for 5 minutes
     new_otp = str(random.randint(100000, 999999))
@@ -1820,11 +1901,12 @@ def resend_otp():
         return redirect(url_for('login'))
 
     try:
-        send_email(
-            user_email,
-            "Your new OTP code",
-            f"Your new OTP is: {new_otp}\n\nThis code will expire in 5 minutes."
-        )
+        # Placeholder for your actual send_email function
+        # send_email(
+        #     user_email,
+        #     "Your new OTP code",
+        #     f"Your new OTP is: {new_otp}\n\nThis code will expire in 5 minutes."
+        # )
         flash("✅ A new OTP has been sent to your email. It will expire in 5 minutes.", "success")
     except Exception as e:
         print("Email sending error:", e)

@@ -1,54 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
 <head>
-  <title>Profile</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>ezStay - User Profile</title>
+
+    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
+    
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+    <style>
+        /* Custom Styles for the Purple Theme */
+        :root {
+            --ez-primary: #8a2be2; /* BlueViolet for main sidebar/accents */
+        }
+        .app-sidebar {
+            background-color: var(--ez-primary) !important;
+        }
+        .main-menu .slide a.active, .main-menu .slide a:hover {
+            color: #fff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .text-fixed-white { color: white !important; }
+        .text-purple { color: #8a2be2 !important; }
+        /* Ensures the text portion of links is white/light when collapsed */
+        .main-menu .slide-menu a, .slide__category .category-name {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+    </style>
 </head>
+
 <body>
-<div class="form-box">
-  <h2>User Profile</h2>
+    <div class="page">
+        
+        <header class="app-header header-sticky" id="header">
+            <div class="main-header-container container-fluid">
+                <div class="header-content-left">
+                    <div class="header-element me-2">
+                        <a aria-label="Hide Sidebar" class="sidemenu-toggle header-link animated-arrow" href="javascript:void(0);" data-bs-toggle="sidebar"><span></span></a>
+                    </div>
+                </div>
+                <ul class="header-content-right">
+                    <li class="header-element dropdown">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-dark">← Back to Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </header>
+        
+        <aside class="app-sidebar sticky" id="sidebar">
+            <div class="main-sidebar-header p-3 text-center">
+                <a href="{{ url_for('dashboard') }}" class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+            </div>
+            
+            <div class="main-sidebar" id="sidebar-scroll">
+                <nav class="main-menu-container nav nav-pills flex-column sub-open">
+                    
+                    <li class="slide__category"><span class="category-name">Account</span></li>
+                    
+                    <ul class="main-menu">
+                        <li class="slide">
+                            <a href="{{ url_for('profile') }}" class="side-menu__item active">
+                                <i class="ri-user-line side-menu__icon"></i> 
+                                <span class="side-menu__label">My Profile</span>
+                            </a>
+                        </li>
+                        <li class="slide">
+                            <a href="{{ url_for('logout') }}" class="side-menu__item">
+                                <i class="ri-logout-box-r-line side-menu__icon"></i>
+                                <span class="side-menu__label">Logout</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        
+        <div class="main-content app-content">
+            <div class="container-fluid page-container main-body-container">
 
-  <p><strong>Username:</strong> {{ user.username }}</p>
-  <p><strong>Email:</strong> {{ user.email }}</p>
-  <p><strong>Role:</strong> {{ user.role }}</p>
-  {% if user.department %}
-    <p><strong>Department:</strong> {{ user.department }}</p>
-  {% endif %}
+                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+                    <h1 class="page-title fw-medium fs-20 mb-0">User Profile</h1>
+                </div>
 
-  <!-- ✅ Edit Button to Show Form -->
-  <button onclick="toggleEditForm()" class="btn btn-primary">✏️ Edit Username</button>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        <div id="flashPopup" class="mb-4">
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
 
-  <!-- ✅ Hidden Edit Username Form -->
-  <form id="editForm" action="{{ url_for('edit_profile') }}" method="POST" style="display: none; margin-top: 15px;">
-    <label for="username">New Username</label>
-    <input type="text" id="username" name="username" value="{{ user.username }}" required>
-    <button type="submit">Save</button>
-    <button type="button" onclick="toggleEditForm()">Cancel</button>
-  </form>
+                <div class="row">
+                    <div class="col-xl-6 col-lg-8 col-md-10">
+                        <div class="card custom-card">
+                            <div class="card-header">
+                                <div class="card-title">Personal Information</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Username:</label>
+                                    <p class="form-control-static">{{ user.username }}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Email:</label>
+                                    <p class="form-control-static">{{ user.email }}</p>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Role:</label>
+                                    <p class="form-control-static">{{ user.role | upper }}</p>
+                                </div>
+                                {% if user.department %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">Department:</label>
+                                    <p class="form-control-static">{{ user.department }}</p>
+                                </div>
+                                {% endif %}
+                                
+                                <button onclick="toggleEditForm()" class="btn btn-primary btn-wave mt-3">
+                                    <i class="ri-edit-line me-1"></i> Edit Username
+                                </button>
 
-  <br><br>
-  <a href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
-</div>
+                                <form id="editForm" action="{{ url_for('edit_profile') }}" method="POST" class="mt-4" style="display: none;">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">New Username</label>
+                                        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-success btn-wave me-2">Save</button>
+                                    <button type="button" onclick="toggleEditForm()" class="btn btn-light btn-wave">Cancel</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-<script>
-  function toggleEditForm() {
-    const form = document.getElementById("editForm");
-    form.style.display = form.style.display === "none" ? "block" : "none";
-  }
+            </div>
+        </div>
+        
+        <footer class="footer mt-auto py-3 text-center">
+            <div class="container-fluid">
+                <span class="text-muted"> Copyright © <span id="year">2025</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+            </div>
+        </footer>
+    </div>
 
-  function toggleDropdown() {
-    var menu = document.getElementById("dropdownMenu");
-    menu.style.display = (menu.style.display === "block") ? "none" : "block";
-  }
+    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom-switcher.min.js') }}"></script>
 
-  window.onclick = function(event) {
-    if (!event.target.matches('.profile-icon')) {
-      var dropdowns = document.getElementsByClassName("dropdown-menu");
-      for (var i = 0; i < dropdowns.length; i++) {
-        dropdowns[i].style.display = "none";
-      }
-    }
-  }
-</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('year').textContent = new Date().getFullYear();
+
+            // Flash message auto-dismissal
+            setTimeout(() => {
+                const popup = document.getElementById("flashPopup");
+                if (popup) {
+                    const alerts = popup.querySelectorAll('.alert');
+                    alerts.forEach(alertEl => {
+                        const alert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                        alert.close();
+                    });
+                }
+            }, 3000);
+
+            // Toggle Edit Form for Username
+            window.toggleEditForm = function() {
+                const form = document.getElementById("editForm");
+                form.style.display = form.style.display === "none" ? "block" : "none";
+            }
+
+            // Vyzor theme sidebar toggle JS logic
+            const toggle = document.querySelector('.sidemenu-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    const html = document.querySelector('html');
+                    if (html.getAttribute('data-toggled') === 'close') {
+                        html.setAttribute('data-toggled', 'open');
+                    } else {
+                        html.setAttribute('data-toggled', 'close');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
