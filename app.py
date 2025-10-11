@@ -1,6 +1,6 @@
 # Core Flask modules
 from flask import Flask, render_template, request, redirect, session, url_for, jsonify, flash
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 
 # MySQL integration
 from flask_mysqldb import MySQL
@@ -790,6 +790,15 @@ def show_roomGuest():
     cursor.close() #Close db connection
     return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
 
+#Audit logs
+def view_auditlogs():
+    cursor = mysql.connection.cursor(MySQL.db.cursors.DictCursor) #Connect to the database
+    
+    cursor.execute("""
+                   SELECT * FROM audit_log
+                   """)
+    logs = cursor.fetchall() #After executing sql, fetch results
+    return render_template('auditlogs.html', logs=logs) #pass the contents of rooms to rooms.html
 #Called by ROOMS Menu; Add a new room
 @app.route('/addRoom', methods=['POST'])
 def add_rooms():
@@ -801,11 +810,31 @@ def add_rooms():
         
     try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+        new_room_id = None
         cursor.execute(
             "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
             (roomNumber, roomType, roomStatus)
-        ) 
+        )
+        new_room_id = cursor.lastrowid #Get the ID of the newly inserted record
         mysql.connection.commit()  #Save to database
+        
+        #Get new data and save logs
+        if new_room_id:
+            new_data_for_log = {
+                'room_number': roomNumber,
+                'room_type': roomType,
+                'room_status': roomStatus,
+                'room_id': new_room_id 
+            }
+            log_audit_event(
+                actor_id = session['username'],
+                table_name='room', 
+                action_type='INSERT', 
+                record_id=str(new_room_id), 
+                old_data=None,           # Record did not exist, so old_data is None
+                new_data=new_data_for_log 
+            )
+          
     except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
         flash("Room number already exists. Please enter a unique room number.", "danger")
     finally:
@@ -824,6 +853,22 @@ def updateRoom():
     room_status = request.form['edit_room_status']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    #Get old data
+    cursor.execute("SELECT * FROM room WHERE room_id = %s", (room_id,))
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Room not found", 404
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['room_id'] = room_id
+    new_data['room_number'] = room_number
+    new_data['room_type'] = room_type
+    new_data['room_status'] = room_status
+    
     cursor.execute(
         """
         UPDATE room
@@ -833,6 +878,17 @@ def updateRoom():
         (room_number, room_type, room_status, room_id)
     )
     mysql.connection.commit() #Save to db
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        table_name='room', 
+        action_type='UPDATE', 
+        record_id=str(room_id), 
+        old_data=old_data, 
+        new_data=new_data 
+    )
+    
     cursor.close() #Close connection
     return redirect('/rooms') #Return to rooms
 
@@ -840,7 +896,27 @@ def updateRoom():
 @app.route('/deleteRoom/<int:room_id>', methods=['GET'])
 def deleteRoom(room_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    #Get old data
+    cursor.execute("SELECT * FROM room WHERE room_id =%s", (room_id,))
+    old_data = cursor.fetchone()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the room ID doesn't exist
+        return "Room not found or already deleted", 404
+    
     cursor.execute("DELETE FROM room WHERE room_id = %s", (room_id,)) #Execute
+    
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        table_name='room', 
+        action_type='DELETE', 
+        record_id=str(room_id), 
+        old_data=old_data, 
+        new_data=None 
+    )
     mysql.connection.commit() #Save to db
     cursor.close() #Close connection
     return redirect('/rooms') #Return to rooms
@@ -1394,9 +1470,6 @@ def check_services(service_id):
     result = cursor.fetchone()
     cursor.close()
     return jsonify({"in_use": result['count'] > 0}) #Return to services; set "in_use" to true if count> 0
-
-
-
 
 @app.route('/addRoomGuest', methods=['POST'])
 def add_room_guest():
@@ -2030,6 +2103,30 @@ def assigntask():
     
     flash("Request assigned successfully.", "success")
     return redirect('/requests')
-    
+
+def log_audit_event(actor_id, table_name, action_type, record_id, old_data=None, new_data=None):
+    """Inserts a manual audit log entry into the MySQL audit_log table."""
+    try:
+        # Use current_user.get_id() if the user is logged in
+        # Fallback to 0 or None if not logged in (e.g., for a public register)
+        #actor_id = current_user.get_id() if current_user.is_authenticated else None
+        
+        # Serialize data for storage
+        old_value_json = json.dumps(old_data) if old_data else None
+        new_value_json = json.dumps(new_data) if new_data else None
+        cursor = mysql.connection.cursor()
+
+        cursor.execute(
+            """INSERT INTO audit_log 
+               (username, timestamp, table_name, action_type, record_id, old_value, new_value)
+               VALUES (%s, NOW(), %s, %s, %s, %s, %s)""",
+            (actor_id, table_name, action_type, record_id, old_value_json, new_value_json)
+        )
+        mysql.connection.commit()
+        cursor.close()
+    except Exception as e:
+        # IMPORTANT: Log the audit failure, but don't crash the main application
+        print(f"FATAL AUDIT FAILURE: {e}")
+            
 if __name__ == '__main__':
     app.run(debug=True)
