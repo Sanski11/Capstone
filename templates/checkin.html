@@ -1,71 +1,231 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
 <head>
-  <title>Page</title>
+    <meta charset="UTF-8">
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>ezStay - Check-in / Check-out</title>
 
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
+    
+    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --ez-primary: #8a2be2; }
+        .app-sidebar { background-color: var(--ez-primary) !important; }
+        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
+        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
+        .text-fixed-white { color: white !important; }
 
-  <!-- DataTables CSS -->
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+        .main-menu .slide a.active, .main-menu .slide a:hover {
+            color: #fff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
+
 <body>
-  <div class="container mt-5">
-    <h1 class="mb-4">Check-in</h1>
+    <div class="page">
+        
+        <header class="app-header header-sticky" id="header">
+            <div class="main-header-container container-fluid">
+                <div class="header-content-left">
+                    <div class="header-element me-2">
+                        <a aria-label="Hide Sidebar" class="sidemenu-toggle header-link animated-arrow" href="javascript:void(0);" data-bs-toggle="sidebar"><span></span></a>
+                    </div>
+                </div>
+                <ul class="header-content-right">
+                    <li class="header-element dropdown">
+                        <div class="dropdown">
+                            <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" 
+                                 alt="Profile" 
+                                 class="avatar avatar-sm avatar-rounded profile-icon" 
+                                 onclick="toggleDropdown()">
+                            
+                            <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display: none;">
+                                
+                                <div class="p-3 bg-primary text-fixed-white" style="background-color: var(--ez-primary) !important;">
+                                    <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
+                                    <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
+                                </div>
 
-    <table id="checkinTable" class="table table-striped table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>Room ID</th>
-          <th>Room Number</th>
-          <th>Action</th>
-          <th>Room Type</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for room in rooms %}
-        <tr>
-          <td>{{ room.room_id }}</td>
-          <td>{{ room.room_number }}</td>
-          <td>
-            <a href="#"><i class="bi bi-pencil-square"></i></a>
-            <a href="#" class="text-danger ms-2"><i class="bi bi-trash-fill"></i></a>
-            {% if room.status == 'Occupied' %}
-            <form action="/checkout" method="POST" style="display:inline;">
-              <input type="hidden" name="booking_id" value="{{ room.booking_id }}">
-              <input type="datetime-local" name="actual_check_out" required>
-              <button type="submit" class="btn btn-sm btn-warning ms-2">Checkout</button>
-            </form>
-            {% endif %}
-          </td>
-          <td>{{ room.room_type }}</td>
-          <td>{{ room.status }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+                                <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center">
+                                    <i class="ri-user-line me-2 fs-16"></i>View Profile
+                                </a>
+                                <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center">
+                                    <i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out
+                                </a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </header>
+        
+        <aside class="app-sidebar sticky" id="sidebar">
+            <div class="main-sidebar-header p-3 text-center">
+                <a href="{{ url_for('dashboard') }}" class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+            </div>
+            
+            <div class="main-sidebar" id="sidebar-scroll">
+                <nav class="main-menu-container nav nav-pills flex-column sub-open">
+                    <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
+                    <ul class="main-menu">
+                        <li class="slide"> <a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a> </li>
+                        <li class="slide"> <a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
+                        <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
+                        <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
+                        <li class="slide"> <a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a> </li>
+                        <li class="slide"> <a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a> </li>
+                        <li class="slide"> <a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a> </li>
+                        <li class="slide"> <a href="/roomGuest" class="side-menu__item active"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a> </li>
+                        <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+                        <li class="slide"> <a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> <span class="side-menu__label">Profile</span></a> </li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+        
+        <div class="main-content app-content">
+            <div class="container-fluid page-container main-body-container">
 
-    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
-  </div>
+                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+                    <h1 class="page-title fw-medium fs-20 mb-0">Room Status & Check-out</h1>
+                </div>
 
-  <!-- jQuery -->
-  <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-  <!-- DataTables JS -->
-  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-  <!-- Initialize DataTable -->
-  <script>
-    $(document).ready(function() {
-  $('#checkinTable').DataTable({
-    "order": [[0, "asc"]],
-    "pageLength": 10,
-    "lengthMenu": [5, 10, 25, 50, 100]
-  });
-});
-  </script>
+                <div class="card custom-card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Current Occupancy</h5>
+                    </div>
+                    <div class="card-body">
+                        
+                        <div class="table-responsive">
+                            <table id="checkinTable" class="table text-nowrap table-hover table-bordered">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>Room ID</th>
+                                        <th>Room Number</th>
+                                        <th>Room Type</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for room in rooms %}
+                                    <tr>
+                                        <td>{{ room.room_id }}</td>
+                                        <td>{{ room.room_number }}</td>
+                                        <td>{{ room.room_type }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ 'success' if room.status == 'Vacant' else 'danger' if room.status == 'Occupied' else 'warning' }}">
+                                                {{ room.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave" disabled>
+                                                    <i class="ri-pencil-line"></i>
+                                                </button>
+                                                
+                                                {% if room.status == 'Occupied' %}
+                                                <form action="/checkout" method="POST" class="d-flex align-items-center gap-2">
+                                                    <input type="hidden" name="booking_id" value="{{ room.booking_id }}">
+                                                    <input type="datetime-local" class="form-control form-control-sm" name="actual_check_out" required style="width: 170px;">
+                                                    <button type="submit" class="btn btn-sm btn-danger btn-wave">Check-out</button>
+                                                </form>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <footer class="footer mt-auto py-3 text-center">
+            <div class="container-fluid">
+                <span class="text-muted"> Copyright © <span id="year">2024</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+            </div>
+        </footer>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    
+    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
+    
+    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+    <script>
+        $(function () {
+            document.getElementById('year').textContent = new Date().getFullYear();
+            
+            // 🎯 DataTables Initialization 🎯
+            $('#checkinTable').DataTable({
+                pageLength: 10,
+                order: [[0, 'asc']],
+                lengthChange: true,
+                responsive: true,
+                language: {
+                    search: "_INPUT_", 
+                    searchPlaceholder: "Search rooms...",
+                },
+                columnDefs: [
+                    // Target the 'Action' column
+                    { targets: [4], orderable: false, searchable: false }
+                ],
+                // Dom structure for Bootstrap 5 integration
+                dom: '<"top"lf>rt<"bottom"ip><"clear">'
+            });
+        });
+
+        // Sidebar Toggle Logic (from previous templates)
+        window.toggleDropdown = function() {
+            var menu = document.getElementById("dropdownMenu");
+            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        }
+        window.onclick = function(event) {
+            if (!event.target.matches('.profile-icon')) {
+                var menu = document.getElementById("dropdownMenu");
+                if (menu && menu.style.display === "block") {
+                    menu.style.display = "none";
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggle = document.querySelector('.sidemenu-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    const html = document.querySelector('html');
+                    if (html.getAttribute('data-toggled') === 'close') {
+                        html.setAttribute('data-toggled', 'open');
+                    } else {
+                        html.setAttribute('data-toggled', 'close');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
