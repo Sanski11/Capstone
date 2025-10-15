@@ -791,14 +791,16 @@ def show_roomGuest():
     return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
 
 #Audit logs
+@app.route('/auditlogs')
 def view_auditlogs():
-    cursor = mysql.connection.cursor(MySQL.db.cursors.DictCursor) #Connect to the database
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
     
     cursor.execute("""
                    SELECT * FROM audit_log
                    """)
     logs = cursor.fetchall() #After executing sql, fetch results
-    return render_template('auditlogs.html', logs=logs) #pass the contents of rooms to rooms.html
+    return render_template('auditlogs.html', logs=logs) #pass the contents of logs to auditlogs.html
+
 #Called by ROOMS Menu; Add a new room
 @app.route('/addRoom', methods=['POST'])
 def add_rooms():
@@ -807,13 +809,15 @@ def add_rooms():
     roomNumber = request.form['room_number']
     roomType = request.form['room_type']
     roomStatus = request.form['room_status']
+    last_update = session['username']
+    timestamp = datetime.now()
         
     try:
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
         new_room_id = None
         cursor.execute(
-            "INSERT INTO room (room_number, room_type, room_status) VALUES (%s, %s, %s)",
-            (roomNumber, roomType, roomStatus)
+            "INSERT INTO room (room_number, room_type, room_status, last_update, timestamp) VALUES (%s, %s, %s, %s, %s)",
+            (roomNumber, roomType, roomStatus, last_update, timestamp)
         )
         new_room_id = cursor.lastrowid #Get the ID of the newly inserted record
         mysql.connection.commit()  #Save to database
@@ -824,7 +828,9 @@ def add_rooms():
                 'room_number': roomNumber,
                 'room_type': roomType,
                 'room_status': roomStatus,
-                'room_id': new_room_id 
+                'room_id': new_room_id,
+                'last_update': last_update,
+                'timestamp': timestamp
             }
             log_audit_event(
                 actor_id = session['username'],
@@ -851,6 +857,8 @@ def updateRoom():
     room_number = request.form['edit_room_number']
     room_type = request.form['edit_room_type']
     room_status = request.form['edit_room_status']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
     
@@ -868,14 +876,16 @@ def updateRoom():
     new_data['room_number'] = room_number
     new_data['room_type'] = room_type
     new_data['room_status'] = room_status
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
     
     cursor.execute(
         """
         UPDATE room
-        SET room_number = %s, room_type = %s, room_status = %s
+        SET room_number = %s, room_type = %s, room_status = %s, timestamp = %s, last_update= %s
         WHERE room_id = %s
         """,
-        (room_number, room_type, room_status, room_id)
+        (room_number, room_type, room_status, timestamp, last_update, room_id)
     )
     mysql.connection.commit() #Save to db
     
@@ -2118,7 +2128,7 @@ def log_audit_event(actor_id, table_name, action_type, record_id, old_data=None,
 
         cursor.execute(
             """INSERT INTO audit_log 
-               (username, timestamp, table_name, action_type, record_id, old_value, new_value)
+               (username, timestamp, action_type, record_id, old_value, new_value)
                VALUES (%s, NOW(), %s, %s, %s, %s, %s)""",
             (actor_id, table_name, action_type, record_id, old_value_json, new_value_json)
         )

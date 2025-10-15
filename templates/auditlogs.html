@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>ezStay - Audit Trail</title>
+    <title>ezStay - Rooms Management</title>
 
     <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
@@ -46,19 +46,25 @@
                     <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
                     <ul class="main-menu">
                         <li class="slide"> <a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a> </li>
-                        <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
-                        <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
-                        <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
-                        <li class="slide"> <a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a> </li>
-                        <li class="slide"> <a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i> <span class="side-menu__label">Massage/Spa</span></a> </li>
-                        <li class="slide"> <a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a> </li>
-                        <li class="slide"> <a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i> <span class="side-menu__label">Staff</span></a> </li>
-                        <li class="slide"> <a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i> <span class="side-menu__label">Bookings</span></a> </li>
-                        <li class="slide"> <a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a> </li>
-                        <li class="slide"> <a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a> </li>
-                        <li class="slide"> <a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Calendar</span></a> </li>
-                        <li class="slide"> <a href="/auditlogs" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Audit Logs</span></a> </li>
-                        <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+                        {%  if role == "manager" %}
+                            <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
+                            <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
+                            <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
+                            <li class="slide"> <a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a> </li>
+                            <li class="slide"> <a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i> <span class="side-menu__label">Massage/Spa</span></a> </li>
+                            <li class="slide"> <a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a> </li>
+                            <li class="slide"> <a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i> <span class="side-menu__label">Staff</span></a> </li>
+                            <li class="slide"> <a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i> <span class="side-menu__label">Bookings</span></a> </li>
+                            <li class="slide"> <a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a> </li>
+                            <li class="slide"> <a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a> </li>
+                            <li class="slide"> <a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Calendar</span></a> </li>
+                        {% endif %}
+                        {% if role == "admin"%}
+                            <li class="slide"> <a href="/users" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Authorized Users</span></a> </li>
+                            <li class="slide"> <a href="/auditlogs" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Audit Logs</span></a> </li>
+                        {% endif %}
+
+                            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
                         <li class="slide"> <a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> <span class="side-menu__label">Profile</span></a> </li>
                     </ul>
                 </nav>
@@ -69,7 +75,7 @@
             <div class="container-fluid page-container main-body-container">
 
                 <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                    <h1 class="page-title fw-medium fs-20 mb-0">Audit Trail</h1>
+                    <h1 class="page-title fw-medium fs-20 mb-0">Logs Management</h1>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -86,37 +92,40 @@
                 {% endwith %}
 
                 <div class="card custom-card">
-                    
-                   <!-- <div class="card-header justify-content-between">
-                        <h5 class="card-title mb-0">Audit Trail</h5>
-                        <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addRoomModal">
-                            <i class="ri-add-line me-1"></i> Add Room
-                        </a>
-                    </div> -->
+                    <div class="card-header justify-content-between">
+                        <h5 class="card-title mb-0">Audit Logs</h5>
+                    </div>
                     <div class="card-body">
-                        
-                        <table id="roomsTable" class="table text-nowrap table-hover table-bordered">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Number</th>
-                                    <th>Type</th>
-                                    <th>Room Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for log in logs %}
-                                <tr>
-                                    <td>{{ room.room_id }}</td>
-                                    <td>{{ room.room_number }}</td>
-                                    <td>{{ room.room_type }}</td>
-                                    <td><span class="badge bg-{{ 'success' if room.room_status == 'Vacant' else 'danger' if room.room_status == 'Occupied' else 'warning' }}">{{ room.room_status }}</span></td>
-                                    <td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <div style="overflow-x: auto;">
+                            <table id="auditlogsTable" class="table table-hover table-bordered">
+                                <thead class="table-primary">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Username</th>
+                                        <th>Timestamp</th>
+                                        <th>Tablename</th>
+                                        <th>Action Type</th>
+                                        <th>Record ID</th>
+                                        <th>Old Value</th>
+                                        <th>New Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in logs %}
+                                    <tr>
+                                        <td>{{ log.log_id }}</td>
+                                        <td>{{ log.username }}</td>
+                                        <td>{{ log.timestamp }}</td>
+                                        <td>{{ log.table_name }}</td>
+                                        <td>{{ log.action_type }}</td>
+                                        <td>{{ log.record_id }}</td>
+                                        <td>{{ log.old_value }}</td>
+                                        <td>{{ log.new_value }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
@@ -130,109 +139,8 @@
         </footer>
     </div>
 
-    <div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="addRoomForm" action="/addRoom" method="POST">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addRoomModalLabel">Add Room</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="room_number" class="form-label">Room Number:</label>
-                            <input type="number" class="form-control" id="room_number" name="room_number" required min="1000" max="9999">
-                        </div>
-                        <div class="mb-3">
-                            <label for="room_type" class="form-label">Room Type:</label>
-                            <select class="form-select" id="room_type" name="room_type" required>
-                                <option value="Standard Twin Room">Standard Twin Room</option>
-                                <option value="Standard Double Room">Standard Double Room</option>
-                                <option value="Premium Twin Room">Premium Twin Room</option>
-                                <option value="Premium Double Room">Premium Double Room</option>
-                                <option value="Family Room">Family Room</option>
-                            </select>
-                        </div>
-                        <input type="hidden" id="room_status" name="room_status" value="Vacant">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <div class="modal fade" id="editRoomModal" tabindex="-1" aria-labelledby="editRoomModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="editRoomForm" action="/updateRoom" method="POST">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editRoomModalLabel">Edit Room</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="edit_room_id" name="edit_room_id">
-                        <div class="mb-3">
-                            <label for="edit_room_number" class="form-label">Room Number:</label>
-                            <input type="number" class="form-control" id="edit_room_number" name="edit_room_number" min="1000" max="9999" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_room_type" class="form-label">Room Type:</label>
-                            <select class="form-select" id="edit_room_type" name="edit_room_type" required>
-                                <option value="Standard Twin Room">Standard Twin Room</option>
-                                <option value="Standard Double Room">Standard Double Room</option>
-                                <option value="Premium Twin Room">Premium Twin Room</option>
-                                <option value="Premium Double Room">Premium Double Room</option>
-                                <option value="Family Room">Family Room</option>
-                            </select>
-                        </div>
-                        <input type="hidden" id="edit_room_status" name="edit_room_status">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Update</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
 
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white" style="background-color: #dc3545 !important;">
-                    <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    Are you sure you want to delete Room <span id="modalRoomNumber" class="fw-semibold"></span>?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
-                    <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    This room is currently used in bookings and cannot be deleted.
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
@@ -248,4 +156,34 @@
     <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+
+    <script>
+        const rooms = {{ logs | tojson | safe }};
+
+        // DataTables init
+        $(function () {
+            // Initialize DataTables
+            const dt = $('#auditlogsTable').DataTable({
+                pageLength: 10,
+                order: [[0, 'desc']],
+                lengthChange: false,
+                responsive: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search logs...",
+                },
+                columnDefs: [
+                    // Ensure the 'Action' column is not searchable/orderable
+                    //{ targets: [4], orderable: false, searchable: false }
+                ]
+            });
+            
+            // Move DataTables search input into the custom header container
+            $('#auditogsTable_filter').parent().addClass('d-flex justify-content-between align-items-center mb-3');
+            $('#auditogsTable_filter label').addClass('mb-0');
+            $('#auditogsTable_filter input').removeClass('form-control-sm');
+            $('#auditogsTable_filter input').addClass('form-control');
+        });
+    </script>
+</body>
 </html>
