@@ -275,41 +275,44 @@ def signup():
         email = request.form['email']
         username = request.form['username']
         password = request.form['password']
-        role = request.form['role']
+
+        # Role is fixed as 'user' for public registration
+        role = 'user'
+        status = 1  # Active account by default
 
         cursor = mysql.connection.cursor()
 
-        # Check existing username
+        # Check if username already exists
         cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
         if cursor.fetchone():
             flash("Username already taken.", "danger")
             return redirect(url_for('signup'))
 
-        # Check existing email
+        # Check if email already exists
         cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
         if cursor.fetchone():
             flash("Email already registered. Please log in.", "danger")
             return redirect(url_for('signup'))
 
-        # Generate token + expiry
+        # Generate verification token
         verification_token = generate_verification_token()
         token_expires_at = datetime.now() + timedelta(hours=24)
 
-        # Save user with email_verified=False
+        # Insert new user with default role=user and status=1
         cursor.execute("""
-            INSERT INTO users (username, email, password, role, email_verified, verification_token, token_expires_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (username, email, password, role, False, verification_token, token_expires_at))
+            INSERT INTO users (username, email, password, role, status, email_verified, verification_token, token_expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, email, password, role, status, False, verification_token, token_expires_at))
         mysql.connection.commit()
 
-        # Send email
+        # Send verification email
         if send_verification_email(email, username, verification_token):
             flash("Check your email for a verification link.", "success")
             return redirect(url_for('verification_pending'))
         else:
             flash("Could not send email. Contact support.", "danger")
 
-    return render_template('signup.html')
+    return render_template('signup.html')   
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):

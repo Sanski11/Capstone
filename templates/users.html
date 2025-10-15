@@ -1,248 +1,322 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr"
+      data-nav-layout="vertical"
+      data-theme-mode="light"
+      data-header-styles="light"
+      data-menu-styles="dark"
+      data-width="fullwidth"
+      data-page-style="flat"
+      data-toggled="close">
 <head>
-  <title>Users</title>
-  <!-- Bootstrap CSS -->
-  <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"> -->
-  <link href="/static/bootstrap.min.css" rel="stylesheet">
-  <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ezStay - Authorized Users</title>
 
+  <!-- Core CSS -->
+  <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+  <style>
+    :root { --ez-primary: #8A2BE2; }
+    body { background-color: #f8f9fa; }
+    .app-sidebar { background-color: var(--ez-primary) !important; }
+    .side-menu__item.active, .side-menu__item:hover {
+      background-color: rgba(255,255,255,0.15);
+      color: #fff !important;
+    }
+    .btn-primary {
+      background-color: var(--ez-primary) !important;
+      border-color: var(--ez-primary) !important;
+    }
+    .btn-primary:hover {
+      background-color: #6a1aae !important;
+      border-color: #6a1aae !important;
+    }
+    .card.custom-card {
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(138,43,226,0.15);
+    }
+    .text-purple { color: var(--ez-primary) !important; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+  </style>
 </head>
+
 <body>
-  <div class="container mt-5">
-    <h1 class="mb-4">Users</h1>
-    {% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
-      {{ messages[0] }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  {% endif %}
-{% endwith %}
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="app-sidebar sticky" id="sidebar">
+      <div class="main-sidebar-header p-3 text-center">
+        <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+      </div>
+      <div class="main-sidebar" id="sidebar-scroll">
+        <nav class="main-menu-container nav nav-pills flex-column sub-open">
+          <li class="slide__category"><span class="category-name">MANAGEMENT</span></li>
+          <ul class="main-menu">
+            <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i>Dashboard</a></li>
+            <li class="slide"><a href="{{ url_for('users_page') }}" class="side-menu__item active"><i class="ri-shield-user-line side-menu__icon"></i>Authorized Users</a></li>
+            <li class="slide"><a href="{{ url_for('show_requests') }}" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i>Requests</a></li>
+            <li class="slide"><a href="{{ url_for('view_bookings') }}" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i>Bookings</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
 
-    <!-- Search and Add Buttons -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <!-- Search Form -->
-      <form class="d-flex" method="GET" action="/users">
-        <div class="input-group">
-          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
-          <button class="btn btn-outline-secondary" type="submit">
-            <i class="bi bi-search"></i>
+    <!-- Main Content -->
+    <div class="main-content app-content">
+      <div class="container-fluid page-container main-body-container">
+
+        <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+          <h1 class="page-title fw-semibold fs-20 mb-0 text-purple">Authorized Users</h1>
+          {% if session.get('role', '').lower() == 'admin' %}
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="ri-add-line me-1"></i>Add User
           </button>
+          {% endif %}
         </div>
-      </form>
-      <!-- Add Button -->
-      {% if session['role'] == 'admin' %}
-      <a href="#" class="btn btn-primary" onclick="showForm('add')">
-        <i class="bi bi-plus-circle"></i> Add
-      </a>
-      {% endif %}
-    </div>
 
-    <!-- Table -->
-    <table class="table table-striped table-bordered">
-      <thead class="table-dark">
-        <tr>
-          <th>User ID</th>
-          <th>Username</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Department</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for user in users %}
-        <tr>
-          <td>{{ user.user_id }}</td>
-          <td>{{ user.username }}</td>
-          <td>{{ user.email }}</td>
-          <td>{{ user.role }}</td>
-          <td>{{ user.department or "None" }}</td>
-          <td>
-            {% if session['role'] == 'admin' %}
-            <a href="#" class="btn btn-warning btn-sm" onclick="showForm('edit', '{{ user.user_id }}')">
-              <i class="bi bi-pencil-square"></i>
-            </a>
-            <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
-              <i class="bi bi-trash-fill"></i>
-            </a>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Total Users</h6><h3 class="fw-bold text-purple">{{ total_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Active Users</h6><h3 class="fw-bold text-success">{{ active_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Inactive Users</h6><h3 class="fw-bold text-secondary">{{ inactive_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Admins & Managers</h6><h3 class="fw-bold text-warning">{{ total_admins }}</h3></div></div>
+        </div>
 
-    <!-- Back Button -->
-    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          {{ messages[0] }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+        {% endwith %}
 
-    <!-- Add User Form -->
-    <form id="addForm" action="/addUser" method="POST" style="display: none;" class="mb-4 mt-3">
-      <div class="mb-3">
-        <label for="username" class="form-label">Username:</label>
-        <input type="text" class="form-control" id="username" name="username" required>
-      </div>
-      <div class="mb-3">
-        <label for="email" class="form-label">Email:</label>
-        <input type="email" class="form-control" id="email" name="email" required>
-      </div>
-      <!-- Role Dropdown -->
-      <div class="mb-3">
-        <label for="role" class="form-label">Role:</label>
-        <select id="role" name="role" class="form-control" required>
-          <option value="admin">Admin</option>
-          <option value="manager">Manager</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="user">User</option>
-        </select>
-      </div>
-      <!-- Department Dropdown -->
-      <div class="mb-3">
-        <label for="department" class="form-label">Department:</label>
-        <select id="department" name="department" class="form-control" required>
-          <option value="">None</option>
-          <option value="Housekeeping">Housekeeping</option>
-          <option value="Dining">Dining</option>
-          <option value="Laundry">Laundry</option>
-          <option value="Massage">Massage</option>
-          <option value="All">All</option>
-        </select>
-      </div>
-      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-      <button type="submit" class="btn btn-success">Submit</button>
-    </form>
-
-    <!-- Edit User Form -->
-    <form id="editForm" action="/updateUser" method="POST" style="display: none;" class="mb-4 mt-3">
-      <input type="hidden" id="edit_user_id" name="edit_user_id">
-      <div class="mb-3">
-        <label for="edit_username" class="form-label">Username:</label>
-        <input type="text" class="form-control" id="edit_username" name="edit_username" required>
-      </div>
-      <div class="mb-3">
-        <label for="edit_email" class="form-label">Email:</label>
-        <input type="email" class="form-control" id="edit_email" name="edit_email" required>
-      </div>
-      <!-- Role Dropdown -->
-      <div class="mb-3">
-        <label for="edit_role" class="form-label">Role:</label>
-        <select id="edit_role" name="edit_role" class="form-control" required>
-          <option value="admin">Admin</option>
-          <option value="manager">Manager</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="user">User</option>
-        </select>
-      </div>
-      <div class="mb-3">
-        <label for="edit_department" class="form-label">Department:</label>
-        <select id="edit_department" name="edit_department" class="form-control">
-          <option value="">None</option>
-          <option value="Housekeeping">Housekeeping</option>
-          <option value="Dining">Dining</option>
-          <option value="Laundry">Laundry</option>
-          <option value="Massage">Massage</option>
-          <option value="All">All</option>
-        </select>
-      </div>
-      <button type="button" class="btn btn-secondary" onclick="hideForm()">Cancel</button>
-      <button type="submit" class="btn btn-success">Submit</button>
-    </form>
-
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            Are you sure you want to delete user <span id="modalUserName"></span>?
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+        <!-- Users Table -->
+        <div class="card custom-card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="usersTable" class="table table-bordered align-middle">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for user in users %}
+                  <tr>
+                    <td>{{ user.user_id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role }}</td>
+                    <td>{{ user.department or "None" }}</td>
+                    <td>
+                      {% if user.status == 1 %}
+                        <span class="badge bg-success">Active</span>
+                      {% else %}
+                        <span class="badge bg-secondary">Inactive</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if session.get('role', '').lower() == 'admin' %}
+                        <button class="btn btn-warning btn-sm me-1" title="Edit"
+                          onclick="showEditModal('{{ user.user_id }}','{{ user.username }}','{{ user.email }}','{{ user.role }}','{{ user.department }}','{{ user.status }}')">
+                          <i class="ri-pencil-line"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm" title="Delete"
+                          onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      {% else %}
+                        <span class="text-muted">No actions</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
+        <!-- Add User Modal -->
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <form action="/addUser" method="POST">
+                <div class="modal-body row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select" required>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <select name="department" class="form-select">
+                      <option value="">None</option>
+                      <option value="Housekeeping">Housekeeping</option>
+                      <option value="Dining">Dining</option>
+                      <option value="Laundry">Laundry</option>
+                      <option value="Massage">Massage</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" required>
+                      <option value="1" selected>Active</option>
+                      <option value="0">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">Add User</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit User Modal -->
+        <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <form action="/updateUser" method="POST">
+                <div class="modal-body row g-3">
+                  <input type="hidden" id="edit_user_id" name="edit_user_id">
+                  <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="edit_username" name="edit_username" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="edit_email" name="edit_email" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    <select id="edit_role" name="edit_role" class="form-select" required>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <select id="edit_department" name="edit_department" class="form-select">
+                      <option value="">None</option>
+                      <option value="Housekeeping">Housekeeping</option>
+                      <option value="Dining">Dining</option>
+                      <option value="Laundry">Laundry</option>
+                      <option value="Massage">Massage</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select id="edit_status" name="edit_status" class="form-select" required>
+                      <option value="1">Active</option>
+                      <option value="0">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-warning text-white">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                Are you sure you want to delete user <span id="modalUserName"></span>?
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <!-- Bootstrap JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <footer class="footer mt-auto py-3 text-center">
+      <div class="container-fluid">
+        <span class="text-muted">© 2025 <b>ezStay</b>. All rights reserved.</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
   <script>
-  const users = {{ users | tojson | safe }};
+    $(document).ready(function() {
+      $('#usersTable').DataTable({ pageLength: 10 });
+    });
 
-  function toggleDepartmentField(roleSelectId, departmentSelectId) {
-    const role = document.getElementById(roleSelectId).value;
-    const departmentField = document.getElementById(departmentSelectId);
-
-    if (role === "admin" || role === "supervisor" || role === "user") {
-      departmentField.value = "";  // clear selection
-      departmentField.disabled = true;
-    } else {
-      departmentField.disabled = false;
-    }
-  }
-
-  // Show add or edit forms
-  function showForm(mode, user_id = null) {
-    const addForm = document.getElementById("addForm");
-    const editForm = document.getElementById("editForm");
-
-    if (mode === "add") {
-      addForm.style.display = "block";
-      editForm.style.display = "none";
-    } else if (mode === "edit") {
-      addForm.style.display = "none";
-      editForm.style.display = "block";
-
-      const user = users.find(u => u.user_id === parseInt(user_id));
-      if (user) {
-        document.getElementById("edit_user_id").value = user.user_id;
-        document.getElementById("edit_username").value = user.username;
-        document.getElementById("edit_email").value = user.email;
-        document.getElementById("edit_role").value = user.role;
-        document.getElementById("edit_department").value = user.department || "";
-        toggleDepartmentField("edit_role", "edit_department");
-      }
-    }
-  }
-
-  // Function to hide both forms
-  function hideForm() {
-    document.getElementById("addForm").style.display = "none";
-    document.getElementById("editForm").style.display = "none";
-  }
-
-  // Function to show the delete modal and set the link
-  function confirmDelete(user_id, username) {
-    document.getElementById("modalUserName").innerText = username;
-    document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
-  }
-
-  // Initialize role dropdown states on load
-  document.addEventListener("DOMContentLoaded", function () {
-    const roleAdd = document.getElementById("role");
-    const deptAdd = document.getElementById("department");
-    const roleEdit = document.getElementById("edit_role");
-    const deptEdit = document.getElementById("edit_department");
-
-    if (roleAdd && deptAdd) {
-      roleAdd.addEventListener("change", () => toggleDepartmentField("role", "department"));
-      toggleDepartmentField("role", "department");
+    function showEditModal(id, username, email, role, department, status) {
+      document.getElementById('edit_user_id').value = id;
+      document.getElementById('edit_username').value = username;
+      document.getElementById('edit_email').value = email;
+      document.getElementById('edit_role').value = role;
+      document.getElementById('edit_department').value = department || '';
+      document.getElementById('edit_status').value = status;
+      new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }
 
-    if (roleEdit && deptEdit) {
-      roleEdit.addEventListener("change", () => toggleDepartmentField("edit_role", "edit_department"));
-      toggleDepartmentField("edit_role", "edit_department");
+    function confirmDelete(id, name) {
+      document.getElementById('modalUserName').innerText = name;
+      document.getElementById('confirmDeleteBtn').href = `/deleteUser/${id}`;
+      new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
-  });
-</script>
-  </div>
+  </script>
 </body>
 </html>

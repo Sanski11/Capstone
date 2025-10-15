@@ -72,27 +72,11 @@
                 </div>
               </div>
 
-              <div class="mb-3">
-                <label class="form-label text-default">Role</label>
-                <select name="role" id="role" class="form-select" onchange="toggleDepartment()" required>
-                  <option value="">--Select--</option>
-                  <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="user">User</option>
-                </select>
-              </div>
+              <!-- Hidden Role Field -->
+              <input type="hidden" name="role" value="user">
 
-              <div id="departmentDiv" class="mb-3">
-                <label class="form-label text-default">Department</label>
-                <select name="department" id="department" class="form-select">
-                  <option value="Housekeeping">Housekeeping</option>
-                  <option value="Dining">Dining</option>
-                  <option value="Laundry">Laundry</option>
-                  <option value="Massage">Massage</option>
-                  <option value="All">All</option>
-                </select>
-              </div>
+              <!-- Hidden Account Status Field -->
+              <input type="hidden" name="status" value="1">
 
               <div class="d-grid mt-4">
                 <button type="submit" class="btn btn-primary">Create Account</button>
@@ -119,28 +103,12 @@
       pw.type = pw.type === "password" ? "text" : "password";
     }
 
-    function toggleDepartment() {
-      const role = document.getElementById("role").value;
-      const departmentDiv = document.getElementById("departmentDiv");
-      const departmentSelect = document.getElementById("department");
-
-      if (role === "manager") {
-        departmentDiv.style.display = "block";
-        departmentSelect.setAttribute("name", "department");
-      } else {
-        departmentDiv.style.display = "none";
-        departmentSelect.removeAttribute("name");
-        departmentSelect.value = "";
-      }
-    }
-
     function closeToast() {
       const toast = document.getElementById("customToast");
       if (toast) toast.style.display = "none";
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-      toggleDepartment();
       const toast = document.getElementById("customToast");
       if (toast) {
         setTimeout(() => { toast.style.display = "none"; }, 3000);
