@@ -75,8 +75,7 @@
                         <div class="table-responsive">
                             <table id="diningTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
-                                    <tr>
-                                        <th>Item ID</th>
+                                    <tr> 
                                         <th>Category</th>
                                         <th>Name</th>
                                         <th>Description</th>
@@ -88,7 +87,6 @@
                                 <tbody>
                                     {% for dining_service in dining_services %}
                                     <tr>
-                                        <td>{{ dining_service.item_id }}</td>
                                         <td>{{ dining_service.category }}</td>
                                         <td>{{ dining_service.name }}</td>
                                         <td>{{ dining_service.description }}</td>

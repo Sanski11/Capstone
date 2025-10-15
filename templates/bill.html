@@ -1,84 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Total Bill</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container mt-5">
-        <h2 class="mb-4">Total Bill:</h2>
-        <table class="table table-striped table-bordered">
-            <thead class="table-dark">
-                <tr>
-                    <th>Request ID</th>
-                    <th>Service</th>
-                    <th>Quantity</th>
-                    <th>Unit Cost</th>
-                    <th>Total Cost</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for r in requests %}
-                <tr>
-                    <td>{{ r.request_id }}</td>
-                    <td>{{ r.item }}</td>
-                    <td>{{ r.quantity }}</td>
-                    <td>{{ r.unitCost }}</td>
-                    <td>{{ r.totalCost }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <h3 class="mt-4">Grand Total: ₱{{ total_bill }}</h3>
-<form id="payForm" action="/pay" method="POST" target="_blank">
-  <input type="hidden" name="booking_id" value="{{ booking_id }}">
-  <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}">
-  <button type="submit" class="btn btn-warning">Pay Now</button>
-</form>
-{% if session['role'] == 'manager' %}
-  <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
-{% elif session['role'] == 'user' %}
-  <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary mt-3">← Back to Booking</a>
-{% endif %}
-    </div>
-    <script>
-  function submitPayment(method) {
-    document.getElementById('paymentMethod').value = method;
-    document.getElementById('payForm').submit();
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ezStay | Total Bill</title>
 
-    document.getElementById("payForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
 
-  const form = e.target;
-  const formData = new FormData(form);
-  const data = new URLSearchParams(formData);
-
-  // Open a blank tab immediately — BEFORE the fetch
-  const payTab = window.open("", "_blank");
-
-  try {
-    const response = await fetch("/pay", {
-      method: "POST",
-      body: data
-    });
-
-    const result = await response.json();
-
-    if (result.checkout_url) {
-      // ✅ Redirect the previously opened tab
-      payTab.location.href = result.checkout_url;
-    } else {
-      payTab.document.write("<h1>❌ Payment initiation failed.</h1>");
-      console.error(result);
+  <style>
+    :root {
+      --ez-primary: #8A2BE2;
+      --ez-primary-light: #f3ecff;
+      --ez-accent: #FFB700;
+      --ez-text-dark: #2c2c2c;
+      --ez-bg: #faf7ff;
     }
-  } catch (err) {
-    console.error("Error during payment:", err);
-    payTab.document.write("<h1>❌ Something went wrong while connecting to the payment server.</h1>");
-  }
-});
-  }
-</script>
+    body {
+      background-color: var(--ez-bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--ez-text-dark);
+    }
+    .bill-container {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(138, 43, 226, 0.15);
+      padding: 2rem 2.5rem;
+      margin-top: 3rem;
+      transition: 0.3s;
+    }
+    .bill-container:hover {
+      box-shadow: 0 10px 30px rgba(138, 43, 226, 0.25);
+    }
+    h2 {
+      color: var(--ez-primary);
+      font-weight: 700;
+    }
+    table {
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    thead {
+      background-color: var(--ez-primary);
+      color: #fff;
+    }
+    tbody tr:hover {
+      background-color: var(--ez-primary-light);
+      transition: 0.2s;
+    }
+    .grand-total {
+      font-weight: 700;
+      color: var(--ez-primary);
+      font-size: 1.4rem;
+    }
+    .btn-pay {
+      background-color: var(--ez-accent);
+      color: #000;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      transition: 0.2s;
+    }
+    .btn-pay:hover {
+      background-color: #ffca2c;
+    }
+    .btn-back {
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    .logo-text {
+      font-weight: 700;
+      font-size: 1.8rem;
+      color: var(--ez-primary);
+    }
+    .header-icon {
+      color: var(--ez-primary);
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
 
+<body>
+  <div class="container">
+    <div class="bill-container">
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+          <i class="ri-receipt-line fs-3 header-icon"></i>
+          <h2 class="mb-0">Total Bill</h2>
+        </div>
+        <span class="logo-text">ezStay</span>
+      </div>
+
+      <table class="table align-middle table-striped">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Service</th>
+            <th>Quantity</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+          <tr>
+            <td>{{ r.request_id }}</td>
+            <td>{{ r.item }}</td>
+            <td>{{ r.quantity }}</td>
+            <td>₱{{ r.unitCost }}</td>
+            <td>₱{{ r.totalCost }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="d-flex justify-content-end align-items-center mt-4">
+        <h3 class="grand-total">Grand Total: ₱{{ total_bill }}</h3>
+      </div>
+
+      <form id="payForm" action="/pay" method="POST" target="_blank" class="mt-4">
+        <input type="hidden" name="booking_id" value="{{ booking_id }}">
+        <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}">
+        <button type="submit" class="btn btn-pay px-4 py-2"><i class="ri-wallet-line me-2"></i>Pay Now</button>
+      </form>
+
+      {% if session['role'] in ['manager', 'user'] %}
+      <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary btn-back mt-3"><i class="ri-arrow-left-line me-1"></i>Back to Booking</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    // Pay button - open checkout in new tab
+    document.getElementById("payForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const data = new URLSearchParams(formData);
+      const payTab = window.open("", "_blank");
+
+      try {
+        const response = await fetch("/pay", { method: "POST", body: data });
+        const result = await response.json();
+        if (result.checkout_url) {
+          payTab.location.href = result.checkout_url;
+        } else {
+          payTab.document.write("<h1>❌ Payment initiation failed.</h1>");
+        }
+      } catch (err) {
+        payTab.document.write("<h1>❌ Something went wrong with the payment server.</h1>");
+      }
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
