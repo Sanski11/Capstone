@@ -837,6 +837,7 @@ def add_rooms():
             }
             log_audit_event(
                 actor_id = session['username'],
+                timestamp=timestamp,
                 table_name='room', 
                 action_type='INSERT', 
                 record_id=str(new_room_id), 
@@ -895,6 +896,7 @@ def updateRoom():
     #Save logs
     log_audit_event(
         actor_id=session['username'],
+        timestamp=timestamp,
         table_name='room', 
         action_type='UPDATE', 
         record_id=str(room_id), 
@@ -913,6 +915,7 @@ def deleteRoom(room_id):
     #Get old data
     cursor.execute("SELECT * FROM room WHERE room_id =%s", (room_id,))
     old_data = cursor.fetchone()
+    timestamp = datetime.now()
     
     if not old_data:
         cursor.close()
@@ -924,6 +927,7 @@ def deleteRoom(room_id):
     #Save logs
     log_audit_event(
         actor_id = session['username'],
+        timestamp=timestamp,
         table_name='room', 
         action_type='DELETE', 
         record_id=str(room_id), 
@@ -2117,7 +2121,7 @@ def assigntask():
     flash("Request assigned successfully.", "success")
     return redirect('/requests')
 
-def log_audit_event(actor_id, table_name, action_type, record_id, old_data=None, new_data=None):
+def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old_data=None, new_data=None):
     """Inserts a manual audit log entry into the MySQL audit_log table."""
     try:
         # Use current_user.get_id() if the user is logged in
@@ -2125,16 +2129,19 @@ def log_audit_event(actor_id, table_name, action_type, record_id, old_data=None,
         #actor_id = current_user.get_id() if current_user.is_authenticated else None
         
         # Serialize data for storage
-        old_value_json = json.dumps(old_data) if old_data else None
-        new_value_json = json.dumps(new_data) if new_data else None
+        old_value_json = json.dumps(old_data, default=str) if old_data else None
+        new_value_json = json.dumps(new_data, default=str) if new_data else None
+        
         cursor = mysql.connection.cursor()
+
 
         cursor.execute(
             """INSERT INTO audit_log 
-               (username, timestamp, action_type, record_id, old_value, new_value)
-               VALUES (%s, NOW(), %s, %s, %s, %s, %s)""",
-            (actor_id, table_name, action_type, record_id, old_value_json, new_value_json)
+               (username, timestamp, table_name, action_type, record_id, old_value, new_value)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json)
         )
+        
         mysql.connection.commit()
         cursor.close()
     except Exception as e:
