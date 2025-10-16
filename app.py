@@ -1277,12 +1277,37 @@ def add_laundry():
     description = request.form['description']
     price = float(request.form['price'])
     type = request.form['type']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    new_service_id = None
     cursor.execute(
-        "INSERT INTO hotel_services (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
-        (category, name, description, price, type)
+        "INSERT INTO hotel_services (category, name, description, price, type, last_update, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (category, name, description, price, type, last_update, timestamp)
     )    
+    new_service_id = cursor.lastrowid #Get the ID of the newly inserted record
+    
+    #Get new data and save logs
+    if new_service_id:
+        new_data_for_log = {
+            'category': category,
+            'name': name,
+            'description': description,
+            'price': price,
+            'type': type,
+            'last_update': last_update,
+            'timestamp': timestamp
+        }
+        log_audit_event(
+            actor_id = session['username'],
+            timestamp=timestamp,
+            table_name='hotel_services', 
+            action_type='INSERT', 
+            record_id=str(new_service_id), 
+            old_data=None,           # Record did not exist, so old_data is None
+            new_data=new_data_for_log 
+        )
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
@@ -1406,16 +1431,50 @@ def updateLaundry():
     description = request.form['edit_description']
     type = request.form['edit_type']
     price = float(request.form['edit_price'])
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    #Get old data
+    cursor.execute("SELECT * FROM hotel_services WHERE service_id = %s", (service_id,))
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Service not found", 404
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['service_id'] = service_id
+    new_data['category'] = category
+    new_data['name']= name
+    new_data['description'] = description
+    new_data['type'] = type
+    new_data['price'] = price
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+    
     cursor.execute(
         """
         UPDATE hotel_services
-        SET category = %s, name = %s, price = %s, description =%s, type =%s 
+        SET category = %s, name = %s, price = %s, description =%s, type =%s, last_update=%s, timestamp=%s
         WHERE service_id = %s
         """,
-        (category, name, price, description, type, service_id)
+        (category, name, price, description, type, last_update, timestamp, service_id)
     )
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['service_id'] = service_id
+    new_data['category'] = category
+    new_data['name']= name
+    new_data['description'] = description
+    new_data['type'] = type
+    new_data['price'] = price
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
@@ -1492,7 +1551,30 @@ def deleteDining(item_id):
 @app.route('/deleteLaundry/<int:service_id>', methods=['GET'])
 def deleteLaundry(service_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM hotel_services WHERE service_id =%s", (service_id,))
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the service ID doesn't exist
+        return "Housekeeping service not found or already deleted", 404
+    
     cursor.execute("DELETE FROM hotel_services WHERE service_id = %s", (service_id,))
+    
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='hotel_services', 
+        action_type='DELETE', 
+        record_id=str(service_id), 
+        old_data=old_data, 
+        new_data=None 
+    )
+
     mysql.connection.commit()
     cursor.close()
     return redirect('/laundry')
