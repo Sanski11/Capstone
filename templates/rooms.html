@@ -115,6 +115,7 @@
                                     <td>{{ room.room_number }}</td>
                                     <td>{{ room.room_type }}</td>
                                     <td><span class="badge bg-{{ 'success' if room.room_status == 'Vacant' else 'danger' if room.room_status == 'Occupied' else 'warning' }}">{{ room.room_status }}</span></td>
+                                    <td>{{ room.last_update}}/ {{ room.timestamp }}</td>
                                     <td>
                                         <a href="#" class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                             onclick='openEditRoomModal({{ room | tojson | safe }})'
@@ -126,7 +127,6 @@
                                             <i class="ri-delete-bin-line"></i>
                                         </a>
                                     </td>
-                                    <td>{{ room.last_update}}/ {{ room.timestamp }}</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>

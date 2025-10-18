@@ -118,6 +118,7 @@
                                         <td>{{ hotel_service.description }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ hotel_service.type }}</span></td>
                                         <td class="text-end">${{ "{:,.2f}".format(hotel_service.price | float) }}</td>
+                                        <td>{{ hotel_service.last_update }} / {{ hotel_service.timestamp }}</td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 data-bs-toggle="modal"
@@ -130,7 +131,6 @@
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
-                                        <td>{{ hotel_service.last_update }} / {{ hotel_service.timestamp }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
