@@ -1165,7 +1165,7 @@ def view_dining():
         """, (like, like, like, like))
     else:
         c.execute("""
-            SELECT item_id, name, description, price, category, type
+            SELECT item_id, name, description, price, category, type, last_update, timestamp
             FROM food_items
             ORDER BY item_id
         """)
@@ -1256,12 +1256,41 @@ def add_dining():
     description = request.form['description']
     price = float(request.form['price'])
     type = request.form['type']
+    last_update = session['username']
+    timestamp = datetime.now()
+
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    new_item_id = None
+
     cursor.execute(
-        "INSERT INTO food_items (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
-        (category, name, description, price, type)
+        "INSERT INTO food_items (category, name, description, price, type, last_update, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (category, name, description, price, type, last_update, timestamp)
     )    
+    
+    new_item_id = cursor.lastrowid #Get the ID of the newly inserted record
+    
+    #Get new data and save logs
+    if new_item_id:
+        new_data_for_log = {
+            'category': category,
+            'name': name,
+            'description': description,
+            'price': price,
+            'type': type,
+            'last_update': last_update,
+            'timestamp': timestamp
+        }
+        log_audit_event(
+            actor_id = session['username'],
+            timestamp=timestamp,
+            table_name='food_items', 
+            action_type='INSERT', 
+            record_id=str(new_item_id), 
+            old_data=None,           # Record did not exist, so old_data is None
+            new_data=new_data_for_log 
+        )
+        
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
@@ -1405,16 +1434,53 @@ def updateDining():
     description = request.form['edit_description']
     type = request.form['edit_type']
     price = float(request.form['edit_price'])
+    last_update = session['username']
+    timestamp = datetime.now()
+
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    #Get old data
+    cursor.execute("SELECT * FROM food_items WHERE item_id = %s", (item_id,))
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Food not found", 404
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['item_id'] = item_id
+    new_data['category'] = category
+    new_data['name']= name
+    new_data['description'] = description
+    new_data['type'] = type
+    new_data['price'] = price
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+    
     cursor.execute(
         """
         UPDATE food_items
-        SET category =%s, name = %s, description =%s, type =%s, price = %s 
+        SET category =%s, name = %s, description =%s, type =%s, price = %s, last_update=%s, timestamp=%s
         WHERE item_id = %s
         """,
-        (category, name, description, type, price, item_id)
+        (category, name, description, type, price, last_update, timestamp, item_id)
     )
+    
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='food_items', 
+        action_type='UPDATE', 
+        record_id=str(item_id), 
+        old_data=old_data, 
+        new_data=new_data 
+    )
+
+
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
 
@@ -1464,16 +1530,16 @@ def updateLaundry():
         (category, name, price, description, type, last_update, timestamp, service_id)
     )
     
-    #Get new data 
-    new_data = old_data.copy()
-    new_data['service_id'] = service_id
-    new_data['category'] = category
-    new_data['name']= name
-    new_data['description'] = description
-    new_data['type'] = type
-    new_data['price'] = price
-    new_data['last_update'] = last_update
-    new_data['timestamp'] = timestamp
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='hotel_services', 
+        action_type='UPDATE', 
+        record_id=str(service_id), 
+        old_data=old_data, 
+        new_data=new_data 
+    )
 
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
@@ -1542,7 +1608,30 @@ def deleteHousekeeping(service_id):
 @app.route('/deleteDining/<int:item_id>', methods=['GET'])
 def deleteDining(item_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM food_items WHERE item_id =%s", (item_id,))
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the service ID doesn't exist
+        return "In room dining service not found or already deleted", 404
+    
     cursor.execute("DELETE FROM food_items WHERE item_id = %s", (item_id,))
+
+
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='food_items', 
+        action_type='DELETE', 
+        record_id=str(item_id), 
+        old_data=old_data, 
+        new_data=None 
+    )
     mysql.connection.commit()
     cursor.close()
     return redirect('/dining')
