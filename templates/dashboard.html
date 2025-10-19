@@ -51,22 +51,22 @@
     <!-- HEADER -->
     <header class="app-header header-sticky" id="header">
       <div class="main-header-container container-fluid">
-        <ul class="header-content-right align-items-center">
-          <li class="header-element">
-            <div class="dropdown">
-              <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" class="avatar avatar-sm avatar-rounded profile-icon" onclick="toggleDropdown()">
-              <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display:none;">
-                <div class="p-3 bg-primary text-fixed-white" style="background-color:var(--ez-primary)!important;">
-                  <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
-                  <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
-                </div>
-                <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center"><i class="ri-user-line me-2 fs-16"></i>View Profile</a>
-                <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center"><i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out</a>
-              </div>
-            </div>
-          </li>
-        </ul>
+  <ul class="header-content-right align-items-center">
+    <li class="header-element">
+      <div class="dropdown">
+        <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" class="avatar avatar-sm avatar-rounded profile-icon" onclick="toggleDropdown()">
+        <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display:none;">
+          <div class="p-3 bg-primary text-fixed-white" style="background-color:var(--ez-primary)!important;">
+            <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
+            <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
+          </div>
+          <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center"><i class="ri-user-line me-2 fs-16"></i>View Profile</a>
+          <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center"><i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out</a>
+        </div>
       </div>
+    </li>
+  </ul>
+</div>
     </header>
 
     <!-- SIDEBAR -->
@@ -79,7 +79,7 @@
           <ul class="main-menu">
             <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
 
-            {% if role == 'manager' %}
+            {% if role == 'admin','manager' %}
               <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
               <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
               <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>

@@ -65,7 +65,7 @@
           <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
           <ul class="main-menu">
             <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> Dashboard</a></li>
-            {%  if role == "manager" %}
+            {%  if role == 'manager', 'admin' %}
                             <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
                             <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
                             <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
