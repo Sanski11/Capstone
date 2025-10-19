@@ -78,11 +78,6 @@
           <div class="col-lg-6">
             <div class="card custom-card">
               <div class="card-body text-center">
-                <img src="{{ url_for('static', filename='uploads/profile_pics/' + (user.profile_pic or 'default.png')) }}" alt="Profile Picture" class="profile-pic mb-3">
-                <form method="POST" action="{{ url_for('upload_profile_pic') }}" enctype="multipart/form-data">
-                  <input type="file" name="profile_pic" accept="image/*" class="form-control mb-2" required>
-                  <button type="submit" class="btn btn-sm btn-primary">Upload New Photo</button>
-                </form>
                 <hr>
                 <h5 class="fw-semibold">{{ user.username }}</h5>
                 <p class="text-muted mb-1">{{ user.email }}</p>

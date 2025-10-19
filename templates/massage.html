@@ -65,14 +65,23 @@
           <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
           <ul class="main-menu">
             <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> Dashboard</a></li>
-            <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i> Rooms</a></li>
-            <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> Housekeeping</a></li>
-            <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> In-Room Dining</a></li>
-            <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> Laundry</a></li>
-            <li class="slide"><a href="/massage" class="side-menu__item active"><i class="ri-hand-heart-line side-menu__icon"></i> Massage</a></li>
-            <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> Requests</a></li>
-            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> Profile</a></li>
+            {%  if role == "manager" %}
+                            <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
+                            <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
+                            <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
+                            <li class="slide"> <a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a> </li>
+                            <li class="slide"> <a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i> <span class="side-menu__label">Massage/Spa</span></a> </li>
+                            <li class="slide"> <a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a> </li>
+                            <li class="slide"> <a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i> <span class="side-menu__label">Staff</span></a> </li>
+                            <li class="slide"> <a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i> <span class="side-menu__label">Bookings</span></a> </li>
+                            <li class="slide"> <a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a> </li>
+                            <li class="slide"> <a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a> </li>
+                            <li class="slide"> <a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Calendar</span></a> </li>
+                        {% endif %}
+                        {% if role == "admin" %}
+                            <li class="slide"> <a href="/users" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Authorized Users</span></a> </li>
+                            <li class="slide"> <a href="/auditlogs" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Audit Logs</span></a> </li>
+                        {% endif %}
           </ul>
         </nav>
       </div>
@@ -92,12 +101,9 @@
 
         <!-- Summary Cards -->
         <div class="row g-3 mb-4">
+          <div class="col-md-3 col-sm-6"><div class="summary-card"><h6>Total Services</h6><h3>{{ massage_services|length }}</h3></div></div>
           <div class="col-md-3 col-sm-6">
-            <div class="summary-card"><h6>Total Services</h6><h3>{{ massage_services|length }}</h3></div>
-          </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="summary-card">
-              <h6>Average Price</h6>
+            <div class="summary-card"><h6>Average Price</h6>
               <h3>
                 {% set prices = massage_services | map(attribute='price') | list %}
                 {% if prices|length > 0 %}
@@ -106,18 +112,8 @@
               </h3>
             </div>
           </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="summary-card">
-              <h6>Lowest Price</h6>
-              <h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|min)) }} {% else %} ₱0.00 {% endif %}</h3>
-            </div>
-          </div>
-          <div class="col-md-3 col-sm-6">
-            <div class="summary-card">
-              <h6>Highest Price</h6>
-              <h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|max)) }} {% else %} ₱0.00 {% endif %}</h3>
-            </div>
-          </div>
+          <div class="col-md-3 col-sm-6"><div class="summary-card"><h6>Lowest Price</h6><h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|min)) }} {% else %} ₱0.00 {% endif %}</h3></div></div>
+          <div class="col-md-3 col-sm-6"><div class="summary-card"><h6>Highest Price</h6><h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|max)) }} {% else %} ₱0.00 {% endif %}</h3></div></div>
         </div>
 
         <!-- Table -->
@@ -130,7 +126,6 @@
               <table id="massageTable" class="table text-nowrap table-hover table-bordered">
                 <thead class="table-primary">
                   <tr>
-                    <th>Service ID</th>
                     <th>Category</th>
                     <th>Name</th>
                     <th>Description</th>
@@ -142,7 +137,6 @@
                 <tbody>
                   {% for ms in massage_services %}
                   <tr>
-                    <td>{{ ms.service_id }}</td>
                     <td>{{ ms.category }}</td>
                     <td>{{ ms.name }}</td>
                     <td>{{ ms.description }}</td>
@@ -151,12 +145,10 @@
                     <td>
                       {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                       <div class="btn-list">
-                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                          onclick='openEditModal({{ ms | tojson | safe }})'>
+                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" onclick='openEditModal({{ ms | tojson | safe }})'>
                           <i class="ri-pencil-line"></i>
                         </button>
-                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                          onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
+                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
                           <i class="ri-delete-bin-line"></i>
                         </button>
                       </div>
@@ -171,7 +163,6 @@
             </div>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -239,17 +230,6 @@
     </div>
   </div>
 
-  <!-- In-Use Modal -->
-  <div class="modal fade" id="inUseModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-warning text-dark"><h5 class="modal-title">Cannot Delete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-        <div class="modal-body">This massage service is currently in use and cannot be deleted.</div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button></div>
-      </div>
-    </div>
-  </div>
-
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
@@ -266,7 +246,7 @@
       order: [[0, 'asc']],
       responsive: true,
       language: { search: "_INPUT_", searchPlaceholder: "Search massage services..." },
-      columnDefs: [{ targets: [6], orderable: false, searchable: false }]
+      columnDefs: [{ targets: [5], orderable: false, searchable: false }]
     });
 
     function openEditModal(ms) {

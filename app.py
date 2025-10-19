@@ -536,37 +536,6 @@ def edit_profile():
 
     return redirect(url_for('profile'))
 
-@app.route('/upload_profile_pic', methods=['POST'])
-def upload_profile_pic():
-    if 'user_id' not in session:
-        flash('You must be logged in to upload a profile picture.', 'error')
-        return redirect(url_for('login'))
-
-    user_id = session['user_id']
-    if 'profile_pic' not in request.files:
-        flash('No file selected.', 'error')
-        return redirect(url_for('profile'))
-
-    file = request.files['profile_pic']
-    if file.filename == '':
-        flash('No selected file.', 'error')
-        return redirect(url_for('profile'))
-
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-        cursor = mysql.connection.cursor()
-        cursor.execute("UPDATE users SET profile_pic=%s WHERE user_id=%s", (filename, user_id))
-        mysql.connection.commit()
-        cursor.close()
-
-        flash('Profile picture updated successfully!', 'success')
-    else:
-        flash('Invalid file type. Please upload an image (jpg, jpeg, png, gif).', 'error')
-
-    return redirect(url_for('profile'))
-
 @app.route('/logout')
 def logout():
     session.pop('username', None)
