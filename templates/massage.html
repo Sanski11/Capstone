@@ -1,254 +1,302 @@
 <!DOCTYPE html>
-<html>
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light"
+  data-header-styles="light" data-width="fullwidth" data-menu-styles="dark"
+  data-page-style="flat" data-toggled="close">
+
 <head>
-  <title>Massage</title>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>ezStay - Massage Management</title>
 
-  <!-- Bootstrap CSS -->
-  <link href="/static/bootstrap.min.css" rel="stylesheet">
-  <link href="/static/images/bootstrap-icons.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <!-- Core Styles -->
+  <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+
+  <style>
+    :root { --ez-primary: #8a2be2; }
+    .app-sidebar { background-color: var(--ez-primary) !important; }
+    .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
+    .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
+    .text-fixed-white { color: white !important; }
+    .main-menu .slide a.active, .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .summary-card {
+      background: #fff;
+      border-radius: 10px;
+      text-align: center;
+      padding: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+    .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
+    .summary-card h3 { font-weight: 700; color: #343a40; }
+    table.dataTable thead th {
+      background-color: var(--ez-primary);
+      color: #fff;
+      text-align: center;
+    }
+    .modal-header { border-bottom: none; }
+    .modal-footer { border-top: none; }
+  </style>
 </head>
+
 <body>
-  <div class="container mt-5">
-    <h1 class="mb-4">Massage</h1>
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="app-sidebar sticky" id="sidebar">
+      <div class="main-sidebar-header p-3 text-center">
+        <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+      </div>
 
-    <!-- Search and Add Buttons -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <!-- Search Form -->
-      <form class="d-flex" method="GET" action="/massage">
-        <div class="input-group">
-          <!--
-          <input type="search" class="form-control" name="search" placeholder="Search..." value="{{ request.args.get('search', '') }}">
-          <button class="btn btn-outline-secondary" type="submit">
-            <i class="bi bi-search"></i>
+      <div class="main-sidebar" id="sidebar-scroll">
+        <nav class="main-menu-container nav nav-pills flex-column sub-open">
+          <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
+          <ul class="main-menu">
+            <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> Dashboard</a></li>
+            <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i> Rooms</a></li>
+            <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> Housekeeping</a></li>
+            <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> In-Room Dining</a></li>
+            <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> Laundry</a></li>
+            <li class="slide"><a href="/massage" class="side-menu__item active"><i class="ri-hand-heart-line side-menu__icon"></i> Massage</a></li>
+            <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> Requests</a></li>
+            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> Profile</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="main-content app-content">
+      <div class="container-fluid page-container main-body-container">
+        <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+          <h1 class="page-title fw-medium fs-20 mb-0">Massage Management</h1>
+          {% if session.get('role','').lower() in ['admin', 'manager', 'supervisor'] %}
+          <button class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="ri-add-line me-1"></i> Add Massage
           </button>
-          -->
+          {% endif %}
         </div>
-      </form>
 
-      <!-- Add Button -->
-      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMassageModal">
-        <i class="bi bi-plus-circle"></i> Add
-      </button>
-    </div>
-
-      <!-- Table -->
-      <table id="massageTable" class="table table-striped table-bordered">
-        <thead class="table-dark">
-          <tr>
-            <th>Service ID</th>
-            <th>Category</th>
-            <th>Name</th>
-            <th>Description</th>
-            <th>Price</th>
-            <th>Type</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-          <tbody>
-          {% for massage_service in massage_services %}
-          <tr>
-            <td>{{ massage_service.service_id }}</td>
-            <td>{{ massage_service.category }}</td>
-            <td>{{ massage_service.name }}</td>
-            <td>{{ massage_service.description }}</td>
-            <td style="text-align: right;">{{ "{:,}".format(massage_service.price) }}</td>
-            <td>{{ massage_service.type }}</td>
-            <td>
-              <a href="#" class="btn btn-warning btn-sm"
-                onclick='openEditModal({{ massage_service | tojson | safe }})'
-                data-bs-toggle="modal" data-bs-target="#editMassageModal">
-                <i class="bi bi-pencil-square"></i>
-              </a>
-              <a href="#" class="btn btn-danger btn-sm" onclick="confirmDelete('{{ massage_service.service_id }}', '{{ massage_service.name | escape }}')">
-                <i class="bi bi-trash-fill"></i>
-              </a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-
-    <!-- Back Button -->
-    <a href="/dashboard" class="btn btn-secondary mt-3">← Back to Homepage</a>
-
-    <!-- Add Massage Modal -->
-    <div class="modal fade" id="addMassageModal" tabindex="-1" aria-labelledby="addMassageModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form id="addForm" action="/addMassage" method="POST">
-            <div class="modal-header">
-              <h5 class="modal-title" id="addMassageModalLabel">Add Massage</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <div class="mb-3">
-                <label for="category" class="form-label">Category:</label>
-                <select id="category" name="category" required readonly>
-                  <option value="Massage" selected>Massage</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="name" class="form-label">Name:</label>
-                <input type="text" class="form-control" id="name" name="name" required>
-              </div>
-              <div class="mb-3">
-                <label for="description" class="form-label">Description:</label>
-                <input type="text" class="form-control" id="description" name="description" required>
-              </div>
-              <div class="mb-3">
-                <label for="price" class="form-label">Price:</label>
-                <input type="number" class="form-control" id="price" name="price" step="0.01" value="0" required min="0" max="99999999.99">
-              </div>
-              <div class="mb-3">
-                <label for="type" class="form-label">Type:</label>
-                <input type="text" class="form-control" id="type" name="type" value="Service" required readonly>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-success">Submit</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Edit Massage Modal -->
-    <div class="modal fade" id="editMassageModal" tabindex="-1" aria-labelledby="editMassageModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form id="editForm" action="/updateMassage" method="POST">
-            <div class="modal-header">
-              <h5 class="modal-title" id="editMassageModalLabel">Edit Massage</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <input type="hidden" id="edit_service_id" name="service_id" required>
-              <div class="mb-3">
-                <label for="edit_category" class="form-label">Category:</label>
-                <select id="edit_category" name="edit_category" required readonly>
-                  <option value="Massage" selected>Massage</option>
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="edit_name" class="form-label">Name:</label>
-                <input type="text" class="form-control" id="edit_name" name="edit_name" required>
-              </div>
-              <div class="mb-3">
-                <label for="edit_description" class="form-label">Description:</label>
-                <input type="text" class="form-control" id="edit_description" name="edit_description" required>
-              </div>
-              <div class="mb-3">
-                <label for="edit_price" class="form-label">Price:</label>
-                <input type="number" class="form-control" id="edit_price" name="edit_price" step="0.01" required min="0" max="99999999.99">
-              </div>
-              <div class="mb-3">
-                <label for="edit_type" class="form-label">Type:</label>
-                <input type="text" class="form-control" id="edit_type" name="edit_type" value="Service" required readonly>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-success">Update</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <!-- Delete Confirmation Modal 
-          Display this pop up dialog box if service can be deleted
-    -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card"><h6>Total Services</h6><h3>{{ massage_services|length }}</h3></div>
           </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Average Price</h6>
+              <h3>
+                {% set prices = massage_services | map(attribute='price') | list %}
+                {% if prices|length > 0 %}
+                  ₱{{ ('{:.2f}'.format((prices | sum) / (prices | length))) }}
+                {% else %} ₱0.00 {% endif %}
+              </h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Lowest Price</h6>
+              <h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|min)) }} {% else %} ₱0.00 {% endif %}</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Highest Price</h6>
+              <h3>{% if prices|length > 0 %} ₱{{ ('{:.2f}'.format(prices|max)) }} {% else %} ₱0.00 {% endif %}</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card custom-card">
+          <div class="card-header justify-content-between">
+            <h5 class="card-title mb-0">Massage Services</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="massageTable" class="table text-nowrap table-hover table-bordered">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Service ID</th>
+                    <th>Category</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th class="text-end">Price</th>
+                    <th>Type</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ms in massage_services %}
+                  <tr>
+                    <td>{{ ms.service_id }}</td>
+                    <td>{{ ms.category }}</td>
+                    <td>{{ ms.name }}</td>
+                    <td>{{ ms.description }}</td>
+                    <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
+                    <td>{{ ms.type }}</td>
+                    <td>
+                      {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
+                      <div class="btn-list">
+                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
+                          onclick='openEditModal({{ ms | tojson | safe }})'>
+                          <i class="ri-pencil-line"></i>
+                        </button>
+                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
+                          onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
+                          <i class="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
+                      {% else %}
+                      <span class="text-muted small">No actions</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer class="footer mt-auto py-3 text-center">
+      <div class="container-fluid">
+        <span class="text-muted"> Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- ========== MODALS ========== -->
+
+  <!-- Add Modal -->
+  <div class="modal fade" id="addModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('add_massage') }}">
+          <div class="modal-header"><h5 class="modal-title">Add Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
           <div class="modal-body">
-            Are you sure you want to delete Massage <span id="modalServiceName"></span>?
+            <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Massage" readonly></div>
+            <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
+            <div class="mb-3"><label>Description</label><input name="description" class="form-control" required></div>
+            <div class="mb-3"><label>Price</label><input type="number" name="price" class="form-control" step="0.01" min="0" required></div>
+            <div class="mb-3"><label>Type</label><input name="type" class="form-control" value="Service" readonly></div>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  <!-- Services In Use Modal 
-  Display this pop up dialog box if room cannot be deleted
-  -->
-
- <div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-warning text-dark">
-        <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        This service is currently used in request and cannot be deleted.
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+          <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+        </form>
       </div>
     </div>
   </div>
 
-<!-- Bootstrap JS Bundle with Popper
-      Used by modal/pop up dialog box
--->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('updateMassage') }}">
+          <div class="modal-header"><h5 class="modal-title">Edit Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="hidden" id="edit_service_id" name="service_id">
+            <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
+            <div class="mb-3"><label>Name</label><input id="edit_name" name="edit_name" class="form-control" required></div>
+            <div class="mb-3"><label>Description</label><input id="edit_description" name="edit_description" class="form-control" required></div>
+            <div class="mb-3"><label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required></div>
+            <div class="mb-3"><label>Type</label><input id="edit_type" name="edit_type" class="form-control" readonly></div>
+          </div>
+          <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-  <!-- Service JS and script -->
-<script>
-  const massage_services = {{ massage_services | tojson | safe }};
+  <!-- Delete Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content text-center">
+        <div class="modal-body">
+          <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
+          <h5>Are you sure you want to delete <span id="modalServiceName"></span>?</h5>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-function openEditModal(massage_service) {
-  document.getElementById("edit_service_id").value = massage_service.service_id;
-  document.getElementById("edit_category").value = massage_service.category;
-  document.getElementById("edit_name").value = massage_service.name;
-  document.getElementById("edit_description").value = massage_service.description;
-  document.getElementById("edit_price").value = massage_service.price;
-  document.getElementById("edit_type").value = massage_service.type;
-}
+  <!-- In-Use Modal -->
+  <div class="modal fade" id="inUseModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark"><h5 class="modal-title">Cannot Delete</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">This massage service is currently in use and cannot be deleted.</div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button></div>
+      </div>
+    </div>
+  </div>
 
-  //Check before deleting a housekeeping. Display correct message
-  function confirmDelete(service_id, name) {
-    fetch(`/checkServices/${service_id}`)  //Go to app.py to check how many housekeeping in requests
-    .then(response => response.json())
-    .then(data => {
-      if (data.in_use) {  //If housekeeping id is used in requests, display inUseModal (cannot delete housekeeping)
-        const inUseModal = new bootstrap.Modal(document.getElementById('inUseModal'));
-        inUseModal.show();
-      } else {  //If housekeeping id is used in requests, display deleteModal (or delete housekeeping)
-        document.getElementById("modalServiceName").innerText = name;
-        document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
-      }    
-    })
-    .catch(error => console.error("Error checking services:", error));
-  }  
+  <!-- Scripts -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
 
-  $(document).ready(function() {
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
     $('#massageTable').DataTable({
-      "order": [[ 0, "asc" ]], // Order by Service ID ascending
-      "columnDefs": [
-        { "targets": [0], "visible": true, "searchable": true },
-        { "targets": [1, 2, 3, 4, 5], "visible": true, "searchable": true },
-        { "targets": [6], "visible": true, "searchable": false }
-      ]
+      pageLength: 10,
+      order: [[0, 'asc']],
+      responsive: true,
+      language: { search: "_INPUT_", searchPlaceholder: "Search massage services..." },
+      columnDefs: [{ targets: [6], orderable: false, searchable: false }]
     });
-  });
-</script>
-</div>
+
+    function openEditModal(ms) {
+      $('#edit_service_id').val(ms.service_id);
+      $('#edit_category').val(ms.category);
+      $('#edit_name').val(ms.name);
+      $('#edit_description').val(ms.description);
+      $('#edit_price').val(ms.price);
+      $('#edit_type').val(ms.type);
+      new bootstrap.Modal(document.getElementById('editModal')).show();
+    }
+
+    function confirmDelete(service_id, name) {
+      fetch(`/checkServices/${service_id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.in_use) {
+            new bootstrap.Modal(document.getElementById('inUseModal')).show();
+          } else {
+            document.getElementById("modalServiceName").innerText = name;
+            document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+          }
+        })
+        .catch(() => {
+          document.getElementById("modalServiceName").innerText = name;
+          document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
+          new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        });
+    }
+  </script>
 </body>
 </html>

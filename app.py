@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 # Security
 from werkzeug.security import generate_password_hash
 from itsdangerous import URLSafeTimedSerializer
+from werkzeug.utils import secure_filename
 
 # Flask-Mail setup
 from flask_mail import Mail, Message
@@ -60,13 +61,6 @@ HEADERS = {
     "Content-Type": "application/json" 
     }
 
-# #MySQL Configuration local
-#app.config['MYSQL_HOST'] = 'localhost'
-#app.config['MYSQL_USER'] = 'root'
-#app.config['MYSQL_PASSWORD'] = 'Kitty_909'
-#app.config['MYSQL_PASSWORD'] = 'admin'
-#app.config['MYSQL_DB'] = 'staff_portal'
-
 #MySQL AivenMySQL
 app.config['MYSQL_HOST'] = 'mysql-3dabe135-benilde-ac16.k.aivencloud.com'
 app.config['MYSQL_PORT'] = 17710
@@ -77,6 +71,15 @@ app.config['MYSQL_DB'] = 'staff_portal'
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mysql = MySQL(app)
+
+# Folder for uploaded profile pictures
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads', 'profile_pics')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -530,6 +533,37 @@ def edit_profile():
         flash("❌ Failed to update username.")
     finally:
         cursor.close()
+
+    return redirect(url_for('profile'))
+
+@app.route('/upload_profile_pic', methods=['POST'])
+def upload_profile_pic():
+    if 'user_id' not in session:
+        flash('You must be logged in to upload a profile picture.', 'error')
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    if 'profile_pic' not in request.files:
+        flash('No file selected.', 'error')
+        return redirect(url_for('profile'))
+
+    file = request.files['profile_pic']
+    if file.filename == '':
+        flash('No selected file.', 'error')
+        return redirect(url_for('profile'))
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("UPDATE users SET profile_pic=%s WHERE user_id=%s", (filename, user_id))
+        mysql.connection.commit()
+        cursor.close()
+
+        flash('Profile picture updated successfully!', 'success')
+    else:
+        flash('Invalid file type. Please upload an image (jpg, jpeg, png, gif).', 'error')
 
     return redirect(url_for('profile'))
 

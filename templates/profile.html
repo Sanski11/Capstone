@@ -1,206 +1,199 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
 <head>
-    <meta charset="UTF-8">
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>ezStay - User Profile</title>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>ezStay - User Profile</title>
 
-    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
-    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
-    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
-    <style>
-        /* Custom Styles for the Purple Theme */
-        :root {
-            --ez-primary: #8a2be2; /* BlueViolet for main sidebar/accents */
-        }
-        .app-sidebar {
-            background-color: var(--ez-primary) !important;
-        }
-        .main-menu .slide a.active, .main-menu .slide a:hover {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .text-fixed-white { color: white !important; }
-        .text-purple { color: #8a2be2 !important; }
-        /* Ensures the text portion of links is white/light when collapsed */
-        .main-menu .slide-menu a, .slide__category .category-name {
-            color: rgba(255, 255, 255, 0.8) !important;
-        }
-    </style>
+  <!-- Core Styles -->
+  <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+
+  <style>
+    :root { --ez-primary: #8a2be2; }
+    .app-sidebar { background-color: var(--ez-primary) !important; }
+    .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
+    .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
+    .summary-card {
+      background: #fff; border-radius: 10px; text-align: center; padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
+    .summary-card h3 { font-weight: 700; color: #343a40; }
+    .profile-pic {
+      width: 130px; height: 130px; border-radius: 50%; object-fit: cover;
+      border: 3px solid var(--ez-primary);
+    }
+    .upload-btn { cursor: pointer; color: var(--ez-primary); text-decoration: underline; font-size: 13px; }
+    .modal-header { border-bottom: none; }
+    .modal-footer { border-top: none; }
+  </style>
 </head>
 
 <body>
-    <div class="page">
-        
-        <header class="app-header header-sticky" id="header">
-            <div class="main-header-container container-fluid">
-                <div class="header-content-left">
-                    <div class="header-element me-2">
-                        <a aria-label="Hide Sidebar" class="sidemenu-toggle header-link animated-arrow" href="javascript:void(0);" data-bs-toggle="sidebar"><span></span></a>
-                    </div>
-                </div>
-                <ul class="header-content-right">
-                    <li class="header-element dropdown">
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-dark">← Back to Dashboard</a>
-                    </li>
-                </ul>
-            </div>
-        </header>
-        
-        <aside class="app-sidebar sticky" id="sidebar">
-            <div class="main-sidebar-header p-3 text-center">
-                <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
-            </div>
-            
-            <div class="main-sidebar" id="sidebar-scroll">
-                <nav class="main-menu-container nav nav-pills flex-column sub-open">
-                    
-                    <li class="slide__category"><span class="category-name">Account</span></li>
-                    
-                    <ul class="main-menu">
-                        <li class="slide">
-                            <a href="{{ url_for('profile') }}" class="side-menu__item active">
-                                <i class="ri-user-line side-menu__icon"></i> 
-                                <span class="side-menu__label">My Profile</span>
-                            </a>
-                        </li>
-                        <li class="slide">
-                            <a href="{{ url_for('logout') }}" class="side-menu__item">
-                                <i class="ri-logout-box-r-line side-menu__icon"></i>
-                                <span class="side-menu__label">Logout</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </aside>
-        
-        <div class="main-content app-content">
-            <div class="container-fluid page-container main-body-container">
+  <div class="page">
+    <!-- Sidebar -->
+    <aside class="app-sidebar sticky" id="sidebar">
+      <div class="main-sidebar-header p-3 text-center">
+        <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
+      </div>
+      <div class="main-sidebar" id="sidebar-scroll">
+        <nav class="main-menu-container nav nav-pills flex-column sub-open">
+          <li class="slide__category"><span class="category-name">ACCOUNT</span></li>
+          <ul class="main-menu">
+            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item active"><i class="ri-user-line side-menu__icon"></i> My Profile</a></li>
+            <li class="slide"><a href="{{ url_for('logout') }}" class="side-menu__item"><i class="ri-logout-box-r-line side-menu__icon"></i> Logout</a></li>
+          </ul>
+        </nav>
+      </div>
+    </aside>
 
-                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                    <h1 class="page-title fw-medium fs-20 mb-0">User Profile</h1>
-                </div>
-
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div id="flashPopup" class="mb-4">
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'info' }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-
-                <div class="row">
-                    <div class="col-xl-6 col-lg-8 col-md-10">
-                        <div class="card custom-card">
-                            <div class="card-header">
-                                <div class="card-title">Personal Information</div>
-                            </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Username:</label>
-                                    <p class="form-control-static">{{ user.username }}</p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Email:</label>
-                                    <p class="form-control-static">{{ user.email }}</p>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Role:</label>
-                                    <p class="form-control-static">{{ user.role | upper }}</p>
-                                </div>
-                                {% if user.department %}
-                                <div class="mb-3">
-                                    <label class="form-label fw-semibold">Department:</label>
-                                    <p class="form-control-static">{{ user.department }}</p>
-                                </div>
-                                {% endif %}
-                                
-                                <button onclick="toggleEditForm()" class="btn btn-primary btn-wave mt-3">
-                                    <i class="ri-edit-line me-1"></i> Edit Username
-                                </button>
-
-                                <form id="editForm" action="{{ url_for('edit_profile') }}" method="POST" class="mt-4" style="display: none;">
-                                    <div class="mb-3">
-                                        <label for="username" class="form-label">New Username</label>
-                                        <input type="text" class="form-control" id="username" name="username" value="{{ user.username }}" required>
-                                    </div>
-                                    <button type="submit" class="btn btn-success btn-wave me-2">Save</button>
-                                    <button type="button" onclick="toggleEditForm()" class="btn btn-light btn-wave">Cancel</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+    <!-- Main Content -->
+    <div class="main-content app-content">
+      <div class="container-fluid page-container main-body-container">
+        <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+          <h1 class="page-title fw-medium fs-20 mb-0">User Profile</h1>
+          <a href="{{ url_for('dashboard') }}" class="btn btn-dark btn-sm">← Back to Dashboard</a>
         </div>
-        
-        <footer class="footer mt-auto py-3 text-center">
-            <div class="container-fluid">
-                <span class="text-muted"> Copyright © <span id="year">2025</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div id="flashPopup" class="mb-4">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Profile Section -->
+        <div class="row">
+          <div class="col-lg-6">
+            <div class="card custom-card">
+              <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='uploads/profile_pics/' + (user.profile_pic or 'default.png')) }}" alt="Profile Picture" class="profile-pic mb-3">
+                <form method="POST" action="{{ url_for('upload_profile_pic') }}" enctype="multipart/form-data">
+                  <input type="file" name="profile_pic" accept="image/*" class="form-control mb-2" required>
+                  <button type="submit" class="btn btn-sm btn-primary">Upload New Photo</button>
+                </form>
+                <hr>
+                <h5 class="fw-semibold">{{ user.username }}</h5>
+                <p class="text-muted mb-1">{{ user.email }}</p>
+                <p><span class="badge bg-primary">{{ user.role }}</span></p>
+                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editUsernameModal"><i class="ri-edit-line me-1"></i> Edit Username</button>
+                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#changePasswordModal"><i class="ri-lock-password-line me-1"></i> Change Password</button>
+                <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteAccountModal"><i class="ri-delete-bin-line me-1"></i> Delete Account</button>
+              </div>
             </div>
-        </footer>
+          </div>
+
+          <!-- User Stats -->
+          <div class="col-lg-6">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="summary-card">
+                  <h6>Total Requests</h6>
+                  <h3>{{ total_requests or 0 }}</h3>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="summary-card">
+                  <h6>Completed Tasks</h6>
+                  <h3>{{ completed_tasks or 0 }}</h3>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="summary-card">
+                  <h6>Bookings Handled</h6>
+                  <h3>{{ total_bookings or 0 }}</h3>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="summary-card">
+                  <h6>Login Count</h6>
+                  <h3>{{ login_count or 0 }}</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
-    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/custom-switcher.min.js') }}"></script>
+    <footer class="footer mt-auto py-3 text-center">
+      <div class="container-fluid">
+        <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+      </div>
+    </footer>
+  </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('year').textContent = new Date().getFullYear();
+  <!-- ========== MODALS ========== -->
 
-            // Flash message auto-dismissal
-            setTimeout(() => {
-                const popup = document.getElementById("flashPopup");
-                if (popup) {
-                    const alerts = popup.querySelectorAll('.alert');
-                    alerts.forEach(alertEl => {
-                        const alert = bootstrap.Alert.getOrCreateInstance(alertEl);
-                        alert.close();
-                    });
-                }
-            }, 3000);
+  <!-- Edit Username Modal -->
+  <div class="modal fade" id="editUsernameModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('edit_profile') }}">
+          <div class="modal-header"><h5>Edit Username</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-            // Toggle Edit Form for Username
-            window.toggleEditForm = function() {
-                const form = document.getElementById("editForm");
-                form.style.display = form.style.display === "none" ? "block" : "none";
-            }
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('reset_password') }}">
+          <div class="modal-header"><h5>Change Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <div class="mb-3"><label>Current Password</label><input type="password" name="current_password" class="form-control" required></div>
+            <div class="mb-3"><label>New Password</label><input type="password" name="new_password" class="form-control" required></div>
+            <div class="mb-3"><label>Confirm Password</label><input type="password" name="confirm_password" class="form-control" required></div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-            // Vyzor theme sidebar toggle JS logic
-            const toggle = document.querySelector('.sidemenu-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', function() {
-                    const html = document.querySelector('html');
-                    if (html.getAttribute('data-toggled') === 'close') {
-                        html.setAttribute('data-toggled', 'open');
-                    } else {
-                        html.setAttribute('data-toggled', 'close');
-                    }
-                });
-            }
-        });
-    </script>
+  <!-- Delete Account Modal -->
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content text-center">
+        <div class="modal-body">
+          <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
+          <h5>Are you sure you want to delete your account?</h5>
+          <p class="text-muted small">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <a href="{{ url_for('delete_guest', guest_id=user['user_id']) }}" class="btn btn-danger">Delete</a>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
