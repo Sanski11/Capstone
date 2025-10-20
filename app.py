@@ -900,9 +900,9 @@ def updateRoom():
     log_audit_event(
         actor_id=session['username'],
         timestamp=timestamp,
-        table_name='guest',  #change table name
+        table_name='room',  #change table name
         action_type='UPDATE', 
-        record_id=str(guest_id), #change field name
+        record_id=str(room_id), #change field name
         old_data=old_data, 
         new_data=new_data 
     )

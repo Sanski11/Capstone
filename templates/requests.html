@@ -44,7 +44,7 @@
                     <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
                     <ul class="main-menu">
                         <li class="slide"> <a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a> </li>
-                        {{% if role =='manager', 'admin' %}
+                        {% if role =='manager', 'admin' %}
                             <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
                             <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
                             <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
@@ -189,7 +189,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
 
@@ -209,11 +208,81 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-              <div class="mb-3"><label>Booking ID</label><input name="booking_id" class="form-control" required></div>
-              <div class="mb-3"><label>Service ID</label><input name="service_id" class="form-control" required></div>
-              <div class="mb-3"><label>Quantity</label><input type="number" name="quantity" class="form-control" required></div>
-              <div class="mb-3"><label>Unit Cost</label><input type="number" step="0.01" name="unitCost" class="form-control" required></div>
-              <div class="mb-3"><label>Notes</label><textarea name="notes" class="form-control"></textarea></div>
+                <div class="mb-3">
+                    <label for="booking_id" class="form-label">Booking ID:</label>
+                    <select class="form-control" id="booking_id" name="booking_id" required>
+                        {% for booking in booking_list %}
+                        <option value="{{ booking.booking_id}}">Booking {{ booking.booking_id}} (Room {{booking.room_number}})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Request Type:</label>
+                    <select class="form-control" id="request_type" onchange="toggleRequestType()" required>
+                        <option value="service">Service</option>
+                        <option value="food">Food</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Category:</label>
+                    <select class="form-control" id="category" name="category" required>
+                
+                        <optgroup id="service_categories" label="Service Categories">
+                        {% for service_category in service_category_list %}
+                            <option value="{{ service_category.category }}">{{ service_category.category }}</option>
+                        {% endfor %}
+                        </optgroup>
+                
+                        <optgroup id="food_categories" label="Food Categories" style="display: none;">
+                        {% for food_category in food_category_list %}
+                            <option value="{{ food_category.category }}">{{ food_category.category }}</option>
+                        {% endfor %}
+                        </optgroup>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name:</label>
+                    <select class="form-control" id="name" name="name" required>
+                        {% for service_name in service_names %}
+                        <option value="service_{{ service_name.service_id }}" data-category="{{ service_name.category }}" data-price="{{ service_name.price}}" data-source="service">{{ service_name.name }}</option>
+                        {% endfor %}
+                        {% for food_name in food_names %}
+                        <option value="food_{{ food_name.item_id }}" data-category="{{ food_name.category }}" data-price="{{ food_name.price}}" data-source="food">{{ food_name.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="quantity" class="form-label">Quantity:</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="unit_cost" class="form-label">Unit Cost:</label>
+                    <input type="text" class="form-control" id="unit_cost" name="unit_cost" readonly>
+                </div>
+
+                <div>
+                    <label for="notes" class="form-label">Notes:</label>
+                    <input type="text" class="form-control" id="notes" name="notes">
+                </div>
+
+                <div class="mb-3">
+                    <label for="status" class="form-label" hidden>Status:</label>
+                    <select class="form-control" id="status" name="status" hidden>
+                        <option value="pending" hidden>Pending</option>
+                        <option value="approved" hidden>Approved</option>
+                        <option value="completed" hidden>Completed</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="request_time" class="form-label">Request Time:</label>
+                    <input type="datetime-local" class="form-control" id="request_time" name="request_time" required>
+                </div>
             </div>
             <div class="modal-footer"><button type="submit" class="btn btn-primary">Add Request</button></div>
           </form>
@@ -231,17 +300,70 @@
             </div>
             <div class="modal-body">
               <input type="hidden" id="edit_request_id" name="request_id">
-              <div class="mb-3"><label>Booking ID</label><input id="edit_booking_id" name="booking_id" class="form-control" readonly></div>
-              <div class="mb-3"><label>Quantity</label><input id="edit_quantity" name="quantity" type="number" class="form-control"></div>
-              <div class="mb-3"><label>Unit Cost</label><input id="edit_unit_cost" name="unitCost" type="number" step="0.01" class="form-control"></div>
-              <div class="mb-3"><label>Notes</label><textarea id="edit_notes" name="notes" class="form-control"></textarea></div>
-              <div class="mb-3"><label>Status</label>
-                <select id="edit_status" name="status" class="form-select">
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
+              <div class="mb-3">
+                <label for="edit_booking_id" class="form-label">Booking ID:</label>
+                <select class="form-control" id="edit_booking_id" name="edit_booking_id" required>
+                  {% for booking in booking_list %}
+                  <option value="{{ booking.booking_id}}">Booking {{ booking.booking_id}} (Room {{booking.room_number}})</option>
+                  {% endfor %}
                 </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Request Type:</label>
+                <select class="form-control" id="edit_request_type" name="edit_request_type" onchange="toggleEditRequestType()" required>
+                  <option value="service">Service</option>
+                  <option value="food">Food</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Category:</label>
+                <select class="form-control" id="edit_category" name="edit_category" required>
+                  <optgroup id="edit_service_categories" label="Service Categories">
+                    {% for service_category in service_category_list %}
+                      <option value="{{ service_category.category }}">{{ service_category.category }}</option>
+                    {% endfor %}
+                  </optgroup>
+                  <optgroup id="edit_food_categories" label="Food Categories" style="display: none;">
+                    {% for food_category in food_category_list %}
+                      <option value="{{ food_category.category }}">{{ food_category.category }}</option>
+                    {% endfor %}
+                  </optgroup>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="edit_name" class="form-label">Name:</label>
+                <select class="form-control" id="edit_name" name="edit_name" required>
+                  {% for service_name in service_names %}
+                    <option value="service_{{ service_name.service_id }}" data-category="{{ service_name.category }}" data-price="{{ service_name.price}}" data-source="service">{{ service_name.name }}</option>
+                  {% endfor %}
+                  {% for food_name in food_names %}
+                    <option value="food_{{ food_name.item_id }}" data-category="{{ food_name.category }}" data-price="{{ food_name.price}}" data-source="food">{{ food_name.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="edit_quantity" class="form-label">Quantity:</label>
+                <input type="number" class="form-control" id="edit_quantity" name="edit_quantity" required>
+              </div>
+              <div class="mb-3">
+                <label for="edit_unit_cost" class="form-label">Unit Cost:</label>
+                <input type="number" step="0.01" class="form-control" id="edit_unit_cost" name="edit_unit_cost" readonly>
+              </div>
+              <div class="mb-3">
+                <label for="edit_notes" class="form-label">Notes:</label>
+                <input type="text" class="form-control" id="edit_notes" name="edit_notes">
+              </div>
+              <div class="mb-3">
+                <label for="edit_status" class="form-label" hidden>Status:</label>
+                <select class="form-control" id="edit_status" name="edit_status" hidden>
+                  <option value="pending" hidden>Pending</option>
+                  <option value="approved" hidden>Approved</option>
+                  <option value="completed" hidden>Completed</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label for="edit_request_time" class="form-label">Request Time:</label>
+                <input type="datetime-local" class="form-control" id="edit_request_time" name="edit_request_time" required>
               </div>
             </div>
             <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
@@ -289,7 +411,7 @@
       </div>
     </div>
 
-
+  
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
@@ -306,6 +428,205 @@
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     <script>
+        const requests = {{ requests | tojson | safe }};
+
+        function toggleRequestType() {
+            const type = document.getElementById("request_type").value;
+            const serviceOptions = document.getElementById("service_categories");
+            const foodOptions = document.getElementById("food_categories");
+            const categorySelect = document.getElementById("category");
+    
+        // Clear any previously selected category
+            categorySelect.selectedIndex = -1;
+        
+        if (type === "service") {
+            serviceOptions.style.display = "";
+            foodOptions.style.display = "none";
+        } else if (type === "food") {
+            serviceOptions.style.display = "none";
+            foodOptions.style.display = "";
+        }
+    
+        // Re-filter names whenever type changes
+            filterCategoryNames();
+        }
+    
+        function toggleEditRequestType(clearCategory = true) {
+            const type = document.getElementById("edit_request_type").value;
+            const serviceOptions = document.getElementById("edit_service_categories");
+            const foodOptions = document.getElementById("edit_food_categories");
+            const categorySelect = document.getElementById("edit_category");
+    
+            if (type === "service") {
+                serviceOptions.style.display = "";
+                foodOptions.style.display = "none";
+            } else if (type === "food") {
+                serviceOptions.style.display = "none";
+                foodOptions.style.display = "";
+            }
+    
+            if (clearCategory) {
+                categorySelect.selectedIndex = -1;
+                categorySelect.value = "";
+            }
+            
+            filterEditCategoryNames();
+            }
+    
+        function setDefaultDateTime() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById("request_time").value = now.toISOString().slice(0,16);
+            }
+
+        function showForm(mode, request_id = null) {
+            const addForm = document.getElementById("addForm");
+            const editForm = document.getElementById("editForm");
+
+            if (mode === "add") {
+                addForm.style.display = "block";
+                editForm.style.display = "none";
+                setDefaultDateTime();
+            } else if (mode === "edit") {
+                addForm.style.display = "none";
+                editForm.style.display = "block";
+
+                const request = requests.find(r => r.request_id == request_id);
+                if (request) {
+                document.getElementById("edit_request_id").value = request.request_id;
+                document.getElementById("edit_booking_id").value = request.booking_id;
+                document.getElementById("edit_quantity").value = request.quantity;
+                document.getElementById("edit_unit_cost").value = request.unit_cost;
+                document.getElementById("edit_status").value = request.status;
+                document.getElementById("edit_request_time").value = new Date(request.request_time).toISOString().slice(0, 16);
+                document.getElementById("edit_category").value = request.service_category || request.food_category || "";
+                
+                //Determine the correct value to select
+                const valueToSelect = request.service_id ? `service_${request.service_id}` : `food_${request.item_id}`;
+
+                if (request.service_id) {
+                    document.getElementById("edit_request_type").value = "service";
+                    toggleEditRequestType(false);
+                } else if (request.item_id) {
+                    document.getElementById("edit_request_type").value = "food";
+                    toggleEditRequestType(false);
+                }
+
+                //Run filter after type and category are set
+                filterEditCategoryNames();
+                document.getElementById("edit_name").value=valueToSelect;
+
+                }
+            }
+        }
+
+        function hideForm() {
+            document.getElementById("addForm").style.display = "none";
+            document.getElementById("editForm").style.display = "none";
+        }
+
+        function confirmDelete(request_id) {
+            document.getElementById("modalRequestId").innerText = request_id;
+            document.getElementById("confirmDeleteBtn").href = `/deleteRequest/${request_id}`;
+            var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+        }
+
+        //Used by Add Form - limit the names to be displayed on category
+        function filterCategoryNames() {
+            const selectedCategory = document.getElementById("category").value;
+            const type = document.getElementById("request_type").value;                  
+            const wantedSource = (type === "service") ? "service" : "food";
+            const nameSelect = document.getElementById("name");
+
+            [...nameSelect.options].forEach(option => {
+                const optionCategory = option.getAttribute("data-category");
+                const optionSource = option.getAttribute("data-source");
+                const matchesCategory = optionCategory === selectedCategory;
+                const matchesSource = optionSource === wantedSource;
+            
+                option.style.display = (matchesCategory && matchesSource) ? "block" : "none";
+            });
+
+            nameSelect.value = "";
+            }
+
+        //Used by Edit Form - limit the names to be displayed on category
+        function filterEditCategoryNames() {
+            const selectedCategory = document.getElementById("edit_category").value;
+            const type = document.getElementById("edit_request_type").value;                  
+            const wantedSource = (type === "Service" || type === "service") ? "service" : "food";
+            const nameSelect = document.getElementById("edit_name");
+
+            [...nameSelect.options].forEach(option => {
+                const optionCategory = option.getAttribute("data-category");
+                const optionSource = option.getAttribute("data-source");
+                const matchesCategory = optionCategory === selectedCategory;
+                const matchesSource = optionSource === wantedSource;
+            
+                //Show only if BOTH category and source match
+                option.style.display = (matchesCategory && matchesSource) ? "block" : "none";
+
+            });
+
+        //Don't clear the value - let showForm() set it after filtering
+        }
+
+        function updateAddUnitCost() {
+            const sel = document.getElementById('name');
+            const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+            const price = opt && opt.dataset ? opt.dataset.price : '';
+            document.getElementById('unit_cost').value = price ? Number(price).toFixed(2) : '';
+        }
+
+        function updateEditUnitCost() {
+            const sel = document.getElementById('edit_name');
+            const opt = sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex] : null;
+            const price = opt && opt.dataset ? opt.dataset.price : '';
+            document.getElementById('edit_unit_cost').value = price ? Number(price).toFixed(2) : '';
+        }  
+
+        function syncFieldNames() {
+            const type = document.getElementById('request_type').value; //"Service" or "Food"
+            const sel = document.getElementById('name'); //Keep id-"name"
+            sel.name = (type === 'Service') ? 'service_id' : 'item_id'; //If Service, the value of name is service_id; if food, the value of name is item_id
+        }
+
+        //Run once on page load
+        document.addEventListener('DOMContentLoaded', () => {
+        toggleRequestType();
+        filterCategoryNames();
+    
+        // ADD FORM: Update Unit Cost when dropdowns change
+        document.getElementById("category").addEventListener("change", () => {
+            filterCategoryNames();
+            updateAddUnitCost();
+        });
+    
+        document.getElementById("name").addEventListener("change", updateAddUnitCost);
+        
+        document.getElementById("request_type").addEventListener("change", () => {
+            toggleRequestType();
+            filterCategoryNames();
+            updateAddUnitCost();
+        });
+    
+        // EDIT FORM: Update Unit Cost when dropdowns change
+        document.getElementById("edit_category").addEventListener("change", () => {
+            filterEditCategoryNames();
+            updateEditUnitCost();
+        });
+    
+        document.getElementById("edit_name").addEventListener("change", updateEditUnitCost);
+        
+        document.getElementById("edit_request_type").addEventListener("change", () => {
+            toggleEditRequestType();
+            filterEditCategoryNames();
+            updateEditUnitCost();
+        });
+        });
+        
+        <!--start-->
         $(function () {
             document.getElementById('year').textContent = new Date().getFullYear();
 
