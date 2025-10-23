@@ -99,7 +99,6 @@
                             <table id="bookingsTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>Booking ID</th>
                                         <th>Guest Name</th>
                                         <th>Room Type</th>
                                         <th>Room Number</th>
@@ -107,13 +106,13 @@
                                         <th>Expected Check-out</th>
                                         <th>Status</th>
                                         <th>Reference No.</th>
+                                        <th>Last Update / On</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for booking in bookings %}
                                     <tr>
-                                        <td>{{ booking.booking_id }}</td>
                                         <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
                                         <td>{{ booking.room_type }}</td>
                                         <td>{{ booking.room_number }}</td>
@@ -125,6 +124,7 @@
                                             </span>
                                         </td>
                                         <td>{{ booking.random_booking_ref }}</td>
+                                        <td>{{ booking.last_update }} / {{ booking.timestamp }} </td>
                                         <td>
                                             {% if session['role'] != 'user' and booking.status == "Confirmed" %}
                                                 <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"

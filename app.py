@@ -1932,6 +1932,8 @@ def add_booking():
     exp_check_in = request.form.get('exp_check_in')
     exp_check_out = request.form.get('exp_check_out')
     status = request.form.get('status')
+    last_update = session['username']
+    timestamp = datetime.now()
 
     #Validate dates before inserting
     if not exp_check_in or not exp_check_out:
@@ -1939,15 +1941,17 @@ def add_booking():
         return redirect('/bookings')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    new_room_id = None #change room_id
     while True:
         random_booking_ref = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         cursor.execute("SELECT * FROM bookings WHERE random_booking_ref=%s", (random_booking_ref,))
         if not cursor.fetchone(): #Still checking if any row exists
             break
     cursor.execute("""
-        INSERT INTO bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref))
+        INSERT INTO bookings (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref, last_update, timestamp)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref, last_update, timestamp))
+    new_booking_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
     mysql.connection.commit()
     cursor.close()
     return redirect('/bookings')
@@ -1964,14 +1968,50 @@ def updateBooking():
     exp_check_in = request.form['edit_exp_check_in']
     exp_check_out = request.form['edit_exp_check_out']
     status = request.form['edit_status']
+    last_update = session['username']
+    timestamp = datetime.now()
+
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Booking not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['booking_id'] = booking_id  #change ALL field names (should be similar to the table)
+    new_data['guest_id'] = guest_id
+    new_data['room_type'] = room_type
+    new_data['room_id'] = room_id
+    new_data['exp_check_in'] = exp_check_in
+    new_data['exp_check_out'] = exp_check_out
+    new_data['status'] = status
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
     cursor.execute("""
         UPDATE bookings
-        SET guest_id=%s, room_type=%s, room_id=%s, exp_check_in=%s, exp_check_out=%s, status=%s
+        SET guest_id=%s, room_type=%s, room_id=%s, exp_check_in=%s, exp_check_out=%s, status=%s, last_update=%s, timestamp=%s
         WHERE booking_id=%s
-    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, booking_id))
+    """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, last_update, timestamp, booking_id))
     mysql.connection.commit()
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='bookings',  #change table name
+        action_type='UPDATE', 
+        record_id=str(booking_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
+
     cursor.close()
     return redirect('/bookings')
 
@@ -1988,7 +2028,30 @@ def check_booking_usage(booking_id):
 @app.route('/deleteBooking/<int:booking_id>')
 def delete_booking(booking_id):
     cursor = mysql.connection.cursor()
+    
+    #Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id =%s", (booking_id,)) #change table and field name
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the booking ID doesn't exist
+        return "Booking not found or already deleted", 404 #change message
+
     cursor.execute("DELETE FROM bookings WHERE booking_id = %s", (booking_id,))
+    
+      #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='bookings',  #change
+        action_type='DELETE', 
+        record_id=str(booking_id), #change
+        old_data=old_data, 
+        new_data=None 
+    )
+
     mysql.connection.commit()
     cursor.close()
     flash('Booking deleted successfully', 'success')
