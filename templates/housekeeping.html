@@ -29,6 +29,19 @@
             color: #fff !important;
             background-color: rgba(255, 255, 255, 0.1);
         }
+
+        /* Summary Card Styling */
+        .summary-card {
+            background: #fff;
+            border-radius: 10px;
+            text-align: center;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
+        .summary-card h3 { font-weight: 700; color: #343a40; }
     </style>
 </head>
 
@@ -43,26 +56,28 @@
                 <nav class="main-menu-container nav nav-pills flex-column sub-open">
                     <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
                     <ul class="main-menu">
-                        <li class="slide"> <a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a> </li>
-                        {% if role =='manager', 'admin' %}
-                            <li class="slide"> <a href="/rooms" class="side-menu__item active"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a> </li>
-                            <li class="slide"> <a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a> </li>
-                            <li class="slide"> <a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a> </li>
-                            <li class="slide"> <a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a> </li>
-                            <li class="slide"> <a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i> <span class="side-menu__label">Massage/Spa</span></a> </li>
-                            <li class="slide"> <a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a> </li>
-                            <li class="slide"> <a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i> <span class="side-menu__label">Staff</span></a> </li>
-                            <li class="slide"> <a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i> <span class="side-menu__label">Bookings</span></a> </li>
-                            <li class="slide"> <a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a> </li>
-                            <li class="slide"> <a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a> </li>
-                            <li class="slide"> <a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Calendar</span></a> </li>
+                        <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a></li>
+
+                        {% if role == 'manager' or role == 'admin' %}
+                            <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i> <span class="side-menu__label">Rooms</span></a></li>
+                            <li class="slide"><a href="/housekeeping" class="side-menu__item active"><i class="ri-brush-3-line side-menu__icon"></i> <span class="side-menu__label">Housekeeping</span></a></li>
+                            <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i> <span class="side-menu__label">In-Room Dining</span></a></li>
+                            <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i> <span class="side-menu__label">Laundry</span></a></li>
+                            <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i> <span class="side-menu__label">Massage/Spa</span></a></li>
+                            <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i> <span class="side-menu__label">Guests</span></a></li>
+                            <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i> <span class="side-menu__label">Staff</span></a></li>
+                            <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i> <span class="side-menu__label">Bookings</span></a></li>
+                            <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i> <span class="side-menu__label">Check-in/Checkout</span></a></li>
+                            <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i> <span class="side-menu__label">Requests</span></a></li>
+                            <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Calendar</span></a></li>
                         {% endif %}
                         {% if role == "admin" %}
-                            <li class="slide"> <a href="/users" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Authorized Users</span></a> </li>
-                            <li class="slide"> <a href="/auditlogs" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i> <span class="side-menu__label">Audit Logs</span></a> </li>
+                            <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-user-3-line side-menu__icon"></i> <span class="side-menu__label">Authorized Users</span></a></li>
+                            <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-3-line side-menu__icon"></i> <span class="side-menu__label">Audit Logs</span></a></li>
                         {% endif %}
+
                         <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-                        <li class="slide"> <a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> <span class="side-menu__label">Profile</span></a> </li>
+                        <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i> <span class="side-menu__label">Profile</span></a></li>
                     </ul>
                 </nav>
             </div>
@@ -73,6 +88,31 @@
 
                 <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
                     <h1 class="page-title fw-medium fs-20 mb-0">Housekeeping Management</h1>
+                    <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addHousekeepingModal">
+                        <i class="ri-add-line me-1"></i> Add Service
+                    </a>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Total Requests</h6>
+                            <h3>{{ housekeeping_stats.total_requests or 0 }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Pending</h6>
+                            <h3 class="text-warning">{{ housekeeping_stats.pending or 0 }}</h3>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Completed</h6>
+                            <h3 class="text-success">{{ housekeeping_stats.completed or 0 }}</h3>
+                        </div>
+                    </div>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -91,9 +131,6 @@
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Housekeeping Services Inventory</h5>
-                        <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addHousekeepingModal">
-                            <i class="ri-add-line me-1"></i> Add Service
-                        </a>
                     </div>
                     <div class="card-body">
                         
@@ -117,7 +154,7 @@
                                         <td>{{ hotel_service.name }}</td>
                                         <td>{{ hotel_service.description }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ hotel_service.type }}</span></td>
-                                        <td class="text-end">${{ "{:,.2f}".format(hotel_service.price | float) }}</td>
+                                        <td class="text-end">₱{{ "{:,.2f}".format(hotel_service.price | float) }}</td>
                                         <td>{{ hotel_service.last_update }} / {{ hotel_service.timestamp }}</td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
@@ -136,6 +173,7 @@
                                 </tbody>
                             </table>
                         </div>
+
                     </div>
                 </div>
 
@@ -144,11 +182,12 @@
 
         <footer class="footer mt-auto py-3 text-center">
             <div class="container-fluid">
-                <span class="text-muted"> Copyright © <span id="year">2024</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+                <span class="text-muted"> Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
             </div>
         </footer>
     </div>
 
+    <!-- Add Modal -->
     <div class="modal fade" id="addHousekeepingModal" tabindex="-1" aria-labelledby="addHousekeepingModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -190,6 +229,7 @@
         </div>
     </div>
 
+    <!-- Edit Modal -->
     <div class="modal fade" id="editHousekeepingModal" tabindex="-1" aria-labelledby="editHousekeepingModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -232,6 +272,7 @@
         </div>
     </div>
 
+    <!-- Delete Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -250,6 +291,7 @@
         </div>
     </div>
 
+    <!-- In Use Modal -->
     <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -267,6 +309,7 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
@@ -283,16 +326,13 @@
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     <script>
-        const hotel_services = {{ hotel_services | tojson | safe }};
+        document.getElementById('year').textContent = new Date().getFullYear();
 
         // DataTables init
         $(function () {
-            document.getElementById('year').textContent = new Date().getFullYear();
-
-            // 🎯 DataTables Initialization 🎯
             $('#housekeepingTable').DataTable({
                 pageLength: 10,
-                order: [[0, 'asc']],
+                order: [[1, 'asc']],
                 lengthChange: true,
                 responsive: true,
                 language: {
@@ -300,20 +340,15 @@
                     searchPlaceholder: "Search services...",
                 },
                 columnDefs: [
-                    { targets: [5], className: 'text-end' },
+                    { targets: [4], className: 'text-end' },
                     { targets: [6], orderable: false, searchable: false }
                 ],
-                // Dom structure for Bootstrap 5 integration
                 dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
             });
             
-            // Fix for DataTables input/select fields inside modal forms (Vyzor/Bootstrap styling)
-            $('.dataTables_length select, .dataTables_filter input').addClass('form-control-sm');
-
             // Set up modal listener for editing
             $('#editHousekeepingModal').on('show.bs.modal', function (event) {
-                const button = event.relatedTarget; 
-                // data-service attribute is a JSON string of the service object
+                const button = event.relatedTarget;
                 const serviceData = JSON.parse(button.getAttribute('data-service'));
 
                 document.getElementById("edit_service_id").value = serviceData.service_id;
@@ -325,23 +360,20 @@
             });
         });
 
-        // Function needed for delete confirmation
         function confirmDelete(service_id, name) {
-            fetch(`/checkServices/${service_id}`) 
+            fetch(`/checkServices/${service_id}`)
             .then(response => response.json())
             .then(data => {
-                if (data.in_use) { 
+                if (data.in_use) {
                     new bootstrap.Modal(document.getElementById('inUseModal')).show();
-                } else { 
+                } else {
                     document.getElementById("modalServiceName").innerText = name;
                     document.getElementById("confirmDeleteBtn").href = `/deleteHousekeeping/${service_id}`;
                     new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                } 
+                }
             })
             .catch(error => console.error("Error checking services:", error));
         }
-
-        // Expose confirmDelete globally for the HTML onclick
         window.confirmDelete = confirmDelete;
     </script>
 </body>

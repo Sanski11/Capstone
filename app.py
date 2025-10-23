@@ -1162,9 +1162,10 @@ def deleteRequest(request_id):
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
 def view_housekeeping():
-    search = request.args.get('search', '')  #Get the value entered in search 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+    search = request.args.get('search', '')  # Get search term if any
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Connect to DB
 
+    # Fetch housekeeping services
     if search:
         like = f"%{search}%"
         query = """
@@ -1173,7 +1174,7 @@ def view_housekeeping():
             WHERE category = 'Housekeeping'
             AND (name LIKE %s OR description LIKE %s)
         """
-        cursor.execute(query, (like,) * 2)
+        cursor.execute(query, (like, like))
     else:
         cursor.execute("""
             SELECT *
@@ -1181,9 +1182,40 @@ def view_housekeeping():
             WHERE category = 'Housekeeping'
             ORDER BY name
         """)
+    hotel_services = cursor.fetchall()
 
-    hotel_services = cursor.fetchall() #After executing sql; fetch results
-    return render_template('housekeeping.html', hotel_services=hotel_services) #pass the contents of housekeeping to housekeeping.html
+    # ==========================
+    # Fetch Housekeeping Stats
+    # ==========================
+    cursor.execute("""
+        SELECT 
+            COUNT(*) AS total_requests,
+            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled
+        FROM requests
+        WHERE service_id IN (
+            SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
+        )
+    """)
+    housekeeping_stats = cursor.fetchone()
+
+    # Provide fallback values to avoid errors
+    if not housekeeping_stats:
+        housekeeping_stats = {
+            'total_requests': 0,
+            'pending': 0,
+            'completed': 0
+        }
+
+    cursor.close()
+
+    # Render housekeeping page with stats
+    return render_template(
+        'housekeeping.html',
+        hotel_services=hotel_services,
+        housekeeping_stats=housekeeping_stats
+    )
 
 #Called by LAUNDRY Menu - display list of laundry
 @app.route('/laundry')
@@ -1237,18 +1269,18 @@ def view_dining():
 #Called by MASSAGE Menu - display list of massage
 @app.route('/massage')
 def view_massage():
-    search = request.args.get('search', '')  #Get the value entered in search 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+    search = request.args.get('search', '')  # Get search input
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # Query for massage services
     if search:
         like = f"%{search}%"
-        query = """
+        cursor.execute("""
             SELECT *
             FROM hotel_services
             WHERE category = 'Massage'
             AND (name LIKE %s OR description LIKE %s)
-        """
-        cursor.execute(query, (like,) * 2)
+        """, (like, like))
     else:
         cursor.execute("""
             SELECT *
@@ -1256,9 +1288,42 @@ def view_massage():
             WHERE category = 'Massage'
             ORDER BY name
         """)
+    massage_services = cursor.fetchall()
 
-    massage_services = cursor.fetchall() #After executing sql; fetch results
-    return render_template('massage.html', massage_services=massage_services) #pass the contents of massage to massage.html
+    # ==============================
+    # Get Spa/Massage request stats
+    # ==============================
+    cursor.execute("""
+        SELECT 
+            COUNT(*) AS total_requests,
+            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled
+        FROM requests
+        WHERE service_id IN (
+            SELECT service_id 
+            FROM hotel_services 
+            WHERE category = 'Massage'
+        )
+    """)
+    spa_stats = cursor.fetchone()
+
+    # Handle None values (in case there are no requests yet)
+    if not spa_stats:
+        spa_stats = {
+            'total_requests': 0,
+            'pending': 0,
+            'completed': 0
+        }
+
+    cursor.close()
+
+    # ✅ Include spa_stats in render_template
+    return render_template(
+        'massage.html',
+        massage_services=massage_services,
+        spa_stats=spa_stats
+    )
 
 #Called by HOUSEKEEPING Menu - add new housekeeping
 @app.route('/addHousekeeping', methods=['POST'])
