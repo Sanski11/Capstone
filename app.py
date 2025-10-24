@@ -1220,9 +1220,10 @@ def view_housekeeping():
 #Called by LAUNDRY Menu - display list of laundry
 @app.route('/laundry')
 def view_laundry():
-    search = request.args.get('search', '')  #Get the value entered in search 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+    search = request.args.get('search', '')
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # --- Fetch laundry services ---
     if search:
         like = f"%{search}%"
         query = """
@@ -1231,7 +1232,7 @@ def view_laundry():
             WHERE category = 'Laundry'
             AND (name LIKE %s OR description LIKE %s)
         """
-        cursor.execute(query, (like,) * 2)
+        cursor.execute(query, (like, like))
     else:
         cursor.execute("""
             SELECT *
@@ -1239,32 +1240,81 @@ def view_laundry():
             WHERE category = 'Laundry'
             ORDER BY name
         """)
+    laundry_services = cursor.fetchall()
 
-    laundry_services = cursor.fetchall() #After executing sql; fetch results
-    return render_template('laundry.html', laundry_services=laundry_services) #pass the contents of laundry to laundry.html
+    # --- Fetch laundry statistics (for summary cards) ---
+    stats_query = """
+        SELECT 
+            COUNT(*) AS total_requests,
+            SUM(CASE WHEN r.status = 'Pending' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN r.status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+        FROM requests r
+        JOIN hotel_services s ON r.service_id = s.service_id
+        WHERE s.category = 'Laundry'
+    """
+    cursor.execute(stats_query)
+    laundry_stats = cursor.fetchone() or {
+        'total_requests': 0,
+        'pending_requests': 0,
+        'completed_requests': 0
+    }
+
+    cursor.close()
+
+    return render_template(
+        'laundry.html',
+        laundry_services=laundry_services,
+        laundry_stats=laundry_stats
+    )
 
 #Called by DINING Menu - display list of dining
 @app.route('/dining')
 def view_dining():
-    search = request.args.get('search','')
-    c = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    search = request.args.get('search', '')
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Retrieve menu items
     if search:
         like = f"%{search}%"
-        c.execute("""
-            SELECT item_id, name, description, price, category, type
+        cursor.execute("""
+            SELECT item_id, name, description, price, category, type, last_update, timestamp
             FROM food_items
             WHERE name LIKE %s OR description LIKE %s OR category LIKE %s OR type LIKE %s
             ORDER BY item_id
         """, (like, like, like, like))
     else:
-        c.execute("""
+        cursor.execute("""
             SELECT item_id, name, description, price, category, type, last_update, timestamp
             FROM food_items
             ORDER BY item_id
         """)
-    dining_services = c.fetchall()
-    c.close()
-    return render_template('dining.html', dining_services=dining_services)
+
+    dining_services = cursor.fetchall()
+
+    # Get request statistics for Dining category
+    stats_query = """
+        SELECT 
+            COUNT(*) AS total_requests,
+            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+        FROM requests r
+        JOIN hotel_services hs ON r.service_id = hs.service_id
+        WHERE hs.category = 'Dining'
+    """
+    cursor.execute(stats_query)
+    dining_stats = cursor.fetchone() or {
+        'total_requests': 0,
+        'pending_requests': 0,
+        'completed_requests': 0,
+    }
+
+    cursor.close()
+
+    return render_template('dining.html', 
+                           dining_services=dining_services,
+                           dining_stats=dining_stats)
 
 #Called by MASSAGE Menu - display list of massage
 @app.route('/massage')

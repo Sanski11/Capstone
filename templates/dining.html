@@ -10,12 +10,9 @@
     <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
     <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
     <style>
@@ -29,44 +26,56 @@
             color: #fff !important;
             background-color: rgba(255, 255, 255, 0.1);
         }
+
+        .summary-card {
+            background: #fff;
+            border-radius: 10px;
+            text-align: center;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
+        .summary-card h3 { font-weight: 700; color: #343a40; }
     </style>
 </head>
 
 <body>
     <div class="page">
+        <!-- Sidebar -->
         <aside class="app-sidebar sticky" id="sidebar">
             <div class="main-sidebar-header p-3 text-center">
                 <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
             </div>
-            
             <div class="main-sidebar" id="sidebar-scroll">
                 <nav class="main-menu-container nav nav-pills flex-column sub-open">
                     <li class="slide__category"><span class="category-name">DASHBOARDS</span></li>
                     <ul class="main-menu">
-                        <li class="slide"> <a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i> <span class="side-menu__label">Dashboard</span></a> </li>
-                        {% if role == 'admin','manager' %}
-              <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
-              <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
-              <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
-              <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
-              <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
-              <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
-              <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
-              <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
-              <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
-              <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
-              <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
-            {% endif %}
-
-            {% if role == 'admin' %}
-              <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-              <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-              {% endif %}
+                        <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
+                        {% if role == 'admin' or role == 'manager' %}
+                        <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
+                        <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
+                        <li class="slide"><a href="/dining" class="side-menu__item active"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
+                        <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
+                        <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
+                        <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
+                        <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
+                        <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
+                        <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
+                        <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
+                        <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
+                        {% endif %}
+                        {% if role == 'admin' %}
+                        <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
+                        <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
+                        {% endif %}
                     </ul>
                 </nav>
             </div>
         </aside>
-        
+
+        <!-- Main Content -->
         <div class="main-content app-content">
             <div class="container-fluid page-container main-body-container">
 
@@ -74,6 +83,38 @@
                     <h1 class="page-title fw-medium fs-20 mb-0">In-Room Dining Management</h1>
                 </div>
 
+                <!-- Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card shadow-sm border-0 h-100 summary-card">
+                            <div class="card-body text-center">
+                                <i class="ri-restaurant-2-line text-primary mb-2"></i>
+                                <h6 class="fw-semibold mb-1">Total Requests</h6>
+                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.total_requests or 0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card shadow-sm border-0 h-100 summary-card">
+                            <div class="card-body text-center">
+                                <i class="ri-time-line text-warning mb-2"></i>
+                                <h6 class="fw-semibold mb-1">Pending</h6>
+                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.pending_requests or 0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 col-sm-6 mb-3">
+                        <div class="card shadow-sm border-0 h-100 summary-card">
+                            <div class="card-body text-center">
+                                <i class="ri-check-line text-success mb-2"></i>
+                                <h6 class="fw-semibold mb-1">Completed</h6>
+                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.completed_requests or 0 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dining Table -->
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Dining Menu Inventory</h5>
@@ -82,11 +123,10 @@
                         </a>
                     </div>
                     <div class="card-body">
-                        
                         <div class="table-responsive">
                             <table id="diningTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
-                                    <tr> 
+                                    <tr>
                                         <th>Category</th>
                                         <th>Name</th>
                                         <th>Description</th>
@@ -104,7 +144,6 @@
                                         <td>{{ dining_service.description }}</td>
                                         <td class="text-end">${{ "{:,.2f}".format(dining_service.price | float) }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ dining_service.type }}</span></td>
-                                        <td>{{ dining_service.last_update }} / {{ dining_service.timestamp }}</td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 data-bs-toggle="modal"
@@ -112,11 +151,12 @@
                                                 data-dining='{{ dining_service | tojson | safe }}'>
                                                 <i class="ri-pencil-line"></i>
                                             </button>
-                                            <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
+                                            <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
                                                 onclick="confirmDelete('{{ dining_service.item_id }}', '{{ dining_service.name | escape }}')">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
+                                        <td>{{ dining_service.last_update }} / {{ dining_service.timestamp }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -135,11 +175,12 @@
         </footer>
     </div>
 
+    <!-- Add Modal -->
     <div class="modal fade" id="addDiningModal" tabindex="-1" aria-labelledby="addDiningModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="addForm" action="/addDining" method="POST">
-                    <div class="modal-header bg-primary text-white" style="background-color: var(--ez-primary) !important;">
+                    <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title" id="addDiningModalLabel">Add Dining Item</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
@@ -180,11 +221,12 @@
         </div>
     </div>
 
+    <!-- Edit Modal -->
     <div class="modal fade" id="editDiningModal" tabindex="-1" aria-labelledby="editDiningModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="editForm" action="/updateDining" method="POST">
-                    <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
+                    <div class="modal-header bg-warning text-dark">
                         <h5 class="modal-title" id="editDiningModalLabel">Edit Dining Item</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
@@ -226,12 +268,13 @@
         </div>
     </div>
 
+    <!-- Delete Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-danger text-white" style="background-color: #dc3545 !important;">
+                <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     Are you sure you want to delete Dining item: <span id="modalServiceName" class="fw-semibold"></span>?
@@ -244,12 +287,13 @@
         </div>
     </div>
 
+    <!-- In-Use Modal -->
     <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
+                <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     This dining item is currently used in a request and cannot be deleted.
@@ -261,15 +305,14 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-    
     <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
-    
     <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
     <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
@@ -277,93 +320,49 @@
     <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
     <script>
-        // Custom JS Functions
-        
-        // Attach event listener when modal is about to open
+        // Populate Edit Modal
         const editModal = document.getElementById('editDiningModal');
         editModal.addEventListener('show.bs.modal', function (event) {
             const button = event.relatedTarget;
-            // data-dining attribute contains the JSON string of the item
             const dining_service = JSON.parse(button.getAttribute('data-dining'));
-
-            // Populate fields
             document.getElementById("edit_item_id").value = dining_service.item_id;
             document.getElementById("edit_category").value = dining_service.category;
             document.getElementById("edit_name").value = dining_service.name;
             document.getElementById("edit_description").value = dining_service.description;
             document.getElementById("edit_price").value = dining_service.price;
             document.getElementById("edit_type").value = dining_service.type;
-
-            // Ensure the correct category is selected
-            document.getElementById("edit_category").value = dining_service.category;
         });
 
-
-        //Check before deleting a dining. Display correct message
+        // Confirm Delete
         function confirmDelete(item_id, name) {
-            // NOTE: The fetch call logic relies on a Flask route /checkServices/<item_id>
-            fetch(`/checkServices/${item_id}`) 
+            fetch(`/checkServices/${item_id}`)
             .then(response => response.json())
             .then(data => {
-                if (data.in_use) { 
+                if (data.in_use) {
                     new bootstrap.Modal(document.getElementById('inUseModal')).show();
-                } else { 
+                } else {
                     document.getElementById("modalServiceName").innerText = name;
                     document.getElementById("confirmDeleteBtn").href = `/deleteDining/${item_id}`;
                     new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                } 
+                }
             })
             .catch(error => console.error("Error checking dining:", error));
-        } 
-        
-        // Custom Sidebar/Header Dropdown Logic (from previous templates)
-        window.toggleDropdown = function() {
-            var menu = document.getElementById("dropdownMenu");
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
-        }
-        window.onclick = function(event) {
-            if (!event.target.matches('.profile-icon')) {
-                var menu = document.getElementById("dropdownMenu");
-                if (menu && menu.style.display === "block") {
-                    menu.style.display = "none";
-                }
-            }
         }
 
-        // DataTables init and Sidebar Toggle on DOM Load
         $(function () {
             document.getElementById('year').textContent = new Date().getFullYear();
-            
-            // Initialize DataTables
             $('#diningTable').DataTable({
                 pageLength: 10,
                 order: [[0, 'asc']],
-                lengthChange: true,
                 responsive: true,
                 language: {
                     search: "_INPUT_",
-                    searchPlaceholder: "Search dining items...",
+                    searchPlaceholder: "Search dining items..."
                 },
                 columnDefs: [
-                    { targets: [4], className: 'text-end' },
-                    { targets: [6], orderable: false, searchable: false }
-                ],
-                // Dom structure for Bootstrap 5 integration
-                dom: '<"top"lf>rt<"bottom"ip><"clear">'
+                    { targets: [5, 6], orderable: false, searchable: false }
+                ]
             });
-            
-            // Vyzor theme sidebar toggle JS logic
-            const toggle = document.querySelector('.sidemenu-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', function() {
-                    const html = document.querySelector('html');
-                    if (html.getAttribute('data-toggled') === 'close') {
-                        html.setAttribute('data-toggled', 'open');
-                    } else {
-                        html.setAttribute('data-toggled', 'close');
-                    }
-                });
-            }
         });
     </script>
 </body>
