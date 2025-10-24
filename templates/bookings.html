@@ -128,7 +128,7 @@
                                         <td>
                                             {% if session['role'] != 'user' and booking.status == "Confirmed" %}
                                                 <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                    onclick="openEditModal({{ booking | tojson | safe }})"
+                                                    onclick='openEditModal({{ booking | tojson | safe }})'
                                                     data-bs-toggle="modal" data-bs-target="#editBookingModal">
                                                     <i class="ri-pencil-line"></i>
                                                 </button>

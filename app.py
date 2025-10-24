@@ -1478,13 +1478,38 @@ def add_massage():
     description = request.form['description']
     price = float(request.form['price'])
     type = request.form['type']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    new_service_id = None #change 
     cursor.execute(
-        "INSERT INTO hotel_services (category, name, description, price, type) VALUES (%s, %s, %s, %s, %s)",
-        (category, name, description, price, type)
+        "INSERT INTO hotel_services (category, name, description, price, type, last_update, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (category, name, description, price, type, last_update, timestamp)
     )    
+    new_service_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
     mysql.connection.commit() #Save to db
+    #Get new data and save logs
+    if new_service_id:  #change room_id
+        new_data_for_log = {
+            'category': category,  #change field names
+            'name': name,
+            'description': description,
+            'price': price,
+            'type': type,
+            'sevice_id': new_service_id,
+            'last_update': last_update,
+            'timestamp': timestamp
+        }
+        log_audit_event(
+            actor_id = session['username'],
+            timestamp=timestamp,
+            table_name='hotel_services',  #change 
+            action_type='INSERT', 
+            record_id=str(new_service_id),  #change
+            old_data=None,           # Record did not exist, so old_data is None
+            new_data=new_data_for_log 
+        )
     cursor.close() #Close db connection
 
     return redirect('/massage')
@@ -1683,17 +1708,49 @@ def updateMassage():
     description = request.form['edit_description']
     price = float(request.form['edit_price'])
     type = request.form['edit_type']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    #Get old data
+    cursor.execute("SELECT * FROM hotel_services WHERE service_id = %s", (service_id,))
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Massage not found", 404
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['service_id'] = service_id
+    new_data['category'] = category
+    new_data['name']= name
+    new_data['description'] = description
+    new_data['type'] = type
+    new_data['price'] = price
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
     cursor.execute(
         """
         UPDATE hotel_services
-        SET category = %s, name = %s, description = %s, price =%s, type =%s 
+        SET category = %s, name = %s, description = %s, price =%s, type =%s, last_update=%s, timestamp=%s
         WHERE service_id = %s
         """,
-        (category, name, description, price, type, service_id)
+        (category, name, description, price, type, last_update, timestamp, service_id)
     )
     mysql.connection.commit() #Save to db
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='hotel_services',  #change table name
+        action_type='UPDATE', 
+        record_id=str(service_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
+    
     cursor.close() #Close db connection
 
     return redirect('/massage')
@@ -1797,7 +1854,26 @@ def deleteLaundry(service_id):
 @app.route('/deleteMassage/<int:service_id>', methods=['GET'])
 def deleteMassage(service_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    #Get old data
+    cursor.execute("SELECT * FROM hotel_services WHERE service_id =%s", (service_id,)) #change table and field name
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the room ID doesn't exist
+        return "Massage not found or already deleted", 404 #change message
     cursor.execute("DELETE FROM hotel_services WHERE service_id = %s", (service_id,))
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='hotel_services',  #change
+        action_type='DELETE', 
+        record_id=str(service_id), #change
+        old_data=old_data, 
+        new_data=None 
+    )
     mysql.connection.commit()
     cursor.close()
     return redirect('/massage')
@@ -1812,13 +1888,39 @@ def add_staff():
     role = request.form['role']
     email = request.form['email']
     phone = request.form['phone']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    new_staff_id = None #change room_id    
     cursor.execute(
-        "INSERT INTO staff (first_name, last_name, role, email, phone) VALUES (%s, %s, %s, %s, %s)",
-        (first_name, last_name, role, email, phone)
+        "INSERT INTO staff (first_name, last_name, role, email, phone, last_update, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+        (first_name, last_name, role, email, phone, last_update, timestamp)
     )
+    new_staff_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
     mysql.connection.commit() #Save to db
+    #Get new data and save logs
+    if new_staff_id:  #change room_id
+        new_data_for_log = {
+            'staff_id': new_staff_id,
+            'first_name': first_name,  #change field names
+            'last_name': last_name,
+            'role': role,
+            'email': email,
+            'phone': phone,
+            'last_update': last_update,
+            'timestamp': timestamp
+        }
+        log_audit_event(
+            actor_id = session['username'],
+            timestamp=timestamp,
+            table_name='staff',  #change 
+            action_type='INSERT', 
+            record_id=str(new_staff_id),  #change
+            old_data=None,           # Record did not exist, so old_data is None
+            new_data=new_data_for_log 
+        )
+    
     cursor.close() #Close db connection
 
     return redirect('/staff')
@@ -1834,17 +1936,49 @@ def updateStaff():
     role = request.form['edit_role']
     email = request.form['edit_email']
     phone = request.form['edit_phone']
-
+    last_update = session['username']
+    timestamp = datetime.now()
+    
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    #Get old data
+    cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Staff not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['staff_id'] = staff_id  #change ALL field names (should be similar to the table)
+    new_data['first_name'] = first_name
+    new_data['last_name'] = last_name
+    new_data['role'] = role
+    new_data['email'] = email
+    new_data['phone'] = phone
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+    
     cursor.execute(
         """
         UPDATE staff 
-        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s 
+        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s, last_update=%s, timestamp=%s
         WHERE staff_id = %s
         """,
-        (first_name, last_name, role, email, phone, staff_id)
+        (first_name, last_name, role, email, phone, last_update, timestamp, staff_id)
     )
     mysql.connection.commit()
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='staff',  #change table name
+        action_type='UPDATE', 
+        record_id=str(staff_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
     cursor.close()
 
     return redirect('/staff')
@@ -1853,8 +1987,31 @@ def updateStaff():
 @app.route('/deleteStaff/<int:staff_id>', methods=['GET'])
 def deleteStaff(staff_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM staff WHERE staff_id =%s", (staff_id,)) #change table and field name
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the room ID doesn't exist
+        return "Staff not found or already deleted", 404 #change message
+    
     cursor.execute("DELETE FROM staff WHERE staff_id = %s", (staff_id,))
     mysql.connection.commit()
+    
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='staff',  #change
+        action_type='DELETE', 
+        record_id=str(staff_id), #change
+        old_data=old_data, 
+        new_data=None 
+    )
+    
     cursor.close()
     return redirect('/staff')
 
@@ -2006,7 +2163,7 @@ def add_booking():
         return redirect('/bookings')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    new_room_id = None #change room_id
+    new_booking_id = None #change 
     while True:
         random_booking_ref = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
         cursor.execute("SELECT * FROM bookings WHERE random_booking_ref=%s", (random_booking_ref,))
@@ -2018,6 +2175,29 @@ def add_booking():
     """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref, last_update, timestamp))
     new_booking_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
     mysql.connection.commit()
+    #Get new data and save logs
+    if new_booking_id:  #change room_id
+        new_data_for_log = {
+            'booking_id': new_booking_id,  #change field names
+            'guest_id': guest_id,
+            'room_type': room_type,
+            'room_id': room_id,
+            'exp_check_in': exp_check_in,
+            'exp_check_out': exp_check_out,
+            'random_booking_ref': random_booking_ref,
+            'status': status,
+            'last_update': last_update,
+            'timestamp': timestamp
+        }
+        log_audit_event(
+            actor_id = session['username'],
+            timestamp=timestamp,
+            table_name='bookings',  #change 
+            action_type='INSERT', 
+            record_id=str(new_booking_id),  #change
+            old_data=None,           # Record did not exist, so old_data is None
+            new_data=new_data_for_log 
+        )
     cursor.close()
     return redirect('/bookings')
 
