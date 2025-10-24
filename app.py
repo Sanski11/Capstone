@@ -1399,6 +1399,7 @@ def add_housekeeping():
     #Get new data and save logs
     if new_service_id:
         new_data_for_log = {
+            'service_id': new_service_id,
             'category': category,
             'name': name,
             'description': description,
@@ -1449,6 +1450,7 @@ def add_dining():
     #Get new data and save logs
     if new_item_id:
         new_data_for_log = {
+            'item_id': new_item_id,
             'category': category,
             'name': name,
             'description': description,
