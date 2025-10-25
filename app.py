@@ -795,7 +795,7 @@ def show_roomGuest():
             """)
     bookings = cursor.fetchall() #After executing sql; fetch results
     cursor.close() #Close db connection
-    return render_template('roomGuest.html', bookings=bookings) #Pass the contents of bookings to roomGuest.html
+    return render_template('roomGuest.html', bookings=bookings, rooms=rooms,guests=guests) #Pass the contents of bookings to roomGuest.html
 
 #Audit logs
 @app.route('/auditlogs')
@@ -2455,14 +2455,32 @@ def delete_booking(booking_id):
 def checkin():
     booking_id = request.form['booking_id']
     actual_check_in = request.form['actual_check_in']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Booking not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['booking_id'] = booking_id  #change ALL field names (should be similar to the table)
+    new_data['actual_check_in'] = actual_check_in
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
     #Update booking table
     cursor.execute("""
         UPDATE bookings
-        SET actual_check_in = %s, status='Checked-in'
+        SET actual_check_in = %s, status='Checked-in', last_update=%s, timestamp=%s
         WHERE booking_id = %s
-    """, (actual_check_in, booking_id))
+    """, (actual_check_in, last_update, timestamp, booking_id))
 
     #Get room_id and update room status
     cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
@@ -2473,6 +2491,18 @@ def checkin():
         return "Room not found", 404
 
     mysql.connection.commit()
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='bookings',  #change table name
+        action_type='UPDATE', 
+        record_id=str(booking_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
+
     cursor.close()
     return redirect('/roomGuest')
 
@@ -2480,14 +2510,32 @@ def checkin():
 def checkout():
     booking_id = request.form['booking_id']
     actual_check_out = request.form['actual_check_out']
+    last_update = session['username']
+    timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Booking not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['booking_id'] = booking_id  #change ALL field names (should be similar to the table)
+    new_data['actual_check_out'] = actual_check_out
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
     #Update booking
     cursor.execute("""
         UPDATE bookings
-        SET actual_check_out = %s, status='Checked-out'
+        SET actual_check_out = %s, status='Checked-out', last_update=%s, timestamp=%s
         WHERE booking_id = %s
-    """, (actual_check_out, booking_id))
+    """, (actual_check_out, last_update, timestamp, booking_id))
 
     #Get room_id and update status to Vacant
     cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
@@ -2498,6 +2546,18 @@ def checkout():
         return "Room not found", 404
 
     mysql.connection.commit()
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='bookings',  #change table name
+        action_type='UPDATE', 
+        record_id=str(booking_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
+
     cursor.close()
     return redirect('/roomGuest')
 
