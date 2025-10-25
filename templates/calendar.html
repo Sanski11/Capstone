@@ -265,31 +265,33 @@
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    var addEventModal = new bootstrap.Modal(document.getElementById('addEvent'));
-    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-    var eventId = 200;
+    const addEventModal = new bootstrap.Modal(document.getElementById('addEvent'));
+    const eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+    let eventId = 200;
 
-    // Load saved events from localStorage, or initialize with default ones if empty
-    var savedEvents = JSON.parse(localStorage.getItem('ezstay_events')) || [];
-    var events = savedEvents.length > 0 ? savedEvents : [
+    // --- Default static events ---
+    const staticEvents = [
         { id: 101, title: 'VIP Check-in (Room 305)', start: '2025-10-09', className: 'bg-event-bookings', description: 'Priority check-in for a major guest.' },
-        { id: 102, title: 'Staff Training Session', start: '2025-10-12', className: 'bg-event-dining', description: 'Quarterly service training.' },
-        { id: 103, title: 'Major Laundry Service', start: '2025-10-25', className: 'bg-event-housekeeping', description: 'Full laundry maintenance day.' },
-        { id: 104, title: 'Manager Holiday', start: '2025-10-04', className: 'bg-event-holiday', description: 'Manager scheduled time off.' }
+        { id: 102, title: 'Staff Training Session', start: '2025-10-12', className: 'bg-event-dining', description: 'Quarterly service training for the team.' },
+        { id: 103, title: 'Major Laundry Service', start: '2025-10-25', className: 'bg-event-housekeeping', description: 'Full laundry maintenance day across all rooms.' },
+        { id: 104, title: 'Manager Holiday', start: '2025-10-04', className: 'bg-event-holiday', description: 'Scheduled leave for management staff.' }
     ];
 
-    // Calendar initialization
-    var calendarEl = document.getElementById('calendar');
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+    // --- Load from localStorage ---
+    let userEvents = JSON.parse(localStorage.getItem('ezstay_events')) || [];
+    let allEvents = [...staticEvents, ...userEvents];
+
+    // --- Initialize Calendar ---
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
-        initialDate: '2025-10-15',
         height: 'auto',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
-        events: events,
+        events: allEvents,
         editable: true,
         selectable: true,
         droppable: true,
@@ -309,14 +311,14 @@ document.addEventListener('DOMContentLoaded', function() {
             eventModal.show();
         },
 
-        eventDidMount: function(info) {
-            if (info.event.extendedProps.className) {
-                info.el.classList.add(info.event.extendedProps.className);
+        eventDidMount(info) {
+            if (info.event.classNames.length > 0) {
+                info.el.classList.add(info.event.classNames[0]);
             }
         },
 
-        eventReceive: function(info) {
-            var droppedClass = info.draggedEl.getAttribute('data-class');
+        eventReceive(info) {
+            const droppedClass = info.draggedEl.getAttribute('data-class');
             info.event.setProp('className', droppedClass);
             info.event.setExtendedProp('description', "New event added via drag-and-drop.");
             saveEventsToLocalStorage();
@@ -326,52 +328,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
     calendar.render();
 
-    // Add new event
+    // --- Add New Event ---
     document.getElementById('addEventButton').addEventListener('click', function() {
-        var name = document.getElementById('eventName').value.trim();
-        var type = document.getElementById('eventType').value;
-        var from = document.getElementById('fromDate').value;
-        var to = document.getElementById('toDate').value;
-        var desc = document.getElementById('event-description').value.trim();
+        const name = document.getElementById('eventName').value.trim();
+        const type = document.getElementById('eventType').value;
+        const from = document.getElementById('fromDate').value;
+        const to = document.getElementById('toDate').value;
+        const desc = document.getElementById('event-description').value.trim();
 
-        if (name && from) {
-            calendar.addEvent({
-                id: String(++eventId),
-                title: name,
-                start: from,
-                end: to,
-                allDay: true,
-                className: type,
-                description: desc
-            });
-
-            document.getElementById('eventName').value = '';
-            document.getElementById('fromDate').value = '';
-            document.getElementById('toDate').value = '';
-            document.getElementById('event-description').value = '';
-            addEventModal.hide();
-
-            saveEventsToLocalStorage();
-            updateUpcomingEvents();
-        } else {
-            alert("Please enter an event name and a start date.");
+        if (!name || !from) {
+            alert("Please enter an event name and start date.");
+            return;
         }
+
+        calendar.addEvent({
+            id: String(++eventId),
+            title: name,
+            start: from,
+            end: to || from,
+            allDay: true,
+            className: type,
+            description: desc || "No description provided."
+        });
+
+        document.getElementById('eventName').value = '';
+        document.getElementById('fromDate').value = '';
+        document.getElementById('toDate').value = '';
+        document.getElementById('event-description').value = '';
+        addEventModal.hide();
+
+        saveEventsToLocalStorage();
+        updateUpcomingEvents();
     });
 
-    // Save events to localStorage
+    // --- Save to localStorage (excluding static) ---
     function saveEventsToLocalStorage() {
-        const allEvents = calendar.getEvents().map(e => ({
+        const dynamicEvents = calendar.getEvents().filter(e => !['101','102','103','104'].includes(e.id));
+        const formatted = dynamicEvents.map(e => ({
             id: e.id,
             title: e.title,
-            start: e.startStr,
-            end: e.endStr,
+            start: e.start.toLocaleDateString('en-CA'),
+            end: e.end ? e.end.toLocaleDateString('en-CA') : null,
             className: e.classNames[0],
             description: e.extendedProps.description || ""
         }));
-        localStorage.setItem('ezstay_events', JSON.stringify(allEvents));
+        localStorage.setItem('ezstay_events', JSON.stringify(formatted));
     }
 
-    // Update Upcoming Events sidebar
+    // --- Update Upcoming Sidebar ---
     function updateUpcomingEvents() {
         const list = document.querySelector('.card.custom-card.mt-4 .card-body ul');
         list.innerHTML = '';
@@ -386,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         futureEvents.slice(0, 5).forEach(e => {
-            const date = e.start.toISOString().substring(0, 10);
+            const date = e.start.toLocaleDateString('en-CA');
             const item = `
                 <li class="mb-3">
                     <p class="mb-0 fw-semibold">${e.title}</p>
@@ -398,8 +402,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Draggable setup
-    var containerEl = document.getElementById('external-events');
+    // --- Make Events Draggable ---
+    const containerEl = document.getElementById('external-events');
     new FullCalendar.Draggable(containerEl, {
         itemSelector: '.fc-event-main',
         eventData: function(eventEl) {
@@ -411,6 +415,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // --- Initialize Flatpickr ---
     flatpickr("#fromDate", { dateFormat: "Y-m-d" });
     flatpickr("#toDate", { dateFormat: "Y-m-d" });
 
