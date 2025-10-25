@@ -51,22 +51,22 @@
     <!-- HEADER -->
     <header class="app-header header-sticky" id="header">
       <div class="main-header-container container-fluid">
-  <ul class="header-content-right align-items-center">
-    <li class="header-element">
-      <div class="dropdown">
-        <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" class="avatar avatar-sm avatar-rounded profile-icon" onclick="toggleDropdown()">
-        <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display:none;">
-          <div class="p-3 bg-primary text-fixed-white" style="background-color:var(--ez-primary)!important;">
-            <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
-            <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
-          </div>
-          <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center"><i class="ri-user-line me-2 fs-16"></i>View Profile</a>
-          <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center"><i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out</a>
-        </div>
+        <ul class="header-content-right align-items-center">
+          <li class="header-element">
+            <div class="dropdown">
+              <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" class="avatar avatar-sm avatar-rounded profile-icon" onclick="toggleDropdown()">
+              <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display:none;">
+                <div class="p-3 bg-primary text-fixed-white" style="background-color:var(--ez-primary)!important;">
+                  <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
+                  <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
+                </div>
+                <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center"><i class="ri-user-line me-2 fs-16"></i>View Profile</a>
+                <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center"><i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out</a>
+              </div>
+            </div>
+          </li>
+        </ul>
       </div>
-    </li>
-  </ul>
-</div>
     </header>
 
     <!-- SIDEBAR -->
@@ -95,8 +95,8 @@
 
             {% if role == 'admin' %}
               <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-              <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-              {% endif %}
+              <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
+            {% endif %}
             <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
             <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
           </ul>
@@ -112,9 +112,8 @@
         </div>
 
         {% if role in ['admin','manager','supervisor'] %}
-        <!-- Responsive symmetrical card row -->
+        <!-- Service Summary Cards -->
         <div class="row row-cols-xxl-5 row-cols-md-3 row-cols-2 g-3 mb-4">
-          <!-- Housekeeping -->
           <div class="col">
             <div class="card custom-card">
               <div class="card-body d-flex align-items-start gap-3">
@@ -127,7 +126,7 @@
               </div>
             </div>
           </div>
-          <!-- Dining -->
+
           <div class="col">
             <div class="card custom-card">
               <div class="card-body d-flex align-items-start gap-3">
@@ -140,7 +139,7 @@
               </div>
             </div>
           </div>
-          <!-- Laundry -->
+
           <div class="col">
             <div class="card custom-card">
               <div class="card-body d-flex align-items-start gap-3">
@@ -153,7 +152,7 @@
               </div>
             </div>
           </div>
-          <!-- Spa -->
+
           <div class="col">
             <div class="card custom-card">
               <div class="card-body d-flex align-items-start gap-3">
@@ -166,7 +165,7 @@
               </div>
             </div>
           </div>
-          <!-- Active Bookings -->
+
           <div class="col">
             <div class="card custom-card">
               <div class="card-body d-flex align-items-start gap-3">
@@ -181,7 +180,49 @@
           </div>
         </div>
 
-        <!-- Charts -->
+        <!-- Booking Summary Enhancement -->
+        <div class="row row-cols-xxl-3 row-cols-md-3 row-cols-2 g-3 mb-4">
+          <div class="col">
+            <div class="card custom-card">
+              <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                  <span class="fs-13 fw-medium text-muted">Current Bookings</span>
+                  <h4 class="fw-semibold my-2 lh-1 text-purple count-up" data-value="{{ stats.current_bookings }}">0</h4>
+                  <span class="fs-12 text-muted">Active Reservations</span>
+                </div>
+                <span class="avatar avatar-md avatar-rounded bg-purple-transparent"><i class="ri-hotel-bed-line fs-4 text-purple"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card custom-card">
+              <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                  <span class="fs-13 fw-medium text-muted">Check-ins Today</span>
+                  <h4 class="fw-semibold my-2 lh-1 text-purple count-up" data-value="{{ stats.checkins_today }}">0</h4>
+                  <span class="fs-12 text-muted">Guests Checked In</span>
+                </div>
+                <span class="avatar avatar-md avatar-rounded bg-purple-transparent"><i class="ri-login-box-line fs-4 text-purple"></i></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col">
+            <div class="card custom-card">
+              <div class="card-body d-flex align-items-start gap-3">
+                <div class="flex-fill">
+                  <span class="fs-13 fw-medium text-muted">Check-outs Today</span>
+                  <h4 class="fw-semibold my-2 lh-1 text-purple count-up" data-value="{{ stats.checkouts_today }}">0</h4>
+                  <span class="fs-12 text-muted">Guests Checked Out</span>
+                </div>
+                <span class="avatar avatar-md avatar-rounded bg-purple-transparent"><i class="ri-logout-box-line fs-4 text-purple"></i></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
         <div class="row g-3">
           <div class="col-xl-8">
             <div class="card custom-card mb-3">
@@ -193,14 +234,16 @@
               <div class="card-body" style="height:300px"><canvas id="lineChart"></canvas></div>
             </div>
           </div>
+
           <div class="col-xl-4">
             <div class="card custom-card dashboard-banner-card overflow-hidden">
               <div class="card-body p-4 text-fixed-white">
-                <h5 class="fw-semibold mb-1">Hi, {{ current_user.username if current_user.is_authenticated else 'Manager' }} 👋</h5>
+                <h5 class="fw-semibold mb-1">Hi, {{ current_user.username if current_user.is_authenticated else 'Manager','Admin' }} 👋</h5>
                 <span class="d-block fs-14 mb-3">Check out the latest service updates.</span>
                 <a href="/requests" class="btn btn-warning btn-sm">View Requests <i class="ti ti-arrow-narrow-right"></i></a>
               </div>
             </div>
+
             <div class="card custom-card mt-3">
               <div class="card-header justify-content-between"><div class="card-title">Requests By Service Type</div></div>
               <div class="card-body d-flex justify-content-center align-items-center">
@@ -225,14 +268,31 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
-    window.toggleDropdown = function(){const m=document.getElementById("dropdownMenu");m.style.display=(m.style.display==="block")?"none":"block";}
-    window.onclick = function(e){if(!e.target.matches('.profile-icon')){const m=document.getElementById("dropdownMenu");if(m&&m.style.display==="block")m.style.display="none";}}
+
+    window.toggleDropdown = function(){
+      const m=document.getElementById("dropdownMenu");
+      m.style.display=(m.style.display==="block")?"none":"block";
+    }
+    window.onclick = function(e){
+      if(!e.target.matches('.profile-icon')){
+        const m=document.getElementById("dropdownMenu");
+        if(m&&m.style.display==="block")m.style.display="none";
+      }
+    }
 
     // Animated counters
     document.querySelectorAll('.count-up').forEach(el=>{
       const end=parseInt(el.dataset.value);
       let start=0, step=end/80;
-      function animate(){start+=step;if(start<end){el.textContent=Math.floor(start);requestAnimationFrame(animate);}else{el.textContent=end.toLocaleString();}}
+      function animate(){
+        start+=step;
+        if(start<end){
+          el.textContent=Math.floor(start);
+          requestAnimationFrame(animate);
+        } else {
+          el.textContent=end.toLocaleString();
+        }
+      }
       animate();
     });
 
