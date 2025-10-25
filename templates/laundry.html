@@ -34,7 +34,9 @@
         }
         .summary-card h6 { color: #6c757d; font-weight: 600; }
         .summary-card h3 { font-weight: 700; margin-top: 5px; }
-    </style>
+        .text-purple { color: var(--ez-primary) !important; }
+        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+        </style>
 </head>
 
 <body>
@@ -132,8 +134,8 @@
                                         <th>Description</th>
                                         <th>Type</th>
                                         <th class="text-end">Amount</th>
-                                        <th>Action</th>
                                         <th>Last Update</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -144,15 +146,15 @@
                                         <td>{{ laundry_service.description }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ laundry_service.type }}</span></td>
                                         <td class="text-end">${{ "{:,.2f}".format(laundry_service.price | float) }}</td>
+                                        <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-warning me-1" data-bs-toggle="modal" data-bs-target="#editLaundryModal" data-service='{{ laundry_service | tojson | safe }}'>
+                                            <button class="btn btn-sm btn-warning me-1"
+                                                onclick='EditLaundryModal({{ laundry_service | tojson | safe }})'>
                                                 <i class="ri-pencil-line"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
+                                            </button>                                            <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
-                                        <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -171,17 +173,126 @@
         </footer>
     </div>
 
+    <!-- ========== MODALS ========== -->
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addLaundryModal" tabindex="-1">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('add_laundry') }}">
+            <div class="modal-header"><h5 class="modal-title">Add Laundry</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Laundry" readonly></div>
+                <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
+                <div class="mb-3"><label>Description</label><input name="description" class="form-control" required></div>
+                <div class="mb-3"><label>Price</label><input type="number" name="price" class="form-control" step="0.01" min="0" required></div>
+                <div class="mb-3"><label>Type</label><input name="type" class="form-control" value="Service" readonly></div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
+            </form>
+        </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editLaundryModal" tabindex="-1">
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('updateLaundry') }}">
+            <div class="modal-header"><h5 class="modal-title">Edit laundry</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <input type="hidden" id="edit_service_id" name="service_id">
+                <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
+                <div class="mb-3"><label>Name</label><input id="edit_name" name="edit_name" class="form-control" required></div>
+                <div class="mb-3"><label>Description</label><input id="edit_description" name="edit_description" class="form-control" required></div>
+                <div class="mb-3"><label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required></div>
+                <div class="mb-3"><label>Type</label><input id="edit_type" name="edit_type" class="form-control" readonly></div>
+            </div>
+            <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+            </form>
+        </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal fade" id="deleteLaundryModal" tabindex="-1">
+        <div class="modal-dialog">
+        <div class="modal-content text-center">
+            <div class="modal-body">
+            <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
+            <h5>Are you sure you want to delete <span id="modalServiceName"></span>?</h5>
+            </div>
+            <div class="modal-footer justify-content-center">
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
     <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
 
     <script>
-        $(function() {
-            document.getElementById('year').textContent = new Date().getFullYear();
-            $('#laundryTable').DataTable({ pageLength: 10 });
+        document.getElementById('year').textContent = new Date().getFullYear();
+    
+        $('#laundryTable').DataTable({
+          pageLength: 10,
+          order: [[0, 'asc']],
+          responsive: true,
+          language: { search: "_INPUT_", searchPlaceholder: "Search laundry services..." },
+          columnDefs: [{ targets: [5], orderable: false, searchable: false }]
         });
-    </script>
-</body>
+    
+        function EditLaundryModal(ms) {
+          $('#edit_service_id').val(ms.service_id);
+          $('#edit_category').val(ms.category);
+          $('#edit_name').val(ms.name);
+          $('#edit_description').val(ms.description);
+          $('#edit_price').val(ms.price);
+          $('#edit_type').val(ms.type);
+          new bootstrap.Modal(document.getElementById('editLaundryModal')).show();
+        }
+    
+        function confirmDelete(service_id, name) {
+          fetch(`/checkServices/${service_id}`)
+            .then(r => r.json())
+            .then(data => {
+              if (data.in_use) {
+                new bootstrap.Modal(document.getElementById('inUseModal')).show();
+              } else {
+                document.getElementById("modalServiceName").innerText = name;
+                document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${service_id}`;
+                new bootstrap.Modal(document.getElementById('deleteLaundryModal')).show();
+              }
+            })
+            .catch(() => {
+              document.getElementById("modalServiceName").innerText = name;
+              document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${service_id}`;
+              new bootstrap.Modal(document.getElementById('deleteLaundryModal')).show();
+            });
+        }
+         document.querySelectorAll('.summary-card h3').forEach(el => {
+        const end = parseInt(el.textContent);
+        let start = 0;
+        const step = Math.max(1, Math.floor(end / 60));
+    
+        function animate() {
+          start += step;
+          if (start < end) {
+            el.textContent = start;
+            requestAnimationFrame(animate);
+          } else {
+            el.textContent = end;
+          }
+        }
+        animate();
+      });
+      </script>
+    </body>
 </html>
