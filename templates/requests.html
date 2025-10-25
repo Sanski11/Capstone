@@ -100,7 +100,6 @@
                             <table id="requestsTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>Request ID</th>
                                         <th>Guest Details</th>
                                         <th>Request Details</th>
                                         <th>Quantity</th>
@@ -109,13 +108,13 @@
                                         <th>Status</th>
                                         <th>Notes</th>
                                         <th>Assigned To</th>
+                                        <th>Last Update</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for request in requests %}
                                     <tr>
-                                        <td>{{ request.request_id }}</td>
                                         <td>
                                             Booking ID: {{ request.booking_id }}<br>
                                             Guest: {{ request.guest_last_name }}, {{ request.guest_first_name }}<br>
@@ -148,12 +147,13 @@
                                                 <span class="text-muted">Unassigned</span>
                                             {% endif %}
                                         </td>
+                                        <td>{{ request.last_update }} / {{ request.timestamp }}</td>
                                         <td>
                                             {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                                             <div class="d-flex flex-column gap-1">
                                                 <div class="btn-list">
                                                     <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                            onclick="openEditModal(this)"
+                                                            onclick='openEditModal(this)'
                                                             data-request_id="{{ request.request_id }}"
                                                             data-booking_id="{{ request.booking_id }}"
                                                             data-quantity="{{ request.quantity }}"
@@ -666,7 +666,7 @@
 
         function confirmDelete(request_id) {
             document.getElementById("modalRequestId").innerText = request_id;
-            document.getElementById("confirmDeleteBtn").href = `/delete_request/${request_id}`;
+            document.getElementById("confirmDeleteBtn").href = `/deleteRequest/${request_id}`;
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
 
