@@ -70,7 +70,7 @@
             <div class="container-fluid page-container main-body-container">
 
                 <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                    <h1 class="page-title fw-medium fs-20 mb-0">Bookings Management</h1>
+                    <h1 class="page-title fw-medium fs-20 mb-0">Checkin/Checkout Management</h1>
                 </div>
 
                 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -132,7 +132,7 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if role in ['manager', 'user', 'admin'] and booking.status == 'Checked-in' %}
+                                            {% if role in ['manager', 'user', 'admin'] and booking.actual_check_in and not booking.actual_check_out %}
                                                 <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill</a>
                                             {% endif %}
                                         </td>
