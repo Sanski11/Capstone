@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ezStay - All Upcoming Events</title>
+
+  <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='dashboard.css') }}" rel="stylesheet">
+
+  <style>
+    :root {
+      --ez-primary: #8a2be2;
+      --bg-bookings: #8A2BE2;
+      --bg-housekeeping: #FF69B4;
+      --bg-dining: #DA70D6;
+      --bg-holiday: #28a745;
+    }
+
+    body {
+      background-color: #f8f9fa;
+      font-family: "Poppins", sans-serif;
+    }
+
+    .header {
+      background-color: var(--ez-primary);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .event-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      margin-bottom: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .event-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .event-title {
+      font-weight: 600;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      color: var(--ez-primary);
+    }
+
+    .event-date {
+      font-size: 0.9rem;
+      color: #6c757d;
+    }
+
+    .badge-category {
+      padding: 6px 10px;
+      border-radius: 8px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .bg-event-bookings { background-color: var(--bg-bookings); }
+    .bg-event-housekeeping { background-color: var(--bg-housekeeping); }
+    .bg-event-dining { background-color: var(--bg-dining); }
+    .bg-event-holiday { background-color: var(--bg-holiday); }
+
+    .days-left {
+      font-weight: 600;
+    }
+
+    .back-link {
+      text-decoration: none;
+      font-weight: 500;
+      color: var(--ez-primary);
+    }
+    .back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+
+<body>
+  <div class="container my-5">
+    <div class="header">
+      <h2>All Upcoming Events</h2>
+      <p class="mb-0">Here is a summary of all upcoming activities and schedules</p>
+    </div>
+
+    <div class="mb-4">
+      <a href="{{ url_for('calendar') }}" class="back-link">
+        <i class="ri-arrow-left-line"></i> Back to Calendar
+      </a>
+    </div>
+
+    <div id="eventsContainer"></div>
+  </div>
+
+  <script>
+    function calculateDaysLeft(eventDate) {
+      const today = new Date();
+      const event = new Date(eventDate);
+      const diffTime = event - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    }
+
+    function renderEvents() {
+      const container = document.getElementById("eventsContainer");
+      container.innerHTML = "";
+
+      // Load events from localStorage (shared with Full Calendar)
+      const stored = JSON.parse(localStorage.getItem("ezstay_events")) || [];
+
+      if (stored.length === 0) {
+        container.innerHTML = `
+          <div class="text-center text-muted">
+            <i class="ri-calendar-line display-4"></i>
+            <p class="mt-3">No upcoming events yet. Add one from your Full Calendar page.</p>
+          </div>`;
+        return;
+      }
+
+      // Only show future events
+      const today = new Date();
+      const upcoming = stored.filter(ev => new Date(ev.start) >= today);
+      upcoming.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+      upcoming.forEach(ev => {
+        const daysLeft = calculateDaysLeft(ev.start);
+        let colorClass = "text-muted";
+        if (daysLeft > 7) colorClass = "text-success";
+        else if (daysLeft > 3) colorClass = "text-warning";
+        else if (daysLeft > 0) colorClass = "text-danger";
+
+        const card = `
+          <div class="event-card">
+            <span class="badge-category ${ev.className || 'bg-event-bookings'}">
+              ${ev.className?.replace('bg-event-', '').replace(/^\w/, c => c.toUpperCase()) || 'Event'}
+            </span>
+            <h5 class="event-title mt-2">${ev.title}</h5>
+            <p class="event-date">
+              <i class="ri-calendar-line me-1"></i> ${new Date(ev.start).toDateString()}
+            </p>
+            <p class="text-muted">${ev.description || "No description provided."}</p>
+            <p class="days-left ${colorClass}">
+              ${daysLeft > 0 ? daysLeft + " day(s) left" : "Event completed"}
+            </p>
+          </div>`;
+        container.insertAdjacentHTML("beforeend", card);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", renderEvents);
+  </script>
+</body>
+</html>

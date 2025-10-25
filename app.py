@@ -481,6 +481,10 @@ def calendar():
     
     return render_template('calendar.html', role=user_role, user=user)
 
+@app.route('/upcoming_events')
+def upcoming_events():
+    return render_template('upcoming_events.html')
+
 @app.route('/profile')
 def profile():
     username = session.get('username')

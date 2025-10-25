@@ -44,43 +44,7 @@
 </head>
 
 <body>
-    <div class="page">
-        
-        <header class="app-header header-sticky" id="header">
-    
-    <div class="main-header-container container-fluid">
-
-        <div class="header-content-left">
-        </div>
-
-        <ul class="header-content-right align-items-center"> 
-            <li class="header-element">
-                <div class="dropdown">
-                    <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" 
-                         alt="User Profile" 
-                         class="avatar avatar-sm avatar-rounded profile-icon" 
-                         onclick="toggleDropdown()">
-                    
-                    <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display: none;">
-                        
-                        <div class="p-3 bg-primary text-fixed-white" style="background-color: var(--ez-primary) !important;">
-                            <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
-                            <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
-                        </div>
-
-                        <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center">
-                            <i class="ri-user-line me-2 fs-16"></i>View Profile
-                        </a>
-                        <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center">
-                            <i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out
-                        </a>
-                    </div>
-                </div>
-            </li>
-        </ul>
-    </div>
-</header>
-        
+    <div class="page">      
         <aside class="app-sidebar sticky" id="sidebar">
             <div class="main-sidebar-header p-3 text-center">
                 <a class="header-logo text-fixed-white fs-3 fw-bold">ezStay</a>
@@ -158,7 +122,7 @@
                         <div class="card custom-card mt-4">
                             <div class="card-header border-bottom">
                                 <h6 class="card-title">Upcoming Events</h6>
-                                <a href="javascript:void(0)" class="fs-12 text-muted">View All</a>
+                                <a href="{{ url_for('upcoming_events') }}" class="fs-12 text-muted">View All</a>
                             </div>
                             <div class="card-body">
                                 <ul class="list-unstyled mb-0">
@@ -298,152 +262,160 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('year').textContent = new Date().getFullYear();
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-            // Get modal instances
-            var addEventModal = new bootstrap.Modal(document.getElementById('addEvent'));
-            var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
-            var eventId = 100; // Starting ID for new events
+    var addEventModal = new bootstrap.Modal(document.getElementById('addEvent'));
+    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+    var eventId = 200;
 
-            // ----------------------------------------------------
-            // FULLCALENDAR INITIALIZATION & EVENT LOGIC
-            // ----------------------------------------------------
+    // Load saved events from localStorage, or initialize with default ones if empty
+    var savedEvents = JSON.parse(localStorage.getItem('ezstay_events')) || [];
+    var events = savedEvents.length > 0 ? savedEvents : [
+        { id: 101, title: 'VIP Check-in (Room 305)', start: '2025-10-09', className: 'bg-event-bookings', description: 'Priority check-in for a major guest.' },
+        { id: 102, title: 'Staff Training Session', start: '2025-10-12', className: 'bg-event-dining', description: 'Quarterly service training.' },
+        { id: 103, title: 'Major Laundry Service', start: '2025-10-25', className: 'bg-event-housekeeping', description: 'Full laundry maintenance day.' },
+        { id: 104, title: 'Manager Holiday', start: '2025-10-04', className: 'bg-event-holiday', description: 'Manager scheduled time off.' }
+    ];
 
-            var calendarEl = document.getElementById('calendar');
+    // Calendar initialization
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        initialDate: '2025-10-15',
+        height: 'auto',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        events: events,
+        editable: true,
+        selectable: true,
+        droppable: true,
 
-            // Sample events (Modified to include description and unique ID)
-            var events = [
-                { id: 101, title: 'VIP Arrival (Room 101)', start: '2025-10-09', allDay: true, className: 'bg-event-bookings', description: 'Priority check-in for a major guest.' },
-                { id: 102, title: 'Deep Cleaning Block', start: '2025-10-14', end: '2025-10-16', className: 'bg-event-housekeeping', description: 'Rooms 201-205 require deep cleaning.' },
-                { id: 103, title: 'Staff Training @ 10 AM', start: '2025-10-18', className: 'bg-event-dining', description: 'Quarterly Dining Service review.' },
-                { id: 104, title: 'Manager Holiday', start: '2025-10-04', allDay: true, className: 'bg-event-holiday', description: 'Manager taking personal holiday.' }
-            ];
-            
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                initialDate: '2025-10-15', 
-                height: 'auto', 
-                
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-                },
-                
-                views: {
-                    dayGridMonth: { buttonText: 'month' },
-                    timeGridWeek: { buttonText: 'week' },
-                    timeGridDay: { buttonText: 'day' },
-                    listWeek: { buttonText: 'list' }
-                },
-                
-                events: events,
+        eventClick: function(info) {
+            document.getElementById('modalEventName').innerText = info.event.title;
+            document.getElementById('modalEventDescription').innerText = info.event.extendedProps.description || "No description provided.";
+            document.getElementById('modalEventStart').innerText = info.event.start ? info.event.start.toISOString().substring(0, 10) : 'N/A';
+            document.getElementById('modalEventEnd').innerText = info.event.end ? info.event.end.toISOString().substring(0, 10) : info.event.start.toISOString().substring(0, 10);
 
-                editable: true, 
-                selectable: true,
-                droppable: true, 
-                
-                // 1. EVENT CLICK (View/Edit/Delete Existing Events)
-                eventClick: function(info) {
-                    document.getElementById('modalEventName').innerText = info.event.title;
-                    document.getElementById('modalEventDescription').innerText = info.event.extendedProps.description || "No description provided.";
-                    
-                    // Format dates for display
-                    document.getElementById('modalEventStart').innerText = info.event.start ? info.event.start.toISOString().substring(0, 10) : 'N/A';
-                    document.getElementById('modalEventEnd').innerText = info.event.end ? info.event.end.toISOString().substring(0, 10) : info.event.start.toISOString().substring(0, 10);
-                    
-                    // Set delete button handler for the specific event
-                    document.getElementById('deleteEventButton').onclick = function() {
-                        info.event.remove(); // Remove event from the calendar
-                        eventModal.hide();    // Hide the details modal
-                    };
+            document.getElementById('deleteEventButton').onclick = function() {
+                info.event.remove();
+                saveEventsToLocalStorage();
+                updateUpcomingEvents();
+                eventModal.hide();
+            };
+            eventModal.show();
+        },
 
-                    eventModal.show();
-                },
+        eventDidMount: function(info) {
+            if (info.event.extendedProps.className) {
+                info.el.classList.add(info.event.extendedProps.className);
+            }
+        },
 
-                // 2. Event rendering and external drop handlers
-                eventDidMount: function(info) {
-                    if (info.event.extendedProps.className) {
-                        info.el.classList.add(info.event.extendedProps.className);
-                    }
-                },
-                
-                eventReceive: function(info) {
-                    var droppedClass = info.draggedEl.getAttribute('data-class');
-                    info.event.setProp('className', droppedClass);
-                    info.event.setExtendedProp('className', droppedClass);
-                    info.event.setExtendedProp('description', "New event added via drag-and-drop.");
-                }
+        eventReceive: function(info) {
+            var droppedClass = info.draggedEl.getAttribute('data-class');
+            info.event.setProp('className', droppedClass);
+            info.event.setExtendedProp('description', "New event added via drag-and-drop.");
+            saveEventsToLocalStorage();
+            updateUpcomingEvents();
+        }
+    });
+
+    calendar.render();
+
+    // Add new event
+    document.getElementById('addEventButton').addEventListener('click', function() {
+        var name = document.getElementById('eventName').value.trim();
+        var type = document.getElementById('eventType').value;
+        var from = document.getElementById('fromDate').value;
+        var to = document.getElementById('toDate').value;
+        var desc = document.getElementById('event-description').value.trim();
+
+        if (name && from) {
+            calendar.addEvent({
+                id: String(++eventId),
+                title: name,
+                start: from,
+                end: to,
+                allDay: true,
+                className: type,
+                description: desc
             });
 
-            calendar.render();
+            document.getElementById('eventName').value = '';
+            document.getElementById('fromDate').value = '';
+            document.getElementById('toDate').value = '';
+            document.getElementById('event-description').value = '';
+            addEventModal.hide();
 
-            // 3. HANDLE MANUAL EVENT CREATION FROM THE MODAL
-            document.getElementById('addEventButton').addEventListener('click', function() {
-                var name = document.getElementById('eventName').value;
-                var type = document.getElementById('eventType').value;
-                var from = document.getElementById('fromDate').value;
-                var to = document.getElementById('toDate').value;
-                var desc = document.getElementById('event-description').value;
+            saveEventsToLocalStorage();
+            updateUpcomingEvents();
+        } else {
+            alert("Please enter an event name and a start date.");
+        }
+    });
 
-                if (name && from) {
-                    calendar.addEvent({
-                        id: String(++eventId),
-                        title: name,
-                        start: from,
-                        end: to,
-                        allDay: true,
-                        className: type,
-                        description: desc
-                    });
-                    
-                    // Reset and close modal
-                    document.getElementById('eventName').value = '';
-                    document.getElementById('fromDate').value = '';
-                    document.getElementById('toDate').value = '';
-                    document.getElementById('event-description').value = '';
-                    addEventModal.hide();
-                } else {
-                    alert("Please enter at least an event name and start date.");
-                }
-            });
+    // Save events to localStorage
+    function saveEventsToLocalStorage() {
+        const allEvents = calendar.getEvents().map(e => ({
+            id: e.id,
+            title: e.title,
+            start: e.startStr,
+            end: e.endStr,
+            className: e.classNames[0],
+            description: e.extendedProps.description || ""
+        }));
+        localStorage.setItem('ezstay_events', JSON.stringify(allEvents));
+    }
 
-            // 4. Initialize external drag and drop (makes the left list items draggable)
-            var containerEl = document.getElementById('external-events');
-            new FullCalendar.Draggable(containerEl, {
-                itemSelector: '.fc-event-main',
-                eventData: function(eventEl) {
-                    return {
-                        title: eventEl.innerText.trim(),
-                        allDay: true,
-                        className: eventEl.getAttribute('data-class')
-                    };
-                }
-            });
-            
-            // 5. Initialize Flatpickr for date selection in the New Event Modal
-            flatpickr("#fromDate", { dateFormat: "Y-m-d" });
-            flatpickr("#toDate", { dateFormat: "Y-m-d" });
+    // Update Upcoming Events sidebar
+    function updateUpcomingEvents() {
+        const list = document.querySelector('.card.custom-card.mt-4 .card-body ul');
+        list.innerHTML = '';
 
-            
+        const allEvents = calendar.getEvents();
+        const futureEvents = allEvents.filter(e => e.start >= new Date());
+        futureEvents.sort((a, b) => a.start - b.start);
+
+        if (futureEvents.length === 0) {
+            list.innerHTML = '<li><p class="text-muted mb-0">No upcoming events</p></li>';
+            return;
+        }
+
+        futureEvents.slice(0, 5).forEach(e => {
+            const date = e.start.toISOString().substring(0, 10);
+            const item = `
+                <li class="mb-3">
+                    <p class="mb-0 fw-semibold">${e.title}</p>
+                    <p class="fs-12 mb-0 text-muted d-flex align-items-center">
+                        <i class="ti ti-calendar me-1"></i>${date}
+                    </p>
+                </li>`;
+            list.insertAdjacentHTML('beforeend', item);
         });
-        // This function must exist to handle the click event
-            window.toggleDropdown = function() {
-                var menu = document.getElementById("dropdownMenu");
-                // Simple toggle logic
-                menu.style.display = (menu.style.display === "block") ? "none" : "block";
-            }
+    }
 
-            // Optional: Hide dropdown when clicking anywhere else
-            window.onclick = function(event) {
-                if (!event.target.matches('.profile-icon')) {
-                    var menu = document.getElementById("dropdownMenu");
-                    if (menu && menu.style.display === "block") {
-                        menu.style.display = "none";
-                    }
-                }
-            }
+    // Draggable setup
+    var containerEl = document.getElementById('external-events');
+    new FullCalendar.Draggable(containerEl, {
+        itemSelector: '.fc-event-main',
+        eventData: function(eventEl) {
+            return {
+                title: eventEl.innerText.trim(),
+                allDay: true,
+                className: eventEl.getAttribute('data-class')
+            };
+        }
+    });
+
+    flatpickr("#fromDate", { dateFormat: "Y-m-d" });
+    flatpickr("#toDate", { dateFormat: "Y-m-d" });
+
+    updateUpcomingEvents();
+});
     </script>
 </body>
 </html>
