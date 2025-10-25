@@ -54,12 +54,6 @@
                 <nav class="main-menu-container nav nav-pills flex-column sub-open">
                     <li class="slide__category"><span class="category-name">APPLICATIONS</span></li>
                     <ul class="main-menu">
-                        <li class="slide">
-                            <a href="{{ url_for('calendar') }}" class="side-menu__item active">
-                                <i class="ri-calendar-line side-menu__icon"></i> 
-                                <span class="side-menu__label">Full Calendar</span>
-                            </a>
-                        </li>
                          <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
 
             {% if role == 'admin','manager' %}
