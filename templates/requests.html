@@ -104,12 +104,14 @@
                                     <tr>
                                         <th>Guest Details</th>
                                         <th>Request Details</th>
-                                        <th>Quantity</th>
-                                        <th class="text-end">Unit Cost</th>
+                                        <th>Quantity/Amount</th>
+                                        <!--<th class="text-end">Unit Cost</th>
                                         <th class="text-end">Total Cost</th>
+                                        -->
                                         <th>Status</th>
                                         <th>Notes</th>
                                         <th>Assigned To</th>
+                                        <th>Completion Details</th>
                                         <th>Last Update</th>
                                         <th>Action</th>
                                     </tr>
@@ -118,26 +120,27 @@
                                     {% for request in requests %}
                                     <tr>
                                         <td>
-                                            Booking ID: {{ request.booking_id }}<br>
+                                            Room: {{ request.room_number }}  <br>
                                             Guest: {{ request.guest_last_name }}, {{ request.guest_first_name }}<br>
-                                            Room: {{ request.room_number }}
                                         </td>
                                         <td>
                                             {% if request.service_name %}
-                                                Service / {{ request.service_category }}<br>
                                                 {{ request.service_name }}<br>
                                                 {{ request.request_time }}
                                             {% elif request.food_name %}
-                                                Food / {{ request.food_category }}<br>
                                                 {{ request.food_name }}<br>
                                                 {{ request.request_time }}
                                             {% else %}
                                                 Unknown
                                             {% endif %}
                                         </td>
-                                        <td>{{ request.quantity }}</td>
+                                        <td>{{ request.quantity }} x {{ "{:,.2f}".format(request.unit_cost | float) }}
+                                            <br> {{ "{:,.2f}".format(request.total_cost | float) }}
+                                        </td>
+                                        <!--
                                         <td class="text-end">{{ "{:,.2f}".format(request.unit_cost | float) }}</td>
                                         <td class="text-end">{{ "{:,.2f}".format(request.total_cost | float) }}</td>
+                                        -->
                                         <td>
                                             <span class="badge bg-{{ 'success' if request.status == 'Completed' else 'warning' if request.status == 'In Progress' else 'danger' if request.status == 'Cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
                                         </td>
@@ -149,38 +152,53 @@
                                                 <span class="text-muted">Unassigned</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ request.last_update }} / {{ request.timestamp }}</td>
+                                        <td>{{ request.completion_time }}</td>
+                                        <td>{{ request.last_update }} <br> {{ request.timestamp }}</td>
                                         <td>
                                             {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                                             <div class="d-flex flex-column gap-1">
                                                 <div class="btn-list">
                                                     <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                            onclick='openEditModal(this)'
-                                                            data-request_id="{{ request.request_id }}"
-                                                            data-booking_id="{{ request.booking_id }}"
-                                                            data-quantity="{{ request.quantity }}"
-                                                            data-unit_cost="{{ request.unit_cost }}"
-                                                            data-notes="{{ request.notes }}"
-                                                            data-status="{{ request.status }}">
+                                                        onclick="openEditModal(this)"
+                                                        data-request_id="{{ request.request_id }}"
+                                                        data-booking_id="{{ request.booking_id }}"
+                                                        data-quantity="{{ request.quantity }}"
+                                                        data-unit_cost="{{ request.unit_cost }}"
+                                                        data-notes="{{ request.notes }}"
+                                                        data-status="{{ request.status }}"
+                                                        data-request_time="{{ request.request_time }}"
+                                                        data-category="{{ request.service_category or request.food_category }}"
+                                                        data-request_type="{{ 'service' if request.service_name else 'food' }}"
+                                                        data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
+                                                        {% if request.status  not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-pencil-line"></i>
                                                     </button>
+                                                                                                
                                                     <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                            onclick="confirmDelete('{{ request.request_id }}')">
+                                                            onclick="confirmDelete('{{ request.request_id }}')"
+                                                            {% if request.status  not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-delete-bin-line"></i>
                                                     </button>
+                                                    <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
+                                                        onclick="openCompletedModal('{{ request.request_id }}')"
+                                                        {% if request.status  not in ['completed', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
                                                 </div>
-
                                                 <div class="d-flex gap-1 mt-1">
-                                                    <button class="btn btn-sm btn-primary-light btn-wave" onclick="openAssignModal('{{ request.request_id }}')">
+                                                    <!-- 👤 Manual -->
+                                                    <button class="btn btn-sm btn-primary-light btn-wave"
+                                                            onclick="openAssignModal('{{ request.request_id }}')"
+                                                            {% if request.status not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-user-line me-1"></i> Manual
                                                     </button>
                                                     <form method="POST" action="{{ url_for('assigntask') }}" style="display:inline;">
                                                         <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
-                                                        <button type="submit" class="btn btn-sm btn-success-light btn-wave">
-                                                            <i class="ri-lightning-line me-1"></i> Auto
+                                                        <button type="submit" class="btn btn-sm btn-success-light btn-wave"
+                                                                {% if request.status not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                          <i class="ri-lightning-line me-1"></i> Auto
                                                         </button>
-                                                    </form>
-                                                </div>
+                                                      </form>                                                </div>
                                             </div>
                                             {% endif %}
                                         </td>
@@ -413,7 +431,29 @@
       </div>
     </div>
 
-  
+    <!-- Completed Modal -->
+    <div class="modal fade" id="completedModal" tabindex="-1" aria-labelledby="completedModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+        <form action="/completedRequest" method="POST" class="modal-content">
+            <div class="modal-header">
+            <h5 class="modal-title" id="completedModalLabel">Completed Request</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+            <input type="hidden" name="completed_request_id" id="completed_request_id">
+            <div class="mb-3">
+                <label for="completion_time" class="form-label">Completion Date:</label>
+                <input type="datetime-local" class="form-control" id="completion_time" name="completion_time" required>
+            </div>
+            </div>
+            <div class="modal-footer">
+            <button type="submit" class="btn btn-success">Submit</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </form>
+        </div>
+    </div> <!-- ✅ properly closed -->
+    
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
@@ -475,11 +515,24 @@
             filterEditCategoryNames();
             }
     
+        // ✅ Set current date & time as default in the Add Request modal
         function setDefaultDateTime() {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById("request_time").value = now.toISOString().slice(0,16);
+        }
+
+        // When the Add Request modal opens, automatically set default date/time
+        document.addEventListener('DOMContentLoaded', function() {
+            const addModal = document.getElementById('addModal');
+            if (addModal) {
+                addModal.addEventListener('show.bs.modal', function () {
+                    setDefaultDateTime();
+                });
             }
+        });
+
+
 
         function showForm(mode, request_id = null) {
             const addForm = document.getElementById("addForm");
@@ -643,7 +696,7 @@
                 },
                 columnDefs: [
                     { targets: [4, 5], className: 'text-end' },
-                    { targets: [9], orderable: false, searchable: false }
+                    { targets: [8], orderable: false, searchable: false }
                 ]
             });
         });
@@ -655,16 +708,34 @@
             const unit_cost = button.getAttribute('data-unit_cost');
             const notes = button.getAttribute('data-notes');
             const status = button.getAttribute('data-status');
-
+            const request_time = button.getAttribute('data-request_time');
+            const category = button.getAttribute('data-category');
+            const request_type = button.getAttribute('data-request_type');
+            const name = button.getAttribute('data-name');
+        
             $('#edit_request_id').val(request_id);
             $('#edit_booking_id').val(booking_id);
             $('#edit_quantity').val(quantity);
             $('#edit_unit_cost').val(unit_cost);
             $('#edit_notes').val(notes);
             $('#edit_status').val(status);
-
+        
+            if (request_time) {
+                const formatted = new Date(request_time).toISOString().slice(0, 16);
+                $('#edit_request_time').val(formatted);
+            }
+        
+            // Set dropdowns properly
+            if (request_type) {
+                $('#edit_request_type').val(request_type);
+                toggleEditRequestType(false);
+            }
+            if (category) $('#edit_category').val(category);
+            if (name) $('#edit_name').val(name);
+        
             new bootstrap.Modal(document.getElementById('editModal')).show();
         }
+                
 
         function confirmDelete(request_id) {
             document.getElementById("modalRequestId").innerText = request_id;
@@ -705,6 +776,18 @@
                 });
             }
         });
+
+        function openCompletedModal(requestId) {
+            document.getElementById('completed_request_id').value = requestId;
+
+            // Set today's date & time as default (for datetime-local input)
+            const now = new Date();
+            const localISOTime = now.toISOString().slice(0,16); // format: YYYY-MM-DDTHH:MM
+            document.getElementById('completion_time').value = localISOTime;
+
+            const modal = new bootstrap.Modal(document.getElementById('completedModal'));
+            modal.show();
+        }
     </script>
 </body>
 </html>

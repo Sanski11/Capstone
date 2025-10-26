@@ -1259,6 +1259,59 @@ def deleteRequest(request_id):
     cursor.close()
     return redirect('/requests')
 
+@app.route('/completedRequest', methods=['POST'])
+def completed_request():
+    request_id = request.form.get('completed_request_id')
+    status = "Completed"
+    completion_time = datetime.strptime(request.form['completion_time'], '%Y-%m-%dT%H:%M')
+    last_update = session['username']
+    timestamp = datetime.now()
+  
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM requests WHERE request_id = %s", (request_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "Request not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['request_id'] = request_id  #change ALL field names (should be similar to the table)
+    new_data['completion_time'] = completion_time
+    new_data['status'] = status
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+
+    cursor.execute("""
+    UPDATE requests
+    SET status = %s,
+        completion_time = %s,
+        last_update = %s,
+        timestamp = %s
+    WHERE request_id = %s
+    """, (status, completion_time, last_update, timestamp, request_id))
+
+    mysql.connection.commit()
+    
+    #Save logs
+    log_audit_event(
+        actor_id=session['username'],
+        timestamp=timestamp,
+        table_name='requests',  #change table name
+        action_type='UPDATE', 
+        record_id=str(request_id), #change field name
+        old_data=old_data, 
+        new_data=new_data 
+    )
+    cursor.close()
+
+    return redirect('/requests')
+
+
+
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
 def view_housekeeping():
