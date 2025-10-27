@@ -45,6 +45,23 @@
 
 <body>
     <div class="page">
+        <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <!-- Left: Logo or Page Title -->
+        <a class="navbar-brand fw-bold text-purple" href="{{ url_for('dashboard') }}">ezStay</a>
+
+        <!-- Right: Profile Dropdown -->
+        <div class="dropdown">
+            <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</header>
     <!-- SIDEBAR -->
     <aside class="app-sidebar sticky" id="sidebar">
         <div class="main-sidebar-header p-3 text-center">

@@ -122,6 +122,14 @@ def send_email(recipient, subject, body):
     except Exception as e:
         print("Email error:", e)
         return False
+
+def send_reset_otp(email):
+    otp = random.randint(100000, 999999)
+    session['reset_otp'] = otp
+    session['reset_email'] = email
+    # Here, send the OTP via email (SMTP / Mailtrap / SendGrid)
+    print(f"OTP for {email}: {otp}")  # for testing
+    flash("A verification code has been sent to your email.", "info")
     
 @app.context_processor
 def inject_user_details():
@@ -2912,7 +2920,7 @@ def failed():
 from flask import request, session, redirect, url_for, flash
 from datetime import datetime
 
-@app.route("/verify-otp", methods=["GET", "POST"])
+@app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
     if request.method == "POST":
         

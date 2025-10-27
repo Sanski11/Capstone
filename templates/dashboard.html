@@ -52,25 +52,25 @@
 <body>
   <div class="page">
     <!-- HEADER -->
-    <header class="app-header header-sticky" id="header">
-      <div class="main-header-container container-fluid">
-        <ul class="header-content-right align-items-center">
-          <li class="header-element">
-            <div class="dropdown">
-              <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" class="avatar avatar-sm avatar-rounded profile-icon" onclick="toggleDropdown()">
-              <div id="dropdownMenu" class="dropdown-menu pt-0 overflow-hidden header-profile-dropdown dropdown-menu-end" style="display:none;">
-                <div class="p-3 bg-primary text-fixed-white" style="background-color:var(--ez-primary)!important;">
-                  <span class="d-block fw-semibold lh-1">{{ user.username if user.username else 'Guest' }}</span>
-                  <span class="text-fixed-white fs-12">{{ user.role | upper if user.role else 'USER' }}</span>
-                </div>
-                <a href="{{ url_for('profile') }}" class="dropdown-item d-flex align-items-center"><i class="ri-user-line me-2 fs-16"></i>View Profile</a>
-                <a href="{{ url_for('logout') }}" class="dropdown-item d-flex align-items-center"><i class="ri-logout-box-r-line me-2 fs-16"></i>Log Out</a>
-              </div>
-            </div>
-          </li>
-        </ul>
-      </div>
-    </header>
+    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <!-- Left: Logo or Page Title -->
+        <a class="navbar-brand fw-bold text-purple" href="{{ url_for('dashboard') }}">ezStay</a>
+
+        <!-- Right: Profile Dropdown -->
+        <div class="dropdown">
+            <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="me-2">{{ session['username'] }}</span>
+                <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</header>
+
     <!-- SIDEBAR -->
     <aside class="app-sidebar sticky" id="sidebar">
       <div class="main-sidebar-header p-3 text-center">
