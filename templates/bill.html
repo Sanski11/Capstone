@@ -69,6 +69,11 @@
     .btn-back {
       border-radius: 10px;
       font-weight: 500;
+      color: #fff;
+      background-color: var(--ez-primary);
+    }
+    .btn-back:hover {
+      background-color: #6a1aae;
     }
     .logo-text {
       font-weight: 700;
@@ -109,31 +114,30 @@
             <td>{{ r.request_id }}</td>
             <td>{{ r.item }}</td>
             <td>{{ r.quantity }}</td>
-            <td>₱{{ r.unitCost }}</td>
-            <td>₱{{ r.totalCost }}</td>
+            <td>₱{{ "{:,.2f}".format(r.unit_cost | float) }}</td>
+            <td>₱{{ "{:,.2f}".format(r.total_cost | float) }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
 
       <div class="d-flex justify-content-end align-items-center mt-4">
-        <h3 class="grand-total">Grand Total: ₱{{ total_bill }}</h3>
+        <h3 class="grand-total">Grand Total: ₱{{ "{:,.2f}".format(total_bill | float) }}</h3>
       </div>
 
-      <form id="payForm" action="/pay" method="POST" target="_blank" class="mt-4">
-        <input type="hidden" name="booking_id" value="{{ booking_id }}">
-        <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}">
-        <button type="submit" class="btn btn-pay px-4 py-2"><i class="ri-wallet-line me-2"></i>Pay Now</button>
-      </form>
+      <div class="d-flex gap-3 mt-4">
+        <form id="payForm" action="/pay" method="POST" target="_blank">
+          <input type="hidden" name="booking_id" value="{{ booking_id }}">
+          <input type="hidden" name="amount" value="{{ total_bill | int * 100 }}">
+          <button type="submit" class="btn btn-pay px-4 py-2"><i class="ri-wallet-line me-2"></i>Pay Now</button>
+        </form>
 
-      {% if session['role'] in ['manager', 'user'] %}
-      <a href="{{ url_for('view_bookings') }}" class="btn btn-secondary btn-back mt-3"><i class="ri-arrow-left-line me-1"></i>Back to Booking</a>
-      {% endif %}
+        <a href="{{ url_for('show_roomGuest') }}" class="btn btn-back px-4 py-2"><i class="ri-arrow-left-line me-2"></i>Back to Check-in/Checkout</a>
+      </div>
     </div>
   </div>
 
   <script>
-    // Pay button - open checkout in new tab
     document.getElementById("payForm").addEventListener("submit", async function (e) {
       e.preventDefault();
       const form = e.target;

@@ -459,7 +459,22 @@ def dashboard():
         """)
         staff_data = cursor.fetchall()
 
-        # Return all computed stats
+        # Guests currently checked in (count of unique guests in Checked-in bookings)
+        cursor.execute("""
+            SELECT COUNT(DISTINCT guest_id) AS count 
+            FROM bookings WHERE status = 'Checked-in'
+        """)
+        guests_checked_in = cursor.fetchone()['count']
+
+        # Guests checked out today
+        cursor.execute("""
+            SELECT COUNT(DISTINCT guest_id) AS count 
+            FROM bookings 
+            WHERE status = 'Checked-out' AND DATE(actual_check_out) = CURDATE()
+        """)
+        guests_checked_out = cursor.fetchone()['count']
+
+        # Then add them:
         return {
             "housekeeping": housekeeping,
             "food": food,
@@ -468,7 +483,9 @@ def dashboard():
             "active_bookings": active_bookings,
             "current_bookings": current_bookings,
             "checkins_today": checkins_today,
-            "checkouts_today": checkouts_today
+            "checkouts_today": checkouts_today,
+            "guests_checked_in": guests_checked_in,
+            "guests_checked_out": guests_checked_out
         }, service_data, staff_data
 
     # For admin/manager/supervisor roles: show full dashboard
