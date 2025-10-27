@@ -89,15 +89,11 @@
 
     <!-- Main content -->
     <div class="main-content app-content">
-      <div class="container-fluid page-container main-body-container">
-        <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-          <h1 class="page-title fw-medium fs-20 mb-0">Massage Management</h1>
-          {% if session.get('role','').lower() in ['admin', 'manager', 'supervisor'] %}
-          <button class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addModal">
-            <i class="ri-add-line me-1"></i> Add Massage
-          </button>
-          {% endif %}
-        </div>
+      <div class="card custom-card">
+                    <div class="card-header justify-content-between">
+                        <h5 class="card-title mb-0">Massage Management</h5>
+                    </div>
+        
 
        <!-- Summary Cards -->
 <div class="row g-3 mb-4">
@@ -126,6 +122,9 @@
         <div class="card custom-card">
           <div class="card-header justify-content-between">
             <h5 class="card-title mb-0">Massage Services</h5>
+            <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+                            <i class="ri-add-line me-1"></i> Add Service
+                        </a>
           </div>
           <div class="card-body">
             <div class="table-responsive">

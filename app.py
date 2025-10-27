@@ -279,9 +279,13 @@ def signup():
         username = request.form['username']
         password = request.form['password']
 
-        # Role is fixed as 'user' for public registration
-        role = 'user'
-        status = 1  # Active account by default
+        # Get selected role safely, fallback to 'user' if invalid
+        role = request.form.get('role', 'user').lower()
+        allowed_roles = ['manager', 'supervisor', 'admin', 'user']
+        if role not in allowed_roles:
+            role = 'user'
+
+        status = 1  # Active by default
 
         cursor = mysql.connection.cursor()
 
@@ -301,7 +305,7 @@ def signup():
         verification_token = generate_verification_token()
         token_expires_at = datetime.now() + timedelta(hours=24)
 
-        # Insert new user with default role=user and status=1
+        # Insert user record with chosen or default role
         cursor.execute("""
             INSERT INTO users (username, email, password, role, status, email_verified, verification_token, token_expires_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -315,7 +319,8 @@ def signup():
         else:
             flash("Could not send email. Contact support.", "danger")
 
-    return render_template('signup.html')   
+    return render_template('signup.html')
+
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):
@@ -358,18 +363,15 @@ def dashboard():
     role = session['role']
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch full user details for the header profile and dynamic logic
+    # Fetch user data for profile display
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    user = cursor.fetchone() 
-    
+    user = cursor.fetchone()
     if not user:
-        # Should not happen if login logic is sound, but good for safety
         cursor.close()
         return redirect(url_for('login'))
 
     def get_stats_and_charts():
-        # --- (Your existing complex SQL queries remain here) ---
-        
+        # Housekeeping Requests
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
@@ -378,6 +380,7 @@ def dashboard():
         """)
         housekeeping = cursor.fetchone()['count']
 
+        # Dining Requests
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
@@ -386,6 +389,7 @@ def dashboard():
         """)
         food = cursor.fetchone()['count']
 
+        # Laundry Requests
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
@@ -394,6 +398,7 @@ def dashboard():
         """)
         laundry = cursor.fetchone()['count']
 
+        # Spa/Massage Requests
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
@@ -402,54 +407,95 @@ def dashboard():
         """)
         spa = cursor.fetchone()['count']
 
+        # Active Bookings (Currently Checked-In)
         cursor.execute("""
-            SELECT service_type, COUNT(*) AS count
+            SELECT COUNT(*) AS count 
+            FROM bookings 
+            WHERE status = 'Checked-in'
+        """)
+        active_bookings = cursor.fetchone()['count']
+
+        # Current Bookings (Active Reservations)
+        cursor.execute("""
+            SELECT COUNT(*) AS count 
+            FROM bookings 
+            WHERE status = 'Reserved'
+        """)
+        current_bookings = cursor.fetchone()['count']
+
+        # Check-ins Today
+        cursor.execute("""
+            SELECT COUNT(*) AS count 
+            FROM bookings 
+            WHERE DATE(actual_check_in) = CURDATE()
+        """)
+        checkins_today = cursor.fetchone()['count']
+
+        # Check-outs Today
+        cursor.execute("""
+            SELECT COUNT(*) AS count 
+            FROM bookings 
+            WHERE DATE(actual_check_out) = CURDATE()
+        """)
+        checkouts_today = cursor.fetchone()['count']
+
+        # Chart Data: Requests per Service Type
+        cursor.execute("""
+            SELECT s.service_type, COUNT(*) AS count
             FROM services s
             JOIN requests r ON s.service_id = r.service_id
-            GROUP BY service_type
+            GROUP BY s.service_type
         """)
         service_data = cursor.fetchall()
 
+        # Chart Data: Staff Activity
         cursor.execute("""
             SELECT s.first_name AS staff, 
-                    COUNT(r.request_id) AS requests,
-                    SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
+                   COUNT(r.request_id) AS requests,
+                   SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
             FROM requests r
             JOIN staff s ON r.staff_id = s.staff_id
             GROUP BY s.first_name
         """)
         staff_data = cursor.fetchall()
 
+        # Return all computed stats
         return {
             "housekeeping": housekeeping,
             "food": food,
             "laundry": laundry,
-            "spa": spa
+            "spa": spa,
+            "active_bookings": active_bookings,
+            "current_bookings": current_bookings,
+            "checkins_today": checkins_today,
+            "checkouts_today": checkouts_today
         }, service_data, staff_data
-        # --------------------------------------------------------
 
-    # Admin, Manager, Supervisor see stats and charts
+    # For admin/manager/supervisor roles: show full dashboard
     if role in ['admin', 'manager', 'supervisor']:
         stats, service_data, staff_data = get_stats_and_charts()
         cursor.close()
-        return render_template('dashboard.html', 
-                               role=role, 
-                               stats=stats, 
-                               service_data=service_data, 
-                               staff_data=staff_data,
-                               user=user) # <--- ADDED 'user'
+        return render_template(
+            'dashboard.html',
+            role=role,
+            stats=stats,
+            service_data=service_data,
+            staff_data=staff_data,
+            user=user
+        )
 
-    # User role: no charts/stats, but allow booking/payment features
+    # For normal users
     elif role == 'user':
         cursor.close()
-        return render_template('dashboard.html', 
-                               role=role, 
-                               stats={}, 
-                               service_data=[], 
-                               staff_data=[],
-                               user=user) # <--- ADDED 'user'
+        return render_template(
+            'dashboard.html',
+            role=role,
+            stats={},
+            service_data=[],
+            staff_data=[],
+            user=user
+        )
 
-    # Default fallback
     cursor.close()
     return redirect(url_for('login'))
 
@@ -2635,21 +2681,58 @@ def view_bill(booking_id):
 
 @app.route('/users')
 def users_page():
+    if 'username' not in session or 'role' not in session:
+        return redirect(url_for('login'))
+
+    # Restrict access (optional)
+    if session['role'].lower() not in ['admin', 'manager']:
+        flash("Access denied.", "danger")
+        return redirect(url_for('dashboard'))
+
     search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # Search functionality
     if search:
         like = f"%{search}%"
         cursor.execute("""
             SELECT * FROM users
             WHERE username LIKE %s OR email LIKE %s OR role LIKE %s OR department LIKE %s
+            ORDER BY user_id ASC
         """, (like, like, like, like))
     else:
-        cursor.execute("SELECT * FROM users")
+        cursor.execute("SELECT * FROM users ORDER BY user_id ASC")
 
     users = cursor.fetchall()
+
+    # Summary counts
+    cursor.execute("SELECT COUNT(*) AS total FROM users")
+    total_users = cursor.fetchone()['total']
+
+    cursor.execute("SELECT COUNT(*) AS active FROM users WHERE status = 1")
+    active_users = cursor.fetchone()['active']
+
+    cursor.execute("SELECT COUNT(*) AS inactive FROM users WHERE status = 0")
+    inactive_users = cursor.fetchone()['inactive']
+
+    cursor.execute("""
+        SELECT COUNT(*) AS admins
+        FROM users
+        WHERE role IN ('admin', 'manager')
+    """)
+    total_admins = cursor.fetchone()['admins']
+
     cursor.close()
-    return render_template('users.html', users=users)
+
+    return render_template(
+        'users.html',
+        users=users,
+        total_users=total_users,
+        active_users=active_users,
+        inactive_users=inactive_users,
+        total_admins=total_admins,
+        role=session['role']
+    )
 
 @app.route('/addUser', methods=['POST'])
 def add_user():
@@ -2657,18 +2740,21 @@ def add_user():
     email = request.form['email']
     role = request.form['role']
     department = request.form.get('department')
+    status = int(request.form.get('status', 1))  # Default Active
 
-    #Set department to None if user is admin/supervisor
+    # Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute(
-        "INSERT INTO users (username, email, role, department, verified) VALUES (%s, %s, %s, %s, %s)",
-        (username, email, role, department, True)
-    )
+    cursor.execute("""
+        INSERT INTO users (username, email, role, department, status, verified)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (username, email, role, department, status, True))
     mysql.connection.commit()
     cursor.close()
+
+    flash("✅ User added successfully!", "success")
     return redirect('/users')
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
@@ -2686,25 +2772,24 @@ def update_user():
     email = request.form['edit_email']
     role = request.form['edit_role']
     department = request.form.get('edit_department')
+    status = int(request.form.get('edit_status', 1))
 
-    #Remove department (housekeeping, laundry, dining, massage)  if admin or supervisor
+    # Remove department for certain roles
     if role in ['admin', 'supervisor', 'user']:
         department = None
-
-    print("🟡 Department submitted:", department)  #Check what’s being submitted
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     try:
         cursor.execute("""
             UPDATE users 
-            SET username=%s, email=%s, role=%s, department=%s 
+            SET username=%s, email=%s, role=%s, department=%s, status=%s 
             WHERE user_id=%s
-        """, (username, email, role, department, user_id))
+        """, (username, email, role, department, status, user_id))
         mysql.connection.commit()
-        flash("✅ User updated successfully!")
+        flash("✅ User updated successfully!", "success")
     except Exception as e:
         print("❌ Update error:", e)
-        flash("❌ Failed to update user.")
+        flash("❌ Failed to update user.", "danger")
     finally:
         cursor.close()
 

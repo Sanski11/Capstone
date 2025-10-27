@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ezStay - All Upcoming Events</title>
 
+  <!-- Core CSS -->
   <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='dashboard.css') }}" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
   <style>
     :root {
@@ -32,32 +33,6 @@
       text-align: center;
     }
 
-    .event-card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      padding: 20px;
-      margin-bottom: 16px;
-      transition: all 0.3s ease;
-    }
-
-    .event-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .event-title {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      color: var(--ez-primary);
-    }
-
-    .event-date {
-      font-size: 0.9rem;
-      color: #6c757d;
-    }
-
     .badge-category {
       padding: 6px 10px;
       border-radius: 8px;
@@ -70,10 +45,6 @@
     .bg-event-housekeeping { background-color: var(--bg-housekeeping); }
     .bg-event-dining { background-color: var(--bg-dining); }
     .bg-event-holiday { background-color: var(--bg-holiday); }
-
-    .days-left {
-      font-weight: 600;
-    }
 
     .back-link {
       text-decoration: none;
@@ -97,65 +68,87 @@
       </a>
     </div>
 
-    <div id="eventsContainer"></div>
+    <div class="card shadow-sm p-4">
+      <div class="table-responsive">
+        <table id="eventsTable" class="table table-bordered table-striped align-middle">
+          <thead class="table-primary">
+            <tr>
+              <th>#</th>
+              <th>Event Title</th>
+              <th>Category</th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Days Left</th>
+            </tr>
+          </thead>
+          <tbody id="eventsBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
+
+  <!-- JS Libraries -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
   <script>
     function calculateDaysLeft(eventDate) {
       const today = new Date();
       const event = new Date(eventDate);
       const diffTime = event - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      return diffDays;
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    function renderEvents() {
-      const container = document.getElementById("eventsContainer");
-      container.innerHTML = "";
+    function renderEventsTable() {
+      const tbody = document.getElementById("eventsBody");
+      tbody.innerHTML = "";
 
-      // Load events from localStorage (shared with Full Calendar)
       const stored = JSON.parse(localStorage.getItem("ezstay_events")) || [];
 
       if (stored.length === 0) {
-        container.innerHTML = `
-          <div class="text-center text-muted">
-            <i class="ri-calendar-line display-4"></i>
-            <p class="mt-3">No upcoming events yet. Add one from your Full Calendar page.</p>
-          </div>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-4">
+          <i class="ri-calendar-line display-6"></i><br>
+          No upcoming events yet. Add one from your Full Calendar page.
+        </td></tr>`;
         return;
       }
 
-      // Only show future events
       const today = new Date();
       const upcoming = stored.filter(ev => new Date(ev.start) >= today);
       upcoming.sort((a, b) => new Date(a.start) - new Date(b.start));
 
-      upcoming.forEach(ev => {
+      upcoming.forEach((ev, index) => {
         const daysLeft = calculateDaysLeft(ev.start);
-        let colorClass = "text-muted";
-        if (daysLeft > 7) colorClass = "text-success";
-        else if (daysLeft > 3) colorClass = "text-warning";
-        else if (daysLeft > 0) colorClass = "text-danger";
+        const colorClass =
+          daysLeft > 7 ? "text-success" :
+          daysLeft > 3 ? "text-warning" :
+          daysLeft > 0 ? "text-danger" : "text-muted";
 
-        const card = `
-          <div class="event-card">
-            <span class="badge-category ${ev.className || 'bg-event-bookings'}">
-              ${ev.className?.replace('bg-event-', '').replace(/^\w/, c => c.toUpperCase()) || 'Event'}
-            </span>
-            <h5 class="event-title mt-2">${ev.title}</h5>
-            <p class="event-date">
-              <i class="ri-calendar-line me-1"></i> ${new Date(ev.start).toDateString()}
-            </p>
-            <p class="text-muted">${ev.description || "No description provided."}</p>
-            <p class="days-left ${colorClass}">
+        const categoryClass = ev.className || "bg-event-bookings";
+        const categoryName = (ev.className?.replace("bg-event-", "") || "event")
+          .replace(/^\w/, c => c.toUpperCase());
+
+        const row = `
+          <tr>
+            <td>${index + 1}</td>
+            <td><strong>${ev.title}</strong></td>
+            <td><span class="badge-category ${categoryClass}">${categoryName}</span></td>
+            <td>${new Date(ev.start).toDateString()}</td>
+            <td>${ev.description || "No description provided."}</td>
+            <td class="${colorClass}">
               ${daysLeft > 0 ? daysLeft + " day(s) left" : "Event completed"}
-            </p>
-          </div>`;
-        container.insertAdjacentHTML("beforeend", card);
+            </td>
+          </tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
       });
+
+      $("#eventsTable").DataTable({ pageLength: 10 });
     }
 
-    document.addEventListener("DOMContentLoaded", renderEvents);
+    document.addEventListener("DOMContentLoaded", renderEventsTable);
   </script>
 </body>
 </html>

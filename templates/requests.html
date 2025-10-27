@@ -198,7 +198,7 @@
                                                                 {% if request.status not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
                                                           <i class="ri-lightning-line me-1"></i> Auto
                                                         </button>
-                                                      </form>                                                </div>
+                                                      </form>
                                             </div>
                                             {% endif %}
                                         </td>
@@ -515,7 +515,7 @@
             filterEditCategoryNames();
             }
     
-        // ✅ Set current date & time as default in the Add Request modal
+        // Set current date & time as default in the Add Request modal
         function setDefaultDateTime() {
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());

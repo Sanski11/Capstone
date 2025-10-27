@@ -44,48 +44,60 @@
       <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
         <div class="card custom-card border-0 my-4">
           <div class="card-body p-5">
-            <div class="mb-4 text-center">
-              <img src="{{ url_for('static', filename='images/brand-logos/toggle-logo.png') }}" alt="logo" class="desktop-dark">
-            </div>
-
             <div class="text-center mb-4">
               <h4 class="fw-semibold">Create Your Account</h4>
               <p class="text-muted fw-normal">Please fill in the details below</p>
             </div>
 
             <form method="POST" action="{{ url_for('signup') }}">
+              <!-- Username -->
               <div class="mb-3">
                 <label class="form-label text-default">Username</label>
                 <input type="text" name="username" class="form-control" placeholder="Enter username" required>
               </div>
 
+              <!-- Email -->
               <div class="mb-3">
                 <label class="form-label text-default">Email Address</label>
                 <input type="email" name="email" class="form-control" placeholder="Enter email" required>
               </div>
 
+              <!-- Password -->
               <div class="mb-3">
                 <label class="form-label text-default d-block">Password</label>
                 <div class="position-relative">
                   <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()" id="button-addon2"><i class="ri-eye-off-line align-middle"></i></a>
+                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()" id="button-addon2">
+                    <i class="ri-eye-off-line align-middle"></i>
+                  </a>
                 </div>
               </div>
 
-              <!-- Hidden Role Field -->
-              <input type="hidden" name="role" value="user">
+              <!-- Role Selection -->
+              <div class="mb-3">
+                <label class="form-label text-default">Select Role</label>
+                <select name="role" class="form-select" required>
+                  <option value="" disabled selected>-- Choose a Role --</option>
+                  <option value="manager">Manager</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
 
               <!-- Hidden Account Status Field -->
               <input type="hidden" name="status" value="1">
 
+              <!-- Submit -->
               <div class="d-grid mt-4">
                 <button type="submit" class="btn btn-primary">Create Account</button>
               </div>
 
+              <!-- Login Link -->
               <div class="text-center mt-3 fw-medium">
                 Already have an account? <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
               </div>
 
+              <!-- Error Message -->
               {% if error %}
                 <p class="text-danger text-center mt-3">{{ error }}</p>
               {% endif %}

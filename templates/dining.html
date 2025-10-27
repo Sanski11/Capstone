@@ -144,7 +144,7 @@
                                         <td>{{ dining_service.category }}</td>
                                         <td>{{ dining_service.name }}</td>
                                         <td>{{ dining_service.description }}</td>
-                                        <td class="text-end">${{ "{:,.2f}".format(dining_service.price | float) }}</td>
+                                        <td class="text-end">₱{{ "{:,.2f}".format(dining_service.price | float) }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ dining_service.type }}</span></td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"

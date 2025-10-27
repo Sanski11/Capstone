@@ -145,7 +145,7 @@
                                         <td>{{ laundry_service.name }}</td>
                                         <td>{{ laundry_service.description }}</td>
                                         <td><span class="badge bg-primary-transparent">{{ laundry_service.type }}</span></td>
-                                        <td class="text-end">${{ "{:,.2f}".format(laundry_service.price | float) }}</td>
+                                        <td class="text-end">₱{{ "{:,.2f}".format(laundry_service.price | float) }}</td>
                                         <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                         <td>
                                             <button class="btn btn-sm btn-warning me-1"
