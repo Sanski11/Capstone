@@ -413,7 +413,7 @@ def dashboard():
         cursor.execute("""
             SELECT s.first_name AS staff, 
                     COUNT(r.request_id) AS requests,
-                    SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed
+                    SUM(CASE WHEN r.status = 'completed' THEN 1 ELSE 0 END) AS completed
             FROM requests r
             JOIN staff s ON r.staff_id = s.staff_id
             GROUP BY s.first_name
@@ -1262,7 +1262,7 @@ def deleteRequest(request_id):
 @app.route('/completedRequest', methods=['POST'])
 def completed_request():
     request_id = request.form.get('completed_request_id')
-    status = "Completed"
+    status = "completed"
     completion_time = datetime.strptime(request.form['completion_time'], '%Y-%m-%dT%H:%M')
     last_update = session['username']
     timestamp = datetime.now()
@@ -1319,22 +1319,12 @@ def view_housekeeping():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Connect to DB
 
     # Fetch housekeeping services
-    if search:
-        like = f"%{search}%"
-        query = """
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Housekeeping'
-            AND (name LIKE %s OR description LIKE %s)
-        """
-        cursor.execute(query, (like, like))
-    else:
-        cursor.execute("""
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Housekeeping'
-            ORDER BY name
-        """)
+    cursor.execute("""
+        SELECT *
+        FROM hotel_services
+        WHERE category = 'Housekeeping'
+        ORDER BY name
+    """)
     hotel_services = cursor.fetchall()
 
     # ==========================
@@ -1343,9 +1333,9 @@ def view_housekeeping():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
         FROM requests
         WHERE service_id IN (
             SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
@@ -1358,7 +1348,8 @@ def view_housekeeping():
         housekeeping_stats = {
             'total_requests': 0,
             'pending': 0,
-            'completed': 0
+            'completed': 0,
+            'cancelled': 0
         }
 
     cursor.close()
@@ -1399,9 +1390,9 @@ def view_laundry():
     stats_query = """
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN r.status = 'Pending' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN r.status = 'Completed' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN r.status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+            SUM(CASE WHEN r.status = 'pending' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN r.status = 'completed' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN r.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
         FROM requests r
         JOIN hotel_services s ON r.service_id = s.service_id
         WHERE s.category = 'Laundry'
@@ -1410,7 +1401,8 @@ def view_laundry():
     laundry_stats = cursor.fetchone() or {
         'total_requests': 0,
         'pending_requests': 0,
-        'completed_requests': 0
+        'completed_requests': 0,
+        'cancelled_requests': 0
     }
 
     cursor.close()
@@ -1449,9 +1441,9 @@ def view_dining():
     stats_query = """
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
         FROM requests r
         JOIN hotel_services hs ON r.service_id = hs.service_id
         WHERE hs.category = 'Dining'
@@ -1461,6 +1453,7 @@ def view_dining():
         'total_requests': 0,
         'pending_requests': 0,
         'completed_requests': 0,
+        'cancelled_requests':0
     }
 
     cursor.close()
@@ -1499,9 +1492,9 @@ def view_massage():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
         FROM requests
         WHERE service_id IN (
             SELECT service_id 
@@ -1516,7 +1509,8 @@ def view_massage():
         spa_stats = {
             'total_requests': 0,
             'pending': 0,
-            'completed': 0
+            'completed': 0,
+            'cancelled': 0
         }
 
     cursor.close()
@@ -3022,7 +3016,7 @@ def assigntask():
         UPDATE requests
         SET staff_id = %s,
             -- Optionally auto-move from 'pending' to 'approved' when assigned:
-            status  = CASE WHEN status = 'pending' THEN 'approved' ELSE status END
+            status  = CASE WHEN status = 'pending' THEN 'pending' ELSE status END
         WHERE request_id = %s
     """, (staff['staff_id'], req_id))
     mysql.connection.commit()

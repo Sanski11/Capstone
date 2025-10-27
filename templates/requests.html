@@ -140,12 +140,8 @@
                                         <td>{{ request.quantity }} x {{ "{:,.2f}".format(request.unit_cost | float) }}
                                             <br> {{ "{:,.2f}".format(request.total_cost | float) }}
                                         </td>
-                                        <!--
-                                        <td class="text-end">{{ "{:,.2f}".format(request.unit_cost | float) }}</td>
-                                        <td class="text-end">{{ "{:,.2f}".format(request.total_cost | float) }}</td>
-                                        -->
                                         <td>
-                                            <span class="badge bg-{{ 'success' if request.status == 'Completed' else 'warning' if request.status == 'In Progress' else 'danger' if request.status == 'Cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
+                                            <span class="badge bg-{{ 'success' if request.status == 'completed' else 'warning' if request.status == 'for assignment' else 'danger' if request.status == 'cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
                                         </td>
                                         <td>{{ request.notes }}</td>
                                         <td>
@@ -173,35 +169,36 @@
                                                         data-category="{{ request.service_category or request.food_category }}"
                                                         data-request_type="{{ 'service' if request.service_name else 'food' }}"
                                                         data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
-                                                        {% if request.status  not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                        {% if request.status  not in ['pending'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-pencil-line"></i>
                                                     </button>
                                                                                                 
                                                     <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
                                                             onclick="confirmDelete('{{ request.request_id }}')"
-                                                            {% if request.status  not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                            {% if request.status  not in ['pending'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-delete-bin-line"></i>
                                                     </button>
                                                     <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                         onclick="openCompletedModal('{{ request.request_id }}')"
-                                                        {% if request.status  not in ['completed', 'approved'] %}style="pointer-events:none;"{% endif %}>
-                                                        <i class="bi bi-check-circle"></i>
+                                                        {% if request.status != 'pending' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
+                                                        <i class="bi bi-check-circle"></i>                                                    
                                                     </button>
                                                 </div>
                                                 <div class="d-flex gap-1 mt-1">
                                                     <!-- 👤 Manual -->
                                                     <button class="btn btn-sm btn-primary-light btn-wave"
                                                             onclick="openAssignModal('{{ request.request_id }}')"
-                                                            {% if request.status not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                            {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-user-line me-1"></i> Manual
                                                     </button>
                                                     <form method="POST" action="{{ url_for('assigntask') }}" style="display:inline;">
                                                         <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
                                                         <button type="submit" class="btn btn-sm btn-success-light btn-wave"
-                                                                {% if request.status not in ['pending', 'approved'] %}style="pointer-events:none;"{% endif %}>
+                                                                {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
                                                           <i class="ri-lightning-line me-1"></i> Auto
                                                         </button>
-                                                      </form>                                                </div>
+                                                      </form>                                                
+                                                    </div>
                                             </div>
                                             {% endif %}
                                         </td>
@@ -297,7 +294,6 @@
                     <label for="status" class="form-label" hidden>Status:</label>
                     <select class="form-control" id="status" name="status" hidden>
                         <option value="pending" hidden>Pending</option>
-                        <option value="approved" hidden>Approved</option>
                         <option value="completed" hidden>Completed</option>
                     </select>
                 </div>
@@ -380,7 +376,6 @@
                 <label for="edit_status" class="form-label" hidden>Status:</label>
                 <select class="form-control" id="edit_status" name="edit_status" hidden>
                   <option value="pending" hidden>Pending</option>
-                  <option value="approved" hidden>Approved</option>
                   <option value="completed" hidden>Completed</option>
                 </select>
               </div>
