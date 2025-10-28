@@ -461,6 +461,14 @@ def dashboard():
         """)
         spa = cursor.fetchone()['count']
 
+        # Active Users (Status = 1)
+        cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
+        active_users = cursor.fetchone()['count']
+
+        # Total Users
+        cursor.execute("SELECT COUNT(*) AS count FROM users")
+        total_users = cursor.fetchone()['count']
+
         # Active Bookings (Currently Checked-In)
         cursor.execute("""
             SELECT COUNT(*) AS count 
@@ -513,7 +521,7 @@ def dashboard():
         """)
         staff_data = cursor.fetchall()
 
-        # Guests currently checked in (count of unique guests in Checked-in bookings)
+        # Guests currently checked in
         cursor.execute("""
             SELECT COUNT(DISTINCT guest_id) AS count 
             FROM bookings WHERE status = 'Checked-in'
@@ -528,12 +536,14 @@ def dashboard():
         """)
         guests_checked_out = cursor.fetchone()['count']
 
-        # Then add them:
+        # Final stats dict
         return {
             "housekeeping": housekeeping,
             "food": food,
             "laundry": laundry,
             "spa": spa,
+            "active_users": active_users,   # Added
+            "total_users": total_users,     # Added
             "active_bookings": active_bookings,
             "current_bookings": current_bookings,
             "checkins_today": checkins_today,
@@ -542,7 +552,7 @@ def dashboard():
             "guests_checked_out": guests_checked_out
         }, service_data, staff_data
 
-    # For admin/manager/supervisor roles: show full dashboard
+    # For admin/manager/supervisor roles
     if role in ['admin', 'manager', 'supervisor']:
         stats, service_data, staff_data = get_stats_and_charts()
         cursor.close()
@@ -2736,19 +2746,21 @@ def view_bill(booking_id):
     return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
 
 @app.route('/users')
-def users_page():
+def users():
+    # Ensure user is logged in
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
 
-    # Restrict access (optional)
+    # Restrict access to admin/manager roles
     if session['role'].lower() not in ['admin', 'manager']:
         flash("Access denied.", "danger")
         return redirect(url_for('dashboard'))
 
     search = request.args.get('search', '')
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Search functionality
+    # Fetch users with optional search
     if search:
         like = f"%{search}%"
         cursor.execute("""
@@ -2761,7 +2773,7 @@ def users_page():
 
     users = cursor.fetchall()
 
-    # Summary counts
+    # Fetch summary counts (always latest)
     cursor.execute("SELECT COUNT(*) AS total FROM users")
     total_users = cursor.fetchone()['total']
 
@@ -2771,11 +2783,7 @@ def users_page():
     cursor.execute("SELECT COUNT(*) AS inactive FROM users WHERE status = 0")
     inactive_users = cursor.fetchone()['inactive']
 
-    cursor.execute("""
-        SELECT COUNT(*) AS admins
-        FROM users
-        WHERE role IN ('admin', 'manager')
-    """)
+    cursor.execute("SELECT COUNT(*) AS admins FROM users WHERE role IN ('admin', 'manager')")
     total_admins = cursor.fetchone()['admins']
 
     cursor.close()
@@ -2787,31 +2795,26 @@ def users_page():
         active_users=active_users,
         inactive_users=inactive_users,
         total_admins=total_admins,
-        role=session['role']
+        role=session['role'],
+        search=search
     )
 
-@app.route('/addUser', methods=['POST'])
-def add_user():
-    username = request.form['username']
-    email = request.form['email']
-    role = request.form['role']
-    department = request.form.get('department')
-    status = int(request.form.get('status', 1))  # Default Active
-
-    # Set department to None if user is admin/supervisor
-    if role in ['admin', 'supervisor']:
-        department = None
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("""
-        INSERT INTO users (username, email, role, department, status, verified)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (username, email, role, department, status, True))
+@app.route('/activateUser/<int:user_id>')
+def activate_user(user_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("UPDATE users SET status = 1 WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
+    return jsonify({"success": True, "status": 1})
 
-    flash("✅ User added successfully!", "success")
-    return redirect('/users')
+
+@app.route('/deactivateUser/<int:user_id>')
+def deactivate_user(user_id):
+    cursor = mysql.connection.cursor()
+    cursor.execute("UPDATE users SET status = 0 WHERE user_id = %s", (user_id,))
+    mysql.connection.commit()
+    cursor.close()
+    return jsonify({"success": True, "status": 0})
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
 def delete_user(user_id):
