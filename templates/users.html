@@ -112,7 +112,7 @@
           <h1 class="page-title fw-semibold fs-20 mb-0 text-purple">Authorized Users</h1>
           {% if session.get('role', '').lower() == 'admin' %}
           <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
-            <i class="ri-add-line me-1"></i>Add User
+            <i class="ri-add-line me-1"></i>Add Record
           </button>
           {% endif %}
         </div>
@@ -192,7 +192,7 @@
           <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">Add New User</h5>
+                <h5 class="modal-title">Add Record</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <form action="/addUser" method="POST">
@@ -234,7 +234,7 @@
                   </div>
                 </div>
                 <div class="modal-footer">
-                  <button type="submit" class="btn btn-success">Add User</button>
+                  <button type="submit" class="btn btn-success">Add Record</button>
                 </div>
               </form>
             </div>
