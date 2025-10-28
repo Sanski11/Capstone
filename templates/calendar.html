@@ -301,19 +301,17 @@ document.addEventListener('DOMContentLoaded', function() {
         selectable: true,
         droppable: true,
 
-        eventClick: function(info) {
-            document.getElementById('modalEventName').innerText = info.event.title;
-            document.getElementById('modalEventDescription').innerText = info.event.extendedProps.description || "No description provided.";
-            document.getElementById('modalEventStart').innerText = info.event.start ? info.event.start.toISOString().substring(0, 10) : 'N/A';
-            document.getElementById('modalEventEnd').innerText = info.event.end ? info.event.end.toISOString().substring(0, 10) : info.event.start.toISOString().substring(0, 10);
+        dateClick: function(info) {
+            // Pre-fill the From Date with the clicked date
+            document.getElementById('fromDate').value = info.dateStr;
+            document.getElementById('toDate').value = info.dateStr;
 
-            document.getElementById('deleteEventButton').onclick = function() {
-                info.event.remove();
-                saveEventsToLocalStorage();
-                updateUpcomingEvents();
-                eventModal.hide();
-            };
-            eventModal.show();
+            // Optionally clear other fields
+            document.getElementById('eventName').value = '';
+            document.getElementById('event-description').value = '';
+
+            // Open the Add Event modal
+            addEventModal.show();
         },
 
         eventDidMount(info) {
