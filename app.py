@@ -427,7 +427,7 @@ def dashboard():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM bookings 
-            WHERE status = 'Reserved'
+            WHERE status IN ('Active', 'Confirmed')
         """)
         current_bookings = cursor.fetchone()['count']
 
