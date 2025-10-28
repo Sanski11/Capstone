@@ -1404,9 +1404,9 @@ def view_housekeeping():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled
         FROM requests
         WHERE service_id IN (
             SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
@@ -1461,9 +1461,9 @@ def view_laundry():
     stats_query = """
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN r.status = 'pending' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN r.status = 'completed' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN r.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_requests
         FROM requests r
         JOIN hotel_services s ON r.service_id = s.service_id
         WHERE s.category = 'Laundry'
@@ -1491,20 +1491,11 @@ def view_dining():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Retrieve menu items
-    if search:
-        like = f"%{search}%"
-        cursor.execute("""
-            SELECT item_id, name, description, price, category, type, last_update, timestamp
-            FROM food_items
-            WHERE name LIKE %s OR description LIKE %s OR category LIKE %s OR type LIKE %s
-            ORDER BY item_id
-        """, (like, like, like, like))
-    else:
-        cursor.execute("""
-            SELECT item_id, name, description, price, category, type, last_update, timestamp
-            FROM food_items
-            ORDER BY item_id
-        """)
+    cursor.execute("""
+        SELECT item_id, name, description, price, category, type, last_update, timestamp
+        FROM food_items
+        ORDER BY item_id
+    """)
 
     dining_services = cursor.fetchall()
 
@@ -1512,12 +1503,12 @@ def view_dining():
     stats_query = """
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_requests
+            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests,
+            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_requests
         FROM requests r
-        JOIN hotel_services hs ON r.service_id = hs.service_id
-        WHERE hs.category = 'Dining'
+        JOIN food_items fi ON r.item_id = fi.item_id
+        WHERE fi.type = 'food'
     """
     cursor.execute(stats_query)
     dining_stats = cursor.fetchone() or {
@@ -1563,9 +1554,9 @@ def view_massage():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled
         FROM requests
         WHERE service_id IN (
             SELECT service_id 

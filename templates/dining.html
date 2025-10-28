@@ -103,32 +103,23 @@
                 </div>
 
                 <!-- Summary Cards -->
-                <div class="row mb-4">
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm border-0 h-100 summary-card">
-                            <div class="card-body text-center">
-                                <i class="ri-restaurant-2-line text-primary mb-2"></i>
-                                <h6 class="fw-semibold mb-1">Total Requests</h6>
-                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.total_requests or 0 }}</h4>
-                            </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Total Requests</h6>
+                            <h3>{{ dining_stats.total_requests or 0 }}</h3>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm border-0 h-100 summary-card">
-                            <div class="card-body text-center">
-                                <i class="ri-time-line text-warning mb-2"></i>
-                                <h6 class="fw-semibold mb-1">Pending</h6>
-                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.pending_requests or 0 }}</h4>
-                            </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Pending</h6>
+                            <h3 class="text-warning">{{ dining_stats.pending_requests or 0 }}</h3>
                         </div>
                     </div>
-                    <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm border-0 h-100 summary-card">
-                            <div class="card-body text-center">
-                                <i class="ri-check-line text-success mb-2"></i>
-                                <h6 class="fw-semibold mb-1">Completed</h6>
-                                <h4 class="fw-bold text-dark mb-0">{{ dining_stats.completed_requests or 0 }}</h4>
-                            </div>
+                    <div class="col-md-3 col-sm-6">
+                        <div class="summary-card">
+                            <h6>Completed</h6>
+                            <h3 class="text-success">{{ dining_stats.completed_requests or 0 }}</h3>
                         </div>
                     </div>
                 </div>
@@ -138,7 +129,7 @@
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Dining Menu Inventory</h5>
                         <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addDiningModal">
-                            <i class="ri-add-line me-1"></i> Add Menu Item
+                            <i class="ri-add-line me-1"></i> Add Record
                         </a>
                     </div>
                     <div class="card-body">
@@ -150,7 +141,6 @@
                                         <th>Name</th>
                                         <th>Description</th>
                                         <th class="text-end">Price</th>
-                                        <th>Type</th>
                                         <th>Action</th>
                                         <th>Last Update</th>
                                     </tr>
@@ -162,7 +152,6 @@
                                         <td>{{ dining_service.name }}</td>
                                         <td>{{ dining_service.description }}</td>
                                         <td class="text-end">₱{{ "{:,.2f}".format(dining_service.price | float) }}</td>
-                                        <td><span class="badge bg-primary-transparent">{{ dining_service.type }}</span></td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 data-bs-toggle="modal"
@@ -200,7 +189,7 @@
             <div class="modal-content">
                 <form id="addForm" action="/addDining" method="POST">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title" id="addDiningModalLabel">Add Dining Item</h5>
+                        <h5 class="modal-title" id="addDiningModalLabel">Add Record</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -379,7 +368,7 @@
                     searchPlaceholder: "Search dining items..."
                 },
                 columnDefs: [
-                    { targets: [5, 6], orderable: false, searchable: false }
+                    { targets: [5, 5], orderable: false, searchable: false }
                 ]
             });
         });

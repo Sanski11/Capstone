@@ -44,7 +44,7 @@
         .summary-card h3 { font-weight: 700; color: #343a40; }
         .text-purple { color: var(--ez-primary) !important; }
         table.dataTable thead th { background-color: var(--ez-primary); color: white; }
-        </style>
+    </style>
 </head>
 
 <body>
@@ -66,43 +66,47 @@
         </div>
     </div>
 </header>
-    <!-- SIDEBAR -->
-    <aside class="app-sidebar sticky" id="sidebar">
-        <div class="main-sidebar-header p-3 text-center">
-          <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
-        </div>
-        <div class="main-sidebar" id="sidebar-scroll">
-          <nav class="main-menu-container nav nav-pills flex-column sub-open">
-            <ul class="main-menu">
-              <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
-  
-              {% if role == 'admin','manager' %}
-                <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
-                <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
-                <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
-                <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
-                <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
-                <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
-                <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
-                <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
-                <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
-                <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
-                <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
-              {% endif %}
-  
-              {% if role == 'admin' %}
-                <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-                <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-              {% endif %}
-              <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-              <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
-            </ul>
-          </nav>
-        </div>
-      </aside>
+<!-- SIDEBAR -->
+<aside class="app-sidebar sticky" id="sidebar">
+    <div class="main-sidebar-header p-3 text-center">
+        <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
+    </div>
+    <div class="main-sidebar" id="sidebar-scroll">
+        <nav class="main-menu-container nav nav-pills flex-column sub-open">
+        <ul class="main-menu">
+            <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
+
+            {% if role == 'admin','manager' %}
+            <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
+            <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
+            <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
+            <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
+            <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
+            <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
+            <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
+            <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
+            <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
+            <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
+            <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
+            {% endif %}
+
+            {% if role == 'admin' %}
+            <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
+            <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
+            {% endif %}
+            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
+        </ul>
+        </nav>
+    </div>
+    </aside>
           
+        <!-- Main Content -->
         <div class="main-content app-content">
             <div class="container-fluid page-container main-body-container">
+                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+                    <h1 class="page-title fw-medium fs-20 mb-0">Housekeeping Management</h1>
+                </div>
 
                 <!-- Summary Cards -->
                 <div class="row g-3 mb-4">
@@ -126,6 +130,7 @@
                     </div>
                 </div>
 
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     <div class="mb-3">
@@ -139,11 +144,12 @@
                 {% endif %}
                 {% endwith %}
 
+                <!-- Housekeeping Table -->
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Housekeeping Services Inventory</h5>
                          <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addHousekeepingModal">
-                        <i class="ri-add-line me-1"></i> Add Service
+                        <i class="ri-add-line me-1"></i> Add Record
                     </a>
                     </div>
                     <div class="card-body">
@@ -155,7 +161,6 @@
                                         <th>Category</th>
                                         <th>Name</th>
                                         <th>Description</th>
-                                        <th>Type</th>
                                         <th class="text-end">Amount</th>
                                         <th>Last Update</th>
                                         <th>Action</th>
@@ -167,7 +172,6 @@
                                         <td>{{ hotel_service.category }}</td>
                                         <td>{{ hotel_service.name }}</td>
                                         <td>{{ hotel_service.description }}</td>
-                                        <td><span class="badge bg-primary-transparent">{{ hotel_service.type }}</span></td>
                                         <td class="text-end">₱{{ "{:,.2f}".format(hotel_service.price | float) }}</td>
                                         <td>{{ hotel_service.last_update }} / {{ hotel_service.timestamp }}</td>
                                         <td>
@@ -207,7 +211,7 @@
             <div class="modal-content">
                 <form id="addForm" action="/addHousekeeping" method="POST">
                     <div class="modal-header bg-primary text-white" style="background-color: var(--ez-primary) !important;">
-                        <h5 class="modal-title" id="addHousekeepingModalLabel">Add Housekeeping Service</h5>
+                        <h5 class="modal-title" id="addHousekeepingModalLabel">Add Record</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -355,7 +359,7 @@
                 },
                 columnDefs: [
                     { targets: [4], className: 'text-end' },
-                    { targets: [6], orderable: false, searchable: false }
+                    { targets: [5], orderable: false, searchable: false }
                 ],
                 dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
             });

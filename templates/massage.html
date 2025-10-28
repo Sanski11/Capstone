@@ -139,7 +139,7 @@
           <div class="card-header justify-content-between">
             <h5 class="card-title mb-0">Massage Services</h5>
             <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-                            <i class="ri-add-line me-1"></i> Add Service
+                            <i class="ri-add-line me-1"></i> Add Record
                         </a>
           </div>
           <div class="card-body">
@@ -203,7 +203,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" action="{{ url_for('add_massage') }}">
-          <div class="modal-header"><h5 class="modal-title">Add Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Record</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
           <div class="modal-body">
             <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Massage" readonly></div>
             <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
