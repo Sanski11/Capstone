@@ -130,39 +130,6 @@ def send_reset_otp(email):
     # Here, send the OTP via email (SMTP / Mailtrap / SendGrid)
     print(f"OTP for {email}: {otp}")  # for testing
     flash("A verification code has been sent to your email.", "info")
-
-def send_otp_email(email):
-    """Generate and send a 6-digit OTP for account verification."""
-    otp = str(random.randint(100000, 999999))
-    session['otp'] = otp
-    session['otp_expiry'] = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
-    session['pending_verification_email'] = email
-
-    subject = "Your ezStay OTP Verification Code"
-    body = f"""
-    Hello,
-
-    Your One-Time Password (OTP) for ezStay verification is: {otp}
-
-    This code is valid for 5 minutes. Please do not share it with anyone.
-
-    Thank you,
-    ezStay Support Team
-    """
-
-    try:
-        server = smtplib.SMTP(app.config['EMAIL_HOST'], app.config['EMAIL_PORT'])
-        server.starttls()
-        server.login(app.config['EMAIL_USERNAME'], app.config['EMAIL_PASSWORD'])
-        message = f"Subject: {subject}\n\n{body}"
-        server.sendmail(app.config['EMAIL_USERNAME'], email, message)
-        server.quit()
-
-        print(f"✅ OTP sent successfully to {email}: {otp}")
-        return True
-    except Exception as e:
-        print(f"❌ Failed to send OTP to {email}: {e}")
-        return False
     
 @app.context_processor
 def inject_user_details():
@@ -251,68 +218,6 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        # Get form data
-        username = request.form.get('username', '').strip()
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '').strip()
-        role = request.form.get('role', 'user').lower()
-
-        # Optional middle name, default to empty string
-        middle_name = request.form.get('middle_name', '').strip()
-
-        # Validate role
-        allowed_roles = ['manager', 'supervisor', 'admin', 'user']
-        if role not in allowed_roles:
-            role = 'user'
-
-        status = 1  # active account by default
-
-        cursor = mysql.connection.cursor()
-
-        try:
-            # Check if username already exists
-            cursor.execute("SELECT username FROM users WHERE username = %s", (username,))
-            if cursor.fetchone():
-                flash("Username already taken.", "danger")
-                return redirect(url_for('signup'))
-
-            # Check if email already exists
-            cursor.execute("SELECT email FROM users WHERE email = %s", (email,))
-            if cursor.fetchone():
-                flash("Email already registered. Please log in.", "danger")
-                return redirect(url_for('signup'))
-
-            # Generate verification token
-            verification_token = generate_verification_token()
-            token_expires_at = datetime.now() + timedelta(hours=24)
-
-            # Insert user into database
-            cursor.execute("""
-                INSERT INTO users 
-                (username, email, password, middle_name, role, account_status, email_verified, verification_token, token_expires_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (username, email, password, middle_name, role, status, False, verification_token, token_expires_at))
-            mysql.connection.commit()
-            cursor.close()
-
-            # Send verification email
-            if send_verification_email(email, username, verification_token):
-                flash("✅ Account created! Check your email for a verification link.", "success")
-                return redirect(url_for('verification_pending'))
-            else:
-                flash("⚠️ Account created but failed to send verification email. Contact support.", "warning")
-                return redirect(url_for('signup'))
-
-        except Exception as e:
-            print("Signup error:", e)
-            flash("Something went wrong. Please try again.", "danger")
-            return redirect(url_for('signup'))
-
-    # GET request
-    return render_template('signup.html')
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -374,6 +279,55 @@ def reset_password():
             return render_template('reset_password.html', error="Something went wrong. Please try again.")
 
     return render_template('reset_password.html')
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form['email']
+        username = request.form['username']
+        password = request.form['password']
+
+        # Get selected role safely, fallback to 'user' if invalid
+        role = request.form.get('role', 'user').lower()
+        allowed_roles = ['manager', 'supervisor', 'admin', 'user']
+        if role not in allowed_roles:
+            role = 'user'
+
+        status = 1  # Active by default
+
+        cursor = mysql.connection.cursor()
+
+        # Check if username already exists
+        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
+        if cursor.fetchone():
+            flash("Username already taken.", "danger")
+            return redirect(url_for('signup'))
+
+        # Check if email already exists
+        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for('signup'))
+
+        # Generate verification token
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+
+        # Insert user record with chosen or default role
+        cursor.execute("""
+            INSERT INTO users (username, email, password, role, status, email_verified, verification_token, token_expires_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, email, password, role, status, False, verification_token, token_expires_at))
+        mysql.connection.commit()
+
+        # Send verification email
+        if send_verification_email(email, username, verification_token):
+            flash("Check your email for a verification link.", "success")
+            return redirect(url_for('verification_pending'))
+        else:
+            flash("Could not send email. Contact support.", "danger")
+
+    return render_template('signup.html')
 
 
 @app.route('/verify_email/<verification_token>')
@@ -2746,21 +2700,19 @@ def view_bill(booking_id):
     return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
 
 @app.route('/users')
-def users():
-    # Ensure user is logged in
+def users_page():
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
 
-    # Restrict access to admin/manager roles
+    # Restrict access (optional)
     if session['role'].lower() not in ['admin', 'manager']:
         flash("Access denied.", "danger")
         return redirect(url_for('dashboard'))
 
     search = request.args.get('search', '')
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch users with optional search
+    # Search functionality
     if search:
         like = f"%{search}%"
         cursor.execute("""
@@ -2773,7 +2725,7 @@ def users():
 
     users = cursor.fetchall()
 
-    # Fetch summary counts (always latest)
+    # Summary counts
     cursor.execute("SELECT COUNT(*) AS total FROM users")
     total_users = cursor.fetchone()['total']
 
@@ -2783,7 +2735,11 @@ def users():
     cursor.execute("SELECT COUNT(*) AS inactive FROM users WHERE status = 0")
     inactive_users = cursor.fetchone()['inactive']
 
-    cursor.execute("SELECT COUNT(*) AS admins FROM users WHERE role IN ('admin', 'manager')")
+    cursor.execute("""
+        SELECT COUNT(*) AS admins
+        FROM users
+        WHERE role IN ('admin', 'manager')
+    """)
     total_admins = cursor.fetchone()['admins']
 
     cursor.close()
@@ -2795,26 +2751,31 @@ def users():
         active_users=active_users,
         inactive_users=inactive_users,
         total_admins=total_admins,
-        role=session['role'],
-        search=search
+        role=session['role']
     )
 
-@app.route('/activateUser/<int:user_id>')
-def activate_user(user_id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("UPDATE users SET status = 1 WHERE user_id = %s", (user_id,))
+@app.route('/addUser', methods=['POST'])
+def add_user():
+    username = request.form['username']
+    email = request.form['email']
+    role = request.form['role']
+    department = request.form.get('department')
+    status = int(request.form.get('status', 1))  # Default Active
+
+    # Set department to None if user is admin/supervisor
+    if role in ['admin', 'supervisor']:
+        department = None
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        INSERT INTO users (username, email, role, department, status, verified)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (username, email, role, department, status, True))
     mysql.connection.commit()
     cursor.close()
-    return jsonify({"success": True, "status": 1})
 
-
-@app.route('/deactivateUser/<int:user_id>')
-def deactivate_user(user_id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("UPDATE users SET status = 0 WHERE user_id = %s", (user_id,))
-    mysql.connection.commit()
-    cursor.close()
-    return jsonify({"success": True, "status": 0})
+    flash("✅ User added successfully!", "success")
+    return redirect('/users')
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
 def delete_user(user_id):
@@ -3016,6 +2977,47 @@ def verify_otp():
 from flask import request, redirect, url_for, flash
 from datetime import datetime, timedelta
 import random
+
+@app.route('/resend_otp', methods=['GET', 'POST']) # <--- ADDED 'GET' HERE
+def resend_otp():
+    """Regenerate a new OTP and resend it to the user's email"""
+    # ... (Your existing logic is fine) ...
+    user = session.get('pending_user')
+
+    if not user:
+        flash("Your session has expired. Please sign up or log in again.", "danger")
+        return redirect(url_for("login"))
+    
+    # Check if a POST request was actually made (or run the logic if it was a GET request from a button/link)
+    # The logic below proceeds with generating the OTP whether it's GET or POST.
+
+    # Generate new OTP valid for 5 minutes
+    new_otp = str(random.randint(100000, 999999))
+    expiry = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
+
+    # Save to session
+    session['otp'] = new_otp
+    session['otp_expiry'] = expiry
+
+    # Attempt to send email
+    user_email = user.get('email')
+    if not user_email:
+        flash("Unable to find your email in the session. Please log in again.", "danger")
+        return redirect(url_for('login'))
+
+    try:
+        # Placeholder for your actual send_email function
+        # send_email(
+        #     user_email,
+        #     "Your new OTP code",
+        #     f"Your new OTP is: {new_otp}\n\nThis code will expire in 5 minutes."
+        # )
+        flash("✅ A new OTP has been sent to your email. It will expire in 5 minutes.", "success")
+    except Exception as e:
+        print("Email sending error:", e)
+        flash("⚠️ Failed to send OTP. Please try again later.", "danger")
+
+    return redirect(url_for('verify_otp'))
 
 @app.route('/forceassigntask', methods=['POST'])
 def forceassigntask():

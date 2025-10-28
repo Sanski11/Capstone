@@ -51,7 +51,24 @@
 
 <body>
   <div class="page">
+    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+        <!-- Left: Logo or Page Title -->
+        <a class="navbar-brand fw-bold text-purple"></a>
 
+        <!-- Right: Profile Dropdown -->
+        <div class="dropdown">
+            <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="me-2">{{ session['username'] }}</span>
+                <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
+                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+</header>
     <!-- SIDEBAR -->
     <aside class="app-sidebar sticky" id="sidebar">
       <div class="main-sidebar-header p-3 text-center">
@@ -87,7 +104,7 @@
       </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
+    <!-- Main Content -->
     <div class="main-content app-content">
       <div class="container-fluid page-container main-body-container">
 
@@ -102,33 +119,12 @@
 
         <!-- Summary Cards -->
         <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="summary-card">
-                            <h6>Total Users</h6>
-                            <h3 class="text-primary">{{ total_users or 0 }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-card">
-                            <h6>Active Users</h6>
-                            <h3 class="text-warning">{{ active_users or 0 }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-card">
-                            <h6>Inactive Users</h6>
-                            <h3 class="text-success">{{ inactive_users or 0 }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="summary-card">
-                            <h6>Admins & Managers</h6>
-                            <h3 class="text-success">{{ total_admins or 0 }}</h3>
-                        </div>
-                    </div>
-                </div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Total Users</h6><h3 class="fw-bold text-purple">{{ total_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Active Users</h6><h3 class="fw-bold text-success">{{ active_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Inactive Users</h6><h3 class="fw-bold text-secondary">{{ inactive_users }}</h3></div></div>
+          <div class="col-md-3"><div class="card text-center p-3 shadow-sm"><h6 class="text-muted mb-1">Admins & Managers</h6><h3 class="fw-bold text-warning">{{ total_admins }}</h3></div></div>
+        </div>
 
-        <!-- Flash messages -->
         {% with messages = get_flashed_messages() %}
         {% if messages %}
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -145,6 +141,7 @@
               <table id="usersTable" class="table table-bordered align-middle">
                 <thead>
                   <tr>
+                    <th>User ID</th>
                     <th>Username</th>
                     <th>Email</th>
                     <th>Role</th>
@@ -155,39 +152,29 @@
                 </thead>
                 <tbody>
                   {% for user in users %}
-                  <tr id="userRow{{ user.user_id }}">
+                  <tr>
+                    <td>{{ user.user_id }}</td>
                     <td>{{ user.username }}</td>
                     <td>{{ user.email }}</td>
                     <td>{{ user.role }}</td>
                     <td>{{ user.department or "None" }}</td>
-                    <td class="statusCell">
+                    <td>
                       {% if user.status == 1 %}
                         <span class="badge bg-success">Active</span>
                       {% else %}
                         <span class="badge bg-secondary">Inactive</span>
                       {% endif %}
                     </td>
-                    <td class="actionCell">
+                    <td>
                       {% if session.get('role', '').lower() == 'admin' %}
                         <button class="btn btn-warning btn-sm me-1" title="Edit"
                           onclick="showEditModal('{{ user.user_id }}','{{ user.username }}','{{ user.email }}','{{ user.role }}','{{ user.department }}','{{ user.status }}')">
                           <i class="ri-pencil-line"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm me-1" title="Delete"
+                        <button class="btn btn-danger btn-sm" title="Delete"
                           onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
                           <i class="ri-delete-bin-line"></i>
                         </button>
-                        {% if user.status == 1 %}
-                          <button class="btn btn-secondary btn-sm" title="Deactivate"
-                            onclick="confirmDeactivate('{{ user.user_id }}', '{{ user.username | escape }}')">
-                            <i class="ri-user-unfollow-line"></i>
-                          </button>
-                        {% else %}
-                          <button class="btn btn-success btn-sm" title="Activate"
-                            onclick="confirmActivate('{{ user.user_id }}', '{{ user.username | escape }}')">
-                            <i class="ri-user-follow-line"></i>
-                          </button>
-                        {% endif %}
                       {% else %}
                         <span class="text-muted">No actions</span>
                       {% endif %}
@@ -200,39 +187,129 @@
           </div>
         </div>
 
-        <!-- Activate Modal -->
-        <div class="modal fade" id="activateModal" tabindex="-1" aria-hidden="true">
-          <div class="modal-dialog">
+        <!-- Add User Modal -->
+        <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
-              <div class="modal-header bg-success text-white">
-                <h5 class="modal-title"><i class="ri-user-follow-line me-1"></i>Activate User</h5>
+              <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Add Record</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
-              <div class="modal-body">
-                Are you sure you want to activate <strong><span id="activateUserName"></span></strong>?
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button id="confirmActivateBtn" class="btn btn-success">Activate</button>
-              </div>
+              <form action="/addUser" method="POST">
+                <div class="modal-body row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    <select name="role" class="form-select" required>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <select name="department" class="form-select">
+                      <option value="">None</option>
+                      <option value="Housekeeping">Housekeeping</option>
+                      <option value="Dining">Dining</option>
+                      <option value="Laundry">Laundry</option>
+                      <option value="Massage">Massage</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" required>
+                      <option value="1" selected>Active</option>
+                      <option value="0">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-success">Add Record</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
 
-        <!-- Deactivate Modal -->
-        <div class="modal fade" id="deactivateModal" tabindex="-1" aria-hidden="true">
+        <!-- Edit User Modal -->
+        <div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <form action="/updateUser" method="POST">
+                <div class="modal-body row g-3">
+                  <input type="hidden" id="edit_user_id" name="edit_user_id">
+                  <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="edit_username" name="edit_username" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="edit_email" name="edit_email" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Role</label>
+                    <select id="edit_role" name="edit_role" class="form-select" required>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Manager</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="user">User</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <select id="edit_department" name="edit_department" class="form-select">
+                      <option value="">None</option>
+                      <option value="Housekeeping">Housekeeping</option>
+                      <option value="Dining">Dining</option>
+                      <option value="Laundry">Laundry</option>
+                      <option value="Massage">Massage</option>
+                      <option value="All">All</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select id="edit_status" name="edit_status" class="form-select" required>
+                      <option value="1">Active</option>
+                      <option value="0">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="submit" class="btn btn-warning text-white">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
-              <div class="modal-header bg-secondary text-white">
-                <h5 class="modal-title"><i class="ri-user-unfollow-line me-1"></i>Deactivate User</h5>
+              <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                Are you sure you want to deactivate <strong><span id="deactivateUserName"></span></strong>?
+                Are you sure you want to delete user <span id="modalUserName"></span>?
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                <button id="confirmDeactivateBtn" class="btn btn-secondary text-white">Deactivate</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
               </div>
             </div>
           </div>
@@ -259,36 +336,14 @@
       $('#usersTable').DataTable({ pageLength: 10 });
     });
 
-    function confirmActivate(id, name) {
-      $('#activateUserName').text(name);
-      $('#confirmActivateBtn').off('click').on('click', function() {
-        $.get(`/activateUser/${id}`, function() {
-          let row = $(`#userRow${id}`);
-          row.find('.statusCell').html('<span class="badge bg-success">Active</span>');
-          row.find('.actionCell').find('.btn-success').replaceWith(`
-            <button class="btn btn-secondary btn-sm" title="Deactivate" onclick="confirmDeactivate('${id}', '${name}')">
-              <i class="ri-user-unfollow-line"></i>
-            </button>`);
-          $('#activateModal').modal('hide');
-        });
-      });
-      $('#activateModal').modal('show');
-    }
-
-    function confirmDeactivate(id, name) {
-      $('#deactivateUserName').text(name);
-      $('#confirmDeactivateBtn').off('click').on('click', function() {
-        $.get(`/deactivateUser/${id}`, function() {
-          let row = $(`#userRow${id}`);
-          row.find('.statusCell').html('<span class="badge bg-secondary">Inactive</span>');
-          row.find('.actionCell').find('.btn-secondary').replaceWith(`
-            <button class="btn btn-success btn-sm" title="Activate" onclick="confirmActivate('${id}', '${name}')">
-              <i class="ri-user-follow-line"></i>
-            </button>`);
-          $('#deactivateModal').modal('hide');
-        });
-      });
-      $('#deactivateModal').modal('show');
+    function showEditModal(id, username, email, role, department, status) {
+      document.getElementById('edit_user_id').value = id;
+      document.getElementById('edit_username').value = username;
+      document.getElementById('edit_email').value = email;
+      document.getElementById('edit_role').value = role;
+      document.getElementById('edit_department').value = department || '';
+      document.getElementById('edit_status').value = status;
+      new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }
 
     function confirmDelete(id, name) {
@@ -296,21 +351,23 @@
       document.getElementById('confirmDeleteBtn').href = `/deleteUser/${id}`;
       new bootstrap.Modal(document.getElementById('deleteModal')).show();
     }
-    // Animated counters with safe fallback
-    document.querySelectorAll('.count-up').forEach(el=>{
-      const end=parseInt(el.dataset.value) || 0;
-      let start=0, step=end/80;
-      function animate(){
-        start+=step;
-        if(start<end){
-          el.textContent=Math.floor(start);
-          requestAnimationFrame(animate);
-        } else {
-          el.textContent=end.toLocaleString();
+    
+     document.querySelectorAll('.summary-card h3').forEach(el => {
+        const end = parseInt(el.textContent);
+        let start = 0;
+        const step = Math.max(1, Math.floor(end / 60));
+    
+        function animate() {
+          start += step;
+          if (start < end) {
+            el.textContent = start;
+            requestAnimationFrame(animate);
+          } else {
+            el.textContent = end;
+          }
         }
-      }
-      animate();
-    });
+        animate();
+      });
   </script>
 </body>
 </html>
