@@ -383,8 +383,8 @@ def dashboard():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
-            JOIN services s ON r.service_id = s.service_id 
-            WHERE s.service_type = 'Housekeeping'
+            JOIN hotel_services s ON r.service_id = s.service_id 
+            WHERE s.category = 'Housekeeping'
         """)
         housekeeping = cursor.fetchone()['count']
 
@@ -392,8 +392,7 @@ def dashboard():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
-            JOIN services s ON r.service_id = s.service_id 
-            WHERE s.service_type = 'Dining'
+            JOIN food_items f ON r.item_id = f.item_id 
         """)
         food = cursor.fetchone()['count']
 
@@ -401,8 +400,8 @@ def dashboard():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
-            JOIN services s ON r.service_id = s.service_id 
-            WHERE s.service_type = 'Laundry'
+            JOIN hotel_services s ON r.service_id = s.service_id 
+            WHERE s.category = 'Laundry'
         """)
         laundry = cursor.fetchone()['count']
 
@@ -410,8 +409,8 @@ def dashboard():
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM requests r 
-            JOIN services s ON r.service_id = s.service_id 
-            WHERE s.service_type = 'Massage'
+            JOIN hotel_services s ON r.service_id = s.service_id 
+            WHERE s.category = 'Massage'
         """)
         spa = cursor.fetchone()['count']
 
@@ -457,10 +456,10 @@ def dashboard():
 
         # Chart Data: Requests per Service Type
         cursor.execute("""
-            SELECT s.service_type, COUNT(*) AS count
-            FROM services s
+            SELECT s.category, COUNT(*) AS count
+            FROM hotel_services s
             JOIN requests r ON s.service_id = r.service_id
-            GROUP BY s.service_type
+            GROUP BY s.category
         """)
         service_data = cursor.fetchall()
 
@@ -2572,11 +2571,16 @@ def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     #Get all requests for this booking
     cursor.execute("""
-        SELECT r.*, s.item, s.amount
+        SELECT 
+            r.*, 
+            s.name AS service_name,
+            f.name AS item_name
         FROM requests r
-        JOIN services s ON r.service_id = s.service_id
+        LEFT JOIN hotel_services s ON r.service_id = s.service_id
+        LEFT JOIN food_items f ON r.item_id = f.item_id
         WHERE r.booking_id = %s
     """, (booking_id,))
+  
     requests = cursor.fetchall()
     total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
     cursor.close()
