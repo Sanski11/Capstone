@@ -115,7 +115,6 @@
                             <table id="auditlogsTable" class="table table-hover table-bordered">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>ID</th>
                                         <th>Username</th>
                                         <th>Timestamp</th>
                                         <th>Tablename</th>
@@ -128,7 +127,6 @@
                                 <tbody>
                                     {% for log in logs %}
                                     <tr>
-                                        <td>{{ log.log_id }}</td>
                                         <td>{{ log.username }}</td>
                                         <td>{{ log.timestamp }}</td>
                                         <td>{{ log.table_name }}</td>

@@ -159,7 +159,6 @@
                             <table id="housekeepingTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>Category</th>
                                         <th>Name</th>
                                         <th>Description</th>
                                         <th class="text-end">Amount</th>
@@ -170,7 +169,6 @@
                                 <tbody>
                                     {% for hotel_service in hotel_services %}
                                     <tr>
-                                        <td>{{ hotel_service.category }}</td>
                                         <td>{{ hotel_service.name }}</td>
                                         <td>{{ hotel_service.description }}</td>
                                         <td class="text-end">₱{{ "{:,.2f}".format(hotel_service.price | float) }}</td>
@@ -359,8 +357,8 @@
                     searchPlaceholder: "Search services...",
                 },
                 columnDefs: [
-                    { targets: [4], className: 'text-end' },
-                    { targets: [5], orderable: false, searchable: false }
+                    { targets: [3], className: 'text-end' },
+                    { targets: [4], orderable: false, searchable: false }
                 ],
                 dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
             });

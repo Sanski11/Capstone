@@ -151,11 +151,9 @@
               <table id="massageTable" class="table text-nowrap table-hover table-bordered">
                 <thead class="table-primary">
                   <tr>
-                    <th>Category</th>
                     <th>Name</th>
                     <th>Description</th>
                     <th class="text-end">Price</th>
-                    <th>Type</th>
                     <th>Last Update</th>
                     <th>Action</th>
                   </tr>
@@ -163,11 +161,9 @@
                 <tbody>
                   {% for ms in massage_services %}
                   <tr>
-                    <td>{{ ms.category }}</td>
                     <td>{{ ms.name }}</td>
                     <td>{{ ms.description }}</td>
                     <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
-                    <td>{{ ms.type }}</td>
                     <td>{{ ms.last_update}} / {{ ms.timestamp }}</td>
                     <td>
                       {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
@@ -273,7 +269,7 @@
       order: [[0, 'asc']],
       responsive: true,
       language: { search: "_INPUT_", searchPlaceholder: "Search massage services..." },
-      columnDefs: [{ targets: [5], orderable: false, searchable: false }]
+      columnDefs: [{ targets: [3], orderable: false, searchable: false }]
     });
 
     function openEditModal(ms) {

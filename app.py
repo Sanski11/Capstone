@@ -630,26 +630,11 @@ def logout():
 @app.route('/staff')
 def view_staffs():
     selected_staff = request.args.get('staff_id', '') #Get the id of the selected staff
-    search = request.args.get('search', '') #Get the value of the entered text in search
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    if search:
-        like = f"%{search}%"
-        query = """
-        SELECT *
-        FROM staff
-        WHERE 
-            first_name LIKE %s OR
-            last_name LIKE %s OR
-            role LIKE %s OR
-            email LIKE %s OR
-            phone LIKE %s
-    """
-        cursor.execute(query, (like,) * 5) #Execute. 5 for 5 search criteria (fname, lname, role, email, phone)
-    else:
-        cursor.execute("""
-            SELECT * FROM staff ORDER BY last_name, first_name
-        """)
+    cursor.execute("""
+        SELECT * FROM staff ORDER BY last_name, first_name
+    """)
     staffs = cursor.fetchall() #Fetch results
     return render_template('staff.html', staffs=staffs) #pass the contents of staffs to staff.html
 
@@ -780,24 +765,11 @@ def show_requests():
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
 def view_rooms():
-    search = request.args.get('search', '')   #Get the value entered in search
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
 
-    if search:
-        like = f"%{search}%"
-        query = """
-            SELECT *
-            FROM room
-            WHERE 
-                room_number LIKE %s OR
-                room_type LIKE %s OR
-                room_status LIKE %s
-        """
-        cursor.execute(query, (like,) * 3)  #Execute. 3 for 3 search criteria (room_number, room_type, room_status)
-    else:
-        cursor.execute("""
-            SELECT * FROM room ORDER BY room_number
-        """)
+    cursor.execute("""
+        SELECT * FROM room ORDER BY room_number
+    """)
 
     rooms = cursor.fetchall()  #After executing sql, fetch results
     return render_template('rooms.html', rooms=rooms) #pass the contents of rooms to rooms.html
@@ -807,33 +779,17 @@ def view_rooms():
 @app.route('/guests')
 def view_guests():
     selected_guest = request.args.get('guest_id', '')  #Get the id of the selected guest
-    search = request.args.get('search', '')  #Get the value entered in search
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
 
-    if search:
-        like = f"%{search}%"
-        query = """
-        SELECT *
-        FROM guest
-        WHERE 
-            first_name LIKE %s OR
-            middle_name LIKE %s OR
-            last_name LIKE %s OR
-            email LIKE %s OR
-            phone LIKE %s
-    """
-        cursor.execute(query, (like,) * 5) #Execute. 5 for 5 search criteria (first, middle, last, email, phone)
-    else:
-        cursor.execute("""
-            SELECT * FROM guest ORDER BY last_name, first_name
-        """)
+    cursor.execute("""
+        SELECT * FROM guest ORDER BY last_name, first_name
+    """)
     guests = cursor.fetchall() #After executing; fetch results
     return render_template('guests.html', guests=guests) #pass the contents of guests to guests.html
 
 #Called by CHECKIN / CHECKOUT MENU - display bookings
 @app.route('/roomGuest')
 def show_roomGuest():
-    query = request.args.get('search', '') #Get the value entered in search
     selected_room = request.args.get('room_id', '') #Get the roomid of the selected booking
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
 
@@ -845,39 +801,16 @@ def show_roomGuest():
     cursor.execute("SELECT * FROM room")
     rooms = cursor.fetchall()
 
-    if query:
-        search_pattern = f"%{query}%"
-        query = """
+    cursor.execute("""
             SELECT 
-                b.*,
-                r.room_number as room_number,
-                g.last_name as last_name,
-                g.first_name as first_name 
+                b.*, 
+                g.first_name,
+                g.last_name,
+                r.room_number
             FROM bookings b
-            JOIN room r ON b.room_id = r.room_id
             JOIN guest g ON b.guest_id = g.guest_id
-            WHERE 
-                booking_id LIKE %s OR
-                room_number LIKE %s OR
-                last_name LIKE %s OR
-                first_name LIKE %s OR
-                exp_check_in LIKE %s OR
-                exp_check_out LIKE %s OR
-                actual_check_in LIKE %s OR
-                actual_check_out LIKE %s
-        """
-        cursor.execute(query, (search_pattern,) * 8) #Execute 8 for 8 search criteria
-    else:
-        cursor.execute("""
-                SELECT 
-                    b.*, 
-                    g.first_name,
-                    g.last_name,
-                    r.room_number
-                FROM bookings b
-                JOIN guest g ON b.guest_id = g.guest_id
-                JOIN room r ON b.room_id = r.room_id
-            """)
+            JOIN room r ON b.room_id = r.room_id
+        """)
     bookings = cursor.fetchall() #After executing sql; fetch results
     cursor.close() #Close db connection
     return render_template('roomGuest.html', bookings=bookings, rooms=rooms,guests=guests) #Pass the contents of bookings to roomGuest.html
@@ -1396,7 +1329,6 @@ def completed_request():
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
 def view_housekeeping():
-    search = request.args.get('search', '')  # Get search term if any
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Connect to DB
 
     # Fetch housekeeping services
@@ -1445,26 +1377,15 @@ def view_housekeeping():
 #Called by LAUNDRY Menu - display list of laundry
 @app.route('/laundry')
 def view_laundry():
-    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # --- Fetch laundry services ---
-    if search:
-        like = f"%{search}%"
-        query = """
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Laundry'
-            AND (name LIKE %s OR description LIKE %s)
-        """
-        cursor.execute(query, (like, like))
-    else:
-        cursor.execute("""
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Laundry'
-            ORDER BY name
-        """)
+    cursor.execute("""
+        SELECT *
+        FROM hotel_services
+        WHERE category = 'Laundry'
+        ORDER BY name
+    """)
     laundry_services = cursor.fetchall()
 
     # --- Fetch laundry statistics (for summary cards) ---
@@ -1497,7 +1418,6 @@ def view_laundry():
 #Called by DINING Menu - display list of dining
 @app.route('/dining')
 def view_dining():
-    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Retrieve menu items
@@ -1537,25 +1457,15 @@ def view_dining():
 #Called by MASSAGE Menu - display list of massage
 @app.route('/massage')
 def view_massage():
-    search = request.args.get('search', '')  # Get search input
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Query for massage services
-    if search:
-        like = f"%{search}%"
-        cursor.execute("""
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Massage'
-            AND (name LIKE %s OR description LIKE %s)
-        """, (like, like))
-    else:
-        cursor.execute("""
-            SELECT *
-            FROM hotel_services
-            WHERE category = 'Massage'
-            ORDER BY name
-        """)
+    cursor.execute("""
+        SELECT *
+        FROM hotel_services
+        WHERE category = 'Massage'
+        ORDER BY name
+    """)
     massage_services = cursor.fetchall()
 
     # ==============================
@@ -2355,7 +2265,6 @@ def deleteGuest(guest_id):
 #Called by BOOKINGS Menu - display bookings
 @app.route('/bookings')
 def view_bookings():
-    search = request.args.get('search', '')  #Get value of the search
     selected_type = request.args.get('room_type', '')  #Get id of the selected room
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -2372,43 +2281,17 @@ def view_bookings():
     rooms = cursor.fetchall()
 
     #Get bookings with guest name and room number using JOIN
-    if search:
-        like = f"%{search}%"
-        query = """
-            SELECT 
-                b.*, 
-                g.first_name AS first_name,
-                g.last_name AS last_name,
-                r.room_number AS room_number
-            FROM bookings b
-            JOIN guest g ON b.guest_id = g.guest_id
-            JOIN room r ON b.room_id = r.room_id
-            WHERE 
-                b.booking_id LIKE %s OR
-                b.guest_id LIKE %s OR
-                b.room_type LIKE %s OR
-                b.room_id LIKE %s OR
-                b.exp_check_in LIKE %s OR
-                b.exp_check_out LIKE %s OR
-                b.status LIKE %s OR
-                b.random_booking_ref LIKE %s OR
-                g.first_name LIKE %s OR
-                g.last_name LIKE %s OR
-                r.room_number LIKE %s
-        """
-        cursor.execute(query, (like,) * 11) #Execute sql; 11 for 11 search criteria
-    else:
-        cursor.execute("""
-            SELECT 
-                b.*, 
-                g.first_name AS first_name,
-                g.last_name AS last_name,
-                r.room_number AS room_number
-            FROM bookings b
-            JOIN guest g ON b.guest_id = g.guest_id
-            JOIN room r ON b.room_id = r.room_id
-        """)
-    
+    cursor.execute("""
+        SELECT 
+            b.*, 
+            g.first_name AS first_name,
+            g.last_name AS last_name,
+            r.room_number AS room_number
+        FROM bookings b
+        JOIN guest g ON b.guest_id = g.guest_id
+        JOIN room r ON b.room_id = r.room_id
+    """)
+
     bookings = cursor.fetchall()
     cursor.close()
 

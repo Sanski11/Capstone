@@ -151,10 +151,8 @@
                             <table id="laundryTable" class="table table-hover table-bordered text-nowrap">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>Category</th>
                                         <th>Name</th>
                                         <th>Description</th>
-                                        <th>Type</th>
                                         <th class="text-end">Amount</th>
                                         <th>Last Update</th>
                                         <th>Action</th>
@@ -163,10 +161,8 @@
                                 <tbody>
                                     {% for laundry_service in laundry_services %}
                                     <tr>
-                                        <td>{{ laundry_service.category }}</td>
                                         <td>{{ laundry_service.name }}</td>
                                         <td>{{ laundry_service.description }}</td>
-                                        <td><span class="badge bg-primary-transparent">{{ laundry_service.type }}</span></td>
                                         <td class="text-end">₱{{ "{:,.2f}".format(laundry_service.price | float) }}</td>
                                         <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                         <td>
@@ -268,7 +264,7 @@
           order: [[0, 'asc']],
           responsive: true,
           language: { search: "_INPUT_", searchPlaceholder: "Search laundry services..." },
-          columnDefs: [{ targets: [5], orderable: false, searchable: false }]
+          columnDefs: [{ targets: [4], orderable: false, searchable: false }]
         });
     
         function EditLaundryModal(ms) {

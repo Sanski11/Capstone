@@ -145,8 +145,8 @@
                                         <th>Name</th>
                                         <th>Description</th>
                                         <th class="text-end">Price</th>
-                                        <th>Action</th>
                                         <th>Last Update</th>
+                                        <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -156,6 +156,7 @@
                                         <td>{{ dining_service.name }}</td>
                                         <td>{{ dining_service.description }}</td>
                                         <td class="text-end">₱{{ "{:,.2f}".format(dining_service.price | float) }}</td>
+                                        <td>{{ dining_service.last_update }} / {{ dining_service.timestamp }}</td>
                                         <td>
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 data-bs-toggle="modal"
@@ -168,7 +169,6 @@
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
-                                        <td>{{ dining_service.last_update }} / {{ dining_service.timestamp }}</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
