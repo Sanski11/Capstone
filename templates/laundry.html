@@ -193,7 +193,8 @@
 
     <!-- ========== MODALS ========== -->
 
-    <!-- Add Modal -->
+    <!-- Add Modal for creating a new record -->
+    <!-- Opens a form where users can input  details to be saved in the database -->
     <div class="modal fade" id="addLaundryModal" tabindex="-1">
         <div class="modal-dialog">
         <div class="modal-content">
@@ -212,7 +213,8 @@
         </div>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- Edit Modal for updating an existing record -->
+    <!-- Displays the selected service details in editable form fields for modification -->
     <div class="modal fade" id="editLaundryModal" tabindex="-1">
         <div class="modal-dialog">
         <div class="modal-content">
@@ -232,7 +234,8 @@
         </div>
     </div>
 
-    <!-- Delete Modal -->
+    <!-- Delete Modal for confirming removal of a  record -->
+    <!-- Prompts the user to verify before permanently deleting the selected service -->
     <div class="modal fade" id="deleteLaundryModal" tabindex="-1">
         <div class="modal-dialog">
         <div class="modal-content text-center">
@@ -267,6 +270,8 @@
           columnDefs: [{ targets: [4], orderable: false, searchable: false }]
         });
     
+        // Function to set up the modal for editing a record
+        // Retrieves data from the clicked button and populates the edit form fields            
         function EditLaundryModal(ms) {
           $('#edit_service_id').val(ms.service_id);
           $('#edit_category').val(ms.category);
@@ -277,6 +282,8 @@
           new bootstrap.Modal(document.getElementById('editLaundryModal')).show();
         }
     
+        // Function to confirm deletion of a record
+        // Checks first if the record is linked or in use before deleting        
         function confirmDelete(service_id, name) {
           fetch(`/checkServices/${service_id}`)
             .then(r => r.json())

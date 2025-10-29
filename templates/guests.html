@@ -89,6 +89,7 @@
         </div>
       </aside>
           
+        <!-- Main content -->
         <div class="main-content app-content">
             <div class="container-fluid page-container main-body-container">
 
@@ -109,6 +110,7 @@
                 {% endif %}
                 {% endwith %}
 
+                <!-- Guests Table -->
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Registered Guests</h5>
@@ -168,6 +170,10 @@
         </footer>
     </div>
 
+    <!-- ========== MODALS ========== -->
+
+    <!-- Add Modal for creating a new record -->
+    <!-- Opens a form where users can input  details to be saved in the database -->
     <div class="modal fade" id="addGuestModal" tabindex="-1" aria-labelledby="addGuestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -208,6 +214,8 @@
         </div>
     </div>
 
+    <!-- Edit Modal for updating an existing record -->
+    <!-- Displays the selected service details in editable form fields for modification -->
     <div class="modal fade" id="editGuestModal" tabindex="-1" aria-labelledby="editGuestModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -249,6 +257,8 @@
         </div>
     </div>
 
+    <!-- Delete Modal for confirming removal of a  record -->
+    <!-- Prompts the user to verify before permanently deleting the selected service -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -267,6 +277,8 @@
         </div>
     </div>
 
+    <!-- In Use Modal for notifying the user that deletion is not allowed -->
+    <!-- Displays a warning when the selected dining service is currently linked to existing requests -->
     <div class="modal fade" id="inUseModal" tabindex="1" aria-labelledby="inUseModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -284,6 +296,7 @@
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
