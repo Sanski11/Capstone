@@ -63,7 +63,7 @@
                 <ul class="main-menu">
                     <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
 
-                    {% if role == 'admin','manager' %}
+                    {% if role in ['admin', 'manager'] %}
                     <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
                     <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
                     <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
@@ -184,19 +184,19 @@
                                                     data-category="{{ request.service_category or request.food_category }}"
                                                     data-request_type="{{ 'service' if request.service_name else 'food' }}"
                                                     data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
-                                                    {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-pencil-line"></i>
                                                 </button>
 
                                                 <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
                                                     onclick="confirmDelete('{{ request.request_id }}')"
-                                                    {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
 
                                                 <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                     onclick="openCompletedModal('{{ request.request_id }}')"
-                                                    {% if request.status != 'pending' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
+                                                    {% if request.status|upper != 'PENDING' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
                                                     <i class="bi bi-check-circle"></i>
                                                 </button>
                                             </div>
@@ -204,14 +204,14 @@
                                             <div class="d-flex gap-1 mt-1">
                                                 <button class="btn btn-sm btn-primary-light btn-wave"
                                                     onclick="openAssignModal('{{ request.request_id }}')"
-                                                    {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-user-line me-1"></i> Manual
                                                 </button>
 
                                                 <form method="POST" action="/assigntask" style="display:inline;">
                                                     <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
                                                     <button type="submit" class="btn btn-sm btn-success-light btn-wave"
-                                                            {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                            {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                       <i class="ri-lightning-line me-1"></i> Auto
                                                     </button>
                                                 </form>
@@ -434,7 +434,7 @@
           <input type="hidden" id="assignTask_request_id" name="assignTask_request_id">
           <div class="mb-3">
             <label>Assign to Staff</label>
-            <select name="staff_id" class="form-select" required>
+            <select name="assignTask_staff_id" class="form-select" required>
               {% for staff in staff_list %}
               <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.department }})</option>
               {% endfor %}
