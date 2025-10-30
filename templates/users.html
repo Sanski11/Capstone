@@ -151,17 +151,19 @@
                 </thead>
                 <tbody>
                   {% for user in users %}
-                  <tr>
+                  <tr data-user="{{ user.user_id }}" data-status="{{ user.status }}">
                     <td>{{ user.username }}</td>
                     <td>{{ user.email }}</td>
                     <td>{{ user.role }}</td>
                     <td>{{ user.department or "None" }}</td>
                     <td>
-                      {% if user.status == 1 %}
-                        <span class="badge bg-success">Active</span>
-                      {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
-                      {% endif %}
+                      <span id="status-{{ user.user_id }}">
+                        {% if user.status == 1 %}
+                          <span class="badge bg-success">Active</span>
+                        {% else %}
+                          <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                      </span>
                     </td>
                     <td>
                       {% if session.get('role', '').lower() == 'admin' %}
@@ -247,7 +249,7 @@
                 <h5 class="modal-title">Edit User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
-              <form action="/updateUser" method="POST">
+              <form id="editUserForm" action="/updateUser" method="POST">
                 <div class="modal-body row g-3">
                   <input type="hidden" id="edit_user_id" name="edit_user_id">
                   <div class="col-md-6">
@@ -331,7 +333,7 @@
 
   <script>
     $(document).ready(function() {
-      $('#usersTable').DataTable({ pageLength: 10 });
+      window.usersTable = $('#usersTable').DataTable({ pageLength: 10 });
     });
 
     function showEditModal(id, username, email, role, department, status) {
@@ -344,28 +346,80 @@
       new bootstrap.Modal(document.getElementById('editUserModal')).show();
     }
 
-    function confirmDelete(id, name) {
-      document.getElementById('modalUserName').innerText = name;
-      document.getElementById('confirmDeleteBtn').href = `/deleteUser/${id}`;
-      new bootstrap.Modal(document.getElementById('deleteModal')).show();
-    }
-    
-     document.querySelectorAll('.summary-card h3').forEach(el => {
-        const end = parseInt(el.textContent);
-        let start = 0;
-        const step = Math.max(1, Math.floor(end / 60));
-    
-        function animate() {
-          start += step;
-          if (start < end) {
-            el.textContent = start;
-            requestAnimationFrame(animate);
-          } else {
-            el.textContent = end;
+    // Auto-apply edit changes to UI and persist to server in background
+    document.getElementById('editUserForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      const userId = fd.get('edit_user_id');
+      const newStatus = fd.get('edit_status'); // "1" or "0"
+
+      // Find row and previous status
+      const tr = document.querySelector(`tr[data-user="${userId}"]`);
+      const prevStatus = tr ? tr.getAttribute('data-status') : null;
+
+      // Update badge immediately
+      const badgeSpan = document.getElementById('status-' + userId);
+      if (badgeSpan) {
+        badgeSpan.innerHTML = (newStatus === '1')
+          ? '<span class="badge bg-success">Active</span>'
+          : '<span class="badge bg-secondary">Inactive</span>';
+      }
+
+      // Update row data-status attribute and DataTable row cell
+      if (tr) {
+        tr.setAttribute('data-status', newStatus);
+        // update the 5th column (0-based index: Username(0) Email(1) Role(2) Department(3) Status(4))
+        const cellIndex = 4;
+        const rowNode = tr;
+        $(rowNode).find('td').eq(cellIndex).html(badgeSpan ? badgeSpan.innerHTML : (newStatus === '1' ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'));
+        // redraw DataTable without resetting paging
+        if (window.usersTable) {
+          window.usersTable.row(rowNode).invalidate().draw(false);
+        }
+      }
+
+      // Update summary counters if status changed
+      try {
+        if (prevStatus !== null && prevStatus !== newStatus) {
+          const totalEl = document.querySelectorAll('.card h3')[0];
+          const activeEl = document.querySelectorAll('.card h3')[1];
+          const inactiveEl = document.querySelectorAll('.card h3')[2];
+
+          const total = totalEl ? parseInt(totalEl.textContent) : null;
+          let active = activeEl ? parseInt(activeEl.textContent) : null;
+          let inactive = inactiveEl ? parseInt(inactiveEl.textContent) : null;
+
+          if (active !== null && inactive !== null) {
+            if (newStatus === '1') { active += 1; inactive -= 1; }
+            else { active -= 1; inactive += 1; }
+            if (activeEl) activeEl.textContent = active;
+            if (inactiveEl) inactiveEl.textContent = inactive;
           }
         }
-        animate();
+      } catch (err) { console.warn('Failed to update counters', err); }
+
+      // hide modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+      if (modal) modal.hide();
+
+      // send update to server in background (non-blocking)
+      fetch(form.action, {
+        method: 'POST',
+        body: fd,
+        credentials: 'same-origin'
+      }).then(async res => {
+        // optional: handle server response; if server returns error, you might revert UI or notify
+        if (!res.ok) {
+          const text = await res.text().catch(()=>res.statusText);
+          console.error('Server update failed:', res.status, text);
+          // Optionally show an alert to the user
+          // alert('Server failed to save changes. UI was updated locally.');
+        }
+      }).catch(err => {
+        console.error('Background save failed', err);
       });
+    });
   </script>
 </body>
 </html>
