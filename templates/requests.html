@@ -187,18 +187,18 @@
                                                         data-category="{{ request.service_category or request.food_category }}"
                                                         data-request_type="{{ 'service' if request.service_name else 'food' }}"
                                                         data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
-                                                        {% if request.status  not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                        {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-pencil-line"></i>
                                                     </button>
                                                                                                 
                                                     <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
                                                             onclick="confirmDelete('{{ request.request_id }}')"
-                                                            {% if request.status  not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                            {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-delete-bin-line"></i>
                                                     </button>
                                                     <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                         onclick="openCompletedModal('{{ request.request_id }}')"
-                                                        {% if request.status != 'pending' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
+                                                        {% if request.status|upper != 'PENDING' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
                                                         <i class="bi bi-check-circle"></i>                                                    
                                                     </button>
                                                 </div>
@@ -206,13 +206,13 @@
                                                     <!-- 👤 Manual -->
                                                     <button class="btn btn-sm btn-primary-light btn-wave"
                                                             onclick="openAssignModal('{{ request.request_id }}')"
-                                                            {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                            {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                         <i class="ri-user-line me-1"></i> Manual
                                                     </button>
                                                     <form method="POST" action="{{ url_for('assigntask') }}" style="display:inline;">
                                                         <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
                                                         <button type="submit" class="btn btn-sm btn-success-light btn-wave"
-                                                                {% if request.status not in ['pending'] %}style="pointer-events:none;"{% endif %}>
+                                                                {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                           <i class="ri-lightning-line me-1"></i> Auto
                                                         </button>
                                                       </form>                                                
@@ -336,7 +336,7 @@
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-              <input type="hidden" id="edit_request_id" name="request_id">
+              <input type="hidden" id="edit_request_id" name="edit_request_id">
               <div class="mb-3">
                 <label for="edit_booking_id" class="form-label">Booking ID:</label>
                 <select class="form-control" id="edit_booking_id" name="edit_booking_id" required>
