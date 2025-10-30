@@ -2465,52 +2465,57 @@ def checkin():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
-    #Get old data
-    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,)) #change table and field names
-    old_data = cursor.fetchone() 
-
+    # 1. Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,))
+    old_data = cursor.fetchone()
     if not old_data:
-        # Handle error: record not found
-        return "Booking not found", 404 #change message
-    
-    #Get new data 
+        cursor.close()
+        return "Booking not found", 404
+
+    # 2. Prepare new data
     new_data = old_data.copy()
-    new_data['booking_id'] = booking_id  #change ALL field names (should be similar to the table)
     new_data['actual_check_in'] = actual_check_in
+    new_data['status'] = 'Checked-in'
     new_data['last_update'] = last_update
     new_data['timestamp'] = timestamp
 
-    #Update booking table
+    # 3. Update booking
     cursor.execute("""
         UPDATE bookings
-        SET actual_check_in = %s, status='Checked-in', last_update=%s, timestamp=%s
+        SET actual_check_in = %s, status = 'Checked-in', last_update = %s, timestamp = %s
         WHERE booking_id = %s
     """, (actual_check_in, last_update, timestamp, booking_id))
 
-    #Get room_id and update room status
+    # 4. Update room status to 'Occupied'
     cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
         cursor.execute("UPDATE room SET room_status = 'Occupied' WHERE room_id = %s", (room['room_id'],))
     else:
+        cursor.close()
         return "Room not found", 404
 
     mysql.connection.commit()
-    
-    #Save logs
+
+    # 5. Save audit log
     log_audit_event(
         actor_id=session['username'],
         timestamp=timestamp,
-        table_name='bookings',  #change table name
-        action_type='UPDATE', 
-        record_id=str(booking_id), #change field name
-        old_data=old_data, 
-        new_data=new_data 
+        table_name='bookings',
+        action_type='UPDATE',
+        record_id=str(booking_id),
+        old_data=old_data,
+        new_data=new_data
     )
 
     cursor.close()
+    flash('Guest checked in successfully.', 'success')
     return redirect('/roomGuest')
 
+
+# ---------------------------
+# CHECK-OUT MANAGEMENT
+# ---------------------------
 @app.route('/checkout', methods=['POST'])
 def checkout():
     booking_id = request.form['booking_id']
@@ -2520,50 +2525,51 @@ def checkout():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
-    #Get old data
-    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,)) #change table and field names
-    old_data = cursor.fetchone() 
-
+    # 1. Get old data
+    cursor.execute("SELECT * FROM bookings WHERE booking_id = %s", (booking_id,))
+    old_data = cursor.fetchone()
     if not old_data:
-        # Handle error: record not found
-        return "Booking not found", 404 #change message
-    
-    #Get new data 
+        cursor.close()
+        return "Booking not found", 404
+
+    # 2. Prepare new data
     new_data = old_data.copy()
-    new_data['booking_id'] = booking_id  #change ALL field names (should be similar to the table)
     new_data['actual_check_out'] = actual_check_out
+    new_data['status'] = 'Checked-out'
     new_data['last_update'] = last_update
     new_data['timestamp'] = timestamp
 
-    #Update booking
+    # 3. Update booking
     cursor.execute("""
         UPDATE bookings
-        SET actual_check_out = %s, status='Checked-out', last_update=%s, timestamp=%s
+        SET actual_check_out = %s, status = 'Checked-out', last_update = %s, timestamp = %s
         WHERE booking_id = %s
     """, (actual_check_out, last_update, timestamp, booking_id))
 
-    #Get room_id and update status to Vacant
+    # 4. Update room status to 'Vacant'
     cursor.execute("SELECT room_id FROM bookings WHERE booking_id = %s", (booking_id,))
     room = cursor.fetchone()
     if room:
         cursor.execute("UPDATE room SET room_status = 'Vacant' WHERE room_id = %s", (room['room_id'],))
     else:
+        cursor.close()
         return "Room not found", 404
 
     mysql.connection.commit()
-    
-    #Save logs
+
+    # 5. Save audit log
     log_audit_event(
         actor_id=session['username'],
         timestamp=timestamp,
-        table_name='bookings',  #change table name
-        action_type='UPDATE', 
-        record_id=str(booking_id), #change field name
-        old_data=old_data, 
-        new_data=new_data 
+        table_name='bookings',
+        action_type='UPDATE',
+        record_id=str(booking_id),
+        old_data=old_data,
+        new_data=new_data
     )
 
     cursor.close()
+    flash('Guest checked out successfully.', 'success')
     return redirect('/roomGuest')
 
 @app.route('/bill/<int:booking_id>')
@@ -2701,13 +2707,6 @@ def update_user():
         cursor.close()
 
     return redirect('/users')
-
-@app.route('/checkout/<int:booking_id>', methods=['GET'])
-def show_checkout(booking_id):
-    #Fetch booking info if needed
-    return render_template('checkout_form.html', booking_id=booking_id)
-
-
 
 @app.route('/pay', methods=['POST'])
 def pay():
@@ -3026,28 +3025,21 @@ def assigntask():
 def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old_data=None, new_data=None):
     """Inserts a manual audit log entry into the MySQL audit_log table."""
     try:
-        # Use current_user.get_id() if the user is logged in
-        # Fallback to 0 or None if not logged in (e.g., for a public register)
-        #actor_id = current_user.get_id() if current_user.is_authenticated else None
-        
-        # Serialize data for storage
         old_value_json = json.dumps(old_data, default=str) if old_data else None
         new_value_json = json.dumps(new_data, default=str) if new_data else None
-        
+
         cursor = mysql.connection.cursor()
-
-
         cursor.execute(
             """INSERT INTO audit_log 
                (username, timestamp, table_name, action_type, record_id, old_value, new_value)
                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
             (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json)
         )
-        
+
         mysql.connection.commit()
         cursor.close()
     except Exception as e:
-        # IMPORTANT: Log the audit failure, but don't crash the main application
+        # Log but do not crash the app
         print(f"FATAL AUDIT FAILURE: {e}")
             
 if __name__ == '__main__':

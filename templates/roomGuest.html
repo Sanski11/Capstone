@@ -251,26 +251,21 @@
 
     <script>
         function openCheckInModal(bookingId) {
-            document.getElementById('checkin_booking_id').value = bookingId;
-    
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('actual_check_in').value = today;        
-    
-            const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
-            modal.show();
-            }
-    
-            function openCheckOutModal(bookingId) {
-            document.getElementById('checkout_booking_id').value = bookingId;
-
-            // Set today's date as default
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('actual_check_out').value = today;        
-
-            const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
-            modal.show();
+        document.getElementById('checkin_booking_id').value = bookingId;
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('actual_check_in').value = today;        
+        const modal = new bootstrap.Modal(document.getElementById('checkInModal'));
+        modal.show();
         }
+
+        function openCheckOutModal(bookingId) {
+        document.getElementById('checkout_booking_id').value = bookingId;
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('actual_check_out').value = today;        
+        const modal = new bootstrap.Modal(document.getElementById('checkOutModal'));
+        modal.show();
+        }
+
         // Custom JS Functions
         const roomsData = {{ rooms | tojson | safe }};
 
