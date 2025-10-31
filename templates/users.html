@@ -329,7 +329,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
               </div>
               <div class="modal-body">
-                Are you sure you want to delete user <span id="modalUserName"></span>?
+                Are you sure you want to delete user <span id="ModalUsername"></span>?
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -338,6 +338,38 @@
             </div>
           </div>
         </div>
+
+    <!-- User In Use Modal -->
+    <div class="modal fade" id="inUseModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content text-center">
+          <div class="modal-body">
+            <i class="ri-alert-line text-warning fs-1 mb-3"></i>
+            <h5>This user is currently used in logs and cannot be deleted.</h5>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content text-center">
+          <div class="modal-body">
+            <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
+            <h5>Are you sure you want to delete User <span id="ModalStaffLastName"></span>?</h5>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
 
       </div>
     </div>
@@ -384,6 +416,20 @@
       document.getElementById('edit_department').value = department || '';
       document.getElementById('edit_status').value = status;
       new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }
+
+    function confirmDelete(user_id, username) {
+      fetch(`/checkUser/${username}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.in_use) {
+            new bootstrap.Modal(document.getElementById('inUseModal')).show();
+          } else {
+            document.getElementById("ModalUsername").innerText = username;
+            document.getElementById("confirmDeleteBtn").href = `/deleteUser/${user_id}`;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+          }
+        });
     }
 
     // Auto-apply edit changes to UI and persist to server in background

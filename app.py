@@ -2651,6 +2651,7 @@ def users_page():
 def add_user():
     username = request.form['username']
     email = request.form['email']
+    password = request.form['password']
     role = request.form['role']
     department = request.form.get('department')
     status = int(request.form.get('status', 1))  # Default Active
@@ -2664,15 +2665,54 @@ def add_user():
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("""
-        INSERT INTO users (username, email, role, department, status, verified, account_status, middle_name, name)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (username, email, role, department, status, True, account_status, middle_name, name))
-    mysql.connection.commit()
-    cursor.close()
+    try:
+        
+        # Check if username already exists
+        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
+        if cursor.fetchone():
+            flash("Username already taken.", "danger")
+            return redirect('/users')
 
-    flash("✅ User added successfully!", "success")
-    return redirect('/users')
+        # Check if email already exists
+        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered. Please log in.", "danger")
+            return redirect('/users')
+
+        # Generate verification token
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        
+        cursor.execute("""
+            INSERT INTO users (username, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, middle_name, name)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, email, password, role, department, status, False, verification_token, token_expires_at, account_status, middle_name, name))
+        mysql.connection.commit()
+
+        flash("✅ User added successfully!", "success")
+        
+        # Send verification email
+        if send_verification_email(email, username, verification_token):
+            flash("Check your email for a verification link.", "success")
+            return redirect(url_for('verification_pending'))
+        else:
+            flash("Could not send email. Contact support.", "danger")      
+        
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f"❌ Failed to add user: {str(e)}", "danger")
+    finally:
+        cursor.close() #Close db connection
+        return redirect('/users')
+    
+#Called by USER Menu - check if user exist in requests
+@app.route('/checkUser/<username>')
+def check_user(username):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE username = %s", (username,)) #Count how many staff id in requests
+    result = cursor.fetchone()
+    cursor.close()
+    return jsonify({"in_use": result['count'] > 0}) #Return to users; set "in_use" to true if count> 0
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
 def delete_user(user_id):
