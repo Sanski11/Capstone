@@ -436,7 +436,7 @@
             <label>Assign to Staff</label>
             <select name="assignTask_staff_id" class="form-select" required>
               {% for staff in staff_list %}
-              <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.department }})</option>
+              <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
               {% endfor %}
             </select>
           </div>
