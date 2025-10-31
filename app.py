@@ -2654,6 +2654,10 @@ def add_user():
     role = request.form['role']
     department = request.form.get('department')
     status = int(request.form.get('status', 1))  # Default Active
+    account_status = "" 
+    middle_name = ""
+    name = ""
+
 
     # Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
@@ -2661,9 +2665,9 @@ def add_user():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        INSERT INTO users (username, email, role, department, status, verified)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (username, email, role, department, status, True))
+        INSERT INTO users (username, email, role, department, status, verified, account_status, middle_name, name)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+    """, (username, email, role, department, status, True, account_status, middle_name, name))
     mysql.connection.commit()
     cursor.close()
 
