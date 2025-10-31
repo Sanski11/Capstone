@@ -153,7 +153,14 @@
                   {% for user in users %}
                   <tr data-user="{{ user.user_id }}" data-status="{{ user.status }}">
                     <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
+                    <td>
+                      {{ user.email }}
+                      {% if user.email_verified == 1 or user.email_verified == "1" %}
+                        <span class="badge bg-success ms-2">Verified</span>
+                      {% else %}
+                        <span class="badge bg-secondary ms-2">Unverified</span>
+                      {% endif %}
+                    </td>
                     <td>{{ user.role }}</td>
                     <td>{{ user.department or "None" }}</td>
                     <td>
@@ -211,7 +218,6 @@
                       <option value="admin">Admin</option>
                       <option value="manager">Manager</option>
                       <option value="supervisor">Supervisor</option>
-                      <option value="user">User</option>
                     </select>
                   </div>
                   <div class="col-md-6">
@@ -231,6 +237,15 @@
                       <option value="1" selected>Active</option>
                       <option value="0">Inactive</option>
                     </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Password</label>
+                    <div class="input-group">
+                      <input id="add_password" type="password" name="password" class="form-control" required>
+                      <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('add_password', this)" title="Show / Hide password">
+                        <i class="ri-eye-line"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -287,6 +302,15 @@
                       <option value="0">Inactive</option>
                     </select>
                   </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Password (leave blank to keep)</label>
+                    <div class="input-group">
+                      <input type="password" id="edit_password" name="edit_password" class="form-control" placeholder="New password (optional)">
+                      <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('edit_password', this)" title="Show / Hide password">
+                        <i class="ri-eye-line"></i>
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div class="modal-footer">
                   <button type="submit" class="btn btn-warning text-white">Save Changes</button>
@@ -335,6 +359,22 @@
     $(document).ready(function() {
       window.usersTable = $('#usersTable').DataTable({ pageLength: 10 });
     });
+    // toggle password visibility helper
+    function togglePassword(inputId, btn) {
+      try {
+        const inp = document.getElementById(inputId);
+        if (!inp) return;
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          btn.querySelector('i').classList.remove('ri-eye-line');
+          btn.querySelector('i').classList.add('ri-eye-off-line');
+        } else {
+          inp.type = 'password';
+          btn.querySelector('i').classList.remove('ri-eye-off-line');
+          btn.querySelector('i').classList.add('ri-eye-line');
+        }
+      } catch (e) { console.error(e); }
+    }
 
     function showEditModal(id, username, email, role, department, status) {
       document.getElementById('edit_user_id').value = id;
