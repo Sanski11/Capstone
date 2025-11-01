@@ -166,10 +166,12 @@
                                         <td class="text-end">₱{{ "{:,.2f}".format(laundry_service.price | float) }}</td>
                                         <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                         <td>
-                                            <button class="btn btn-sm btn-warning me-1"
+                                            <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 onclick='EditLaundryModal({{ laundry_service | tojson | safe }})'>
                                                 <i class="ri-pencil-line"></i>
-                                            </button>                                            <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
+                                            </button>                                            
+                                            <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
+                                                onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>

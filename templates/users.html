@@ -174,11 +174,11 @@
                     </td>
                     <td>
                       {% if session.get('role', '').lower() == 'admin' %}
-                        <button class="btn btn-warning btn-sm me-1" title="Edit"
+                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" title="Edit"
                           onclick="showEditModal('{{ user.user_id }}','{{ user.username }}','{{ user.email }}','{{ user.role }}','{{ user.department }}','{{ user.status }}')">
                           <i class="ri-pencil-line"></i>
                         </button>
-                        <button class="btn btn-danger btn-sm" title="co"
+                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" title="co"
                           onclick="confirmDelete('{{ user.user_id }}', '{{ user.username | escape }}')">
                           <i class="ri-delete-bin-line"></i>
                         </button>

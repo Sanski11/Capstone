@@ -106,7 +106,7 @@
         <!-- Staff Table -->
         <div class="card">
           <div class="card-body">
-            <table id="staffTable" class="table table-striped table-bordered align-middle">
+            <table id="staffTable" class="table text-nowrap table-hover table-bordered">
               <thead>
                 <tr>
                   <th>First Name</th>
@@ -128,12 +128,12 @@
                   <td>{{ staff.phone }}</td>
                   <td>{{ staff.last_update }} / {{ staff.timestamp }}</td>
                   <td>
-                    <button class="btn btn-warning btn-sm" 
+                    <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" 
                             onclick='openEditModal({{ staff | tojson | safe }})'
                             data-bs-toggle="modal" data-bs-target="#editStaffModal">
-                      <i class="ri-edit-line"></i>
+                      <i class="ri-pencil-line"></i>
                     </button>
-                    <button class="btn btn-danger btn-sm"
+                    <button class="btbtn btn-icon btn-sm btn-danger-transparent btn-wave"
                             onclick="confirmDelete('{{ staff.staff_id }}', '{{ staff.last_name }}')">
                       <i class="ri-delete-bin-line"></i>
                     </button>

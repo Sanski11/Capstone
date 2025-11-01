@@ -136,7 +136,7 @@
                                     <!-- normalize status comparison (case-insensitive) so 'Occupied' or 'occupied' always shows red -->
                                     <td>
                                         <span class="badge bg-{{ 'success' if room.room_status|lower == 'vacant' else 'danger' if room.room_status|lower == 'occupied' else 'warning' }}">
-                                            {{ room.room_status }}
+                                            {{ room.room_status|capitalize }}
                                         </span>
                                     </td>
                                     <td>{{ room.last_update}}/ {{ room.timestamp }}</td>

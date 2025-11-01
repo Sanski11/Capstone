@@ -156,7 +156,7 @@
                                         <br> {{ "{:,.2f}".format(request.total_cost | float) }}
                                     </td>
                                     <td>
-                                        <span class="badge bg-{{ 'success' if request.status == 'completed' else 'warning' if request.status == 'for assignment' else 'danger' if request.status == 'cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
+                                        <span class="badge bg-{{ 'success' if request.status|upper == 'COMPLETED' else 'warning' if request.status == 'for assignment' else 'danger' if request.status == 'cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
                                     </td>
                                     <td>{{ request.notes }}</td>
                                     <td>

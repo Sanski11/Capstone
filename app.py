@@ -698,9 +698,7 @@ def show_requests():
     selectedCategory = request.args.get('category', '') #Get selected category
     
     cursor.execute("""
-        SELECT r.request_id, r.booking_id, r.quantity, r.unit_cost, r.total_cost,
-               r.status, r.request_time, r.staff_id, 
-               r.last_update, r.timestamp,
+        SELECT r.*,
                s.name AS service_name, f.name AS food_name,
                s.category as service_category, f.category as food_category,
                s.type as service_type, f.type as food_type,
@@ -711,7 +709,7 @@ def show_requests():
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        LEFT JOIN staff st ON r.staff_id = s.staff_id
+        LEFT JOIN staff st ON r.staff_id = st.staff_id
         LEFT JOIN guest g ON r.guest_id = g.guest_id
         LEFT JOIN bookings b ON r.booking_id = b.booking_id
         WHERE b.status = 'Checked-in'
@@ -2610,19 +2608,10 @@ def users_page():
         flash("Access denied.", "danger")
         return redirect(url_for('dashboard'))
 
-    search = request.args.get('search', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Search functionality
-    if search:
-        like = f"%{search}%"
-        cursor.execute("""
-            SELECT * FROM users
-            WHERE username LIKE %s OR email LIKE %s OR role LIKE %s OR department LIKE %s
-            ORDER BY user_id ASC
-        """, (like, like, like, like))
-    else:
-        cursor.execute("SELECT * FROM users ORDER BY user_id ASC")
+    cursor.execute("SELECT * FROM users ORDER BY user_id ASC")
 
     users = cursor.fetchall()
 
