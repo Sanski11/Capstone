@@ -222,28 +222,36 @@ def login():
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
-        email = request.form['email']
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
-        email = request.form['email']
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+        email = request.form.get('email', '').strip()
+        if not email:
+            flash("Please provide an email address.", "danger")
+            return render_template('forgot_password.html')
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("SELECT * FROM users WHERE email = %s LIMIT 1", (email,))
         user = cursor.fetchone()
         cursor.close()
 
-        cursor.close()
+        if not user:
+            flash("Email not found.", "danger")
+            return render_template('forgot_password.html')
 
-        if user:
-            otp = str(random.randint(100000, 999999))
-            session['reset_email'] = email
-            session['otp'] = otp
+        otp = str(random.randint(100000, 999999))
+        session['reset_email'] = email
+        session['otp'] = otp
+        session['otp_expiry'] = (datetime.now() + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
 
-            # Send OTP via email
-            print(f"🔐 [DEV MODE] OTP for {email}: {otp}")
-            return redirect(url_for('verify_otp'))  # Redirect to OTP verification
-        else:
-            return render_template('forgot_password.html', error="Email not found")
-    
+        # send OTP (best-effort)
+        try:
+            send_email(email, "ezStay Password Reset OTP", f"Your OTP is {otp}. It expires in 10 minutes.")
+        except Exception as e:
+            app.logger.warning("Failed to send reset OTP: %s", e)
+            # still proceed so admin/dev can see OTP in logs during dev
+            print(f"[DEV] OTP for {email}: {otp}")
+
+        flash("A verification code has been sent to your email.", "info")
+        return redirect(url_for('verify_otp'))
+
     return render_template('forgot_password.html')
 
 @app.route('/reset_password', methods=['GET', 'POST'])
@@ -703,7 +711,7 @@ def show_requests():
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        LEFT JOIN staff st ON r.staff_id = st.staff_id
+        LEFT JOIN staff st ON r.staff_id = s.staff_id
         LEFT JOIN guest g ON r.guest_id = g.guest_id
         LEFT JOIN bookings b ON r.booking_id = b.booking_id
         WHERE b.status = 'Checked-in'
@@ -1698,7 +1706,7 @@ def add_massage():
 @app.route('/updateHousekeeping', methods=['POST'])
 def updateHousekeeping():
     
-    #Get the values entered in Edit Form
+    #Get the values entered in the Edit Form
     service_id = int(request.form['service_id'])
     category = request.form['edit_category']
     name = request.form['edit_name']
@@ -1758,7 +1766,7 @@ def updateHousekeeping():
 @app.route('/updateDining', methods=['POST'])
 def updateDining():
     
-    #Get the values entered in Edit Form
+    #Get the values entered in the Edit Form
     item_id = int(request.form['item_id'])
     category = request.form['edit_category']
     name = request.form['edit_name']
@@ -1821,7 +1829,7 @@ def updateDining():
 @app.route('/updateLaundry', methods=['POST'])
 def updateLaundry():
     
-    #Get the values entered in Edit Form
+    #Get the values entered in the Edit Form
     service_id = int(request.form['service_id'])
     category = request.form['edit_category']
     name = request.form['edit_name']
@@ -2849,58 +2857,77 @@ def failed():
     """
 
 from flask import request, session, redirect, url_for, flash
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
 
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
     if request.method == "POST":
-        
-        # 1. READ AND CONCATENATE 6 OTP FIELDS
+        # read and concatenate 6 OTP fields
         otp_1 = request.form.get("otp_1", "")
         otp_2 = request.form.get("otp_2", "")
         otp_3 = request.form.get("otp_3", "")
         otp_4 = request.form.get("otp_4", "")
         otp_5 = request.form.get("otp_5", "")
         otp_6 = request.form.get("otp_6", "")
-        
-        # Combine into a single string for verification
+
         entered_otp = otp_1 + otp_2 + otp_3 + otp_4 + otp_5 + otp_6
 
-        # Optional: Validation check to ensure 6 digits were submitted
-        if len(entered_otp) != 6:
+        if len(entered_otp) != 6 or not entered_otp.isdigit():
             flash("Invalid OTP format. Please enter the 6-digit code.", "danger")
             return redirect(url_for("verify_otp"))
-        
-        # --- Existing Validation Logic ---
-        saved_otp = session.get("otp")
+
+        saved_otp = str(session.get("otp", ""))
         expiry = session.get("otp_expiry")
 
-        # Validate OTP and expiration
         if not saved_otp or not expiry:
-            flash("Session expired. Please log in again.", "danger")
+            flash("Session expired or no OTP found. Please request a new code.", "danger")
+            # If user was in reset flow, send them back to forgot_password, otherwise login
+            if session.get("reset_email"):
+                return redirect(url_for("forgot_password"))
             return redirect(url_for("login"))
 
-        # NOTE: You must ensure the 'datetime' object is available (e.g., from 'from datetime import datetime')
-        if datetime.now() > datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S"):
-            flash("OTP has expired. Please request a new one.", "danger")
-            return redirect(url_for("verify_otp"))
+        try:
+            expiry_dt = datetime.strptime(expiry, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            expiry_dt = None
 
-        # Compare the combined 6-digit submitted OTP with saved OTP
+        if expiry_dt and datetime.now() > expiry_dt:
+            # clear expired OTP
+            session.pop("otp", None)
+            session.pop("otp_expiry", None)
+            flash("OTP has expired. Please request a new one.", "danger")
+            if session.get("reset_email"):
+                return redirect(url_for("forgot_password"))
+            return redirect(url_for("login"))
+
         if entered_otp == saved_otp:
-            user = session.pop("pending_user", None)
+            # Clear OTP regardless of flow
             session.pop("otp", None)
             session.pop("otp_expiry", None)
 
-            if user:
+            # Login flow (user pending)
+            pending = session.pop("pending_user", None)
+            if pending:
                 session["loggedin"] = True
-                session["username"] = user["username"]
-                session["role"] = user["role"]
-                session["department"] = user["department"]
-
-                flash(f"Welcome back, {user['username']}!", "success")
+                session["username"] = pending["username"]
+                session["role"] = pending["role"]
+                session["department"] = pending.get("department")
+                flash(f"Welcome back, {pending['username']}!", "success")
                 return redirect(url_for("dashboard"))
+
+            # Forgot-password / reset flow
+            if session.get("reset_email"):
+                # keep reset_email in session for reset_password page, just redirect
+                flash("OTP verified. You may now reset your password.", "success")
+                return redirect(url_for("reset_password"))
+
+            # Unknown flow
+            flash("OTP verified, but no action found. Please log in again.", "info")
+            return redirect(url_for("login"))
         else:
             flash("Invalid OTP. Please try again.", "danger")
+            return redirect(url_for("verify_otp"))
 
     return render_template("verify_otp.html")
 

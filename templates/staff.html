@@ -326,13 +326,34 @@
         });
     }
 
-    $(document).ready(function () {
-      $('#staffTable').DataTable({
+    // Initialize DataTable once (prevents "Cannot reinitialise DataTable" warning)
+    (function initStaffTable() {
+      const selector = '#staffTable';
+      if ($.fn.dataTable.isDataTable(selector)) return;
+
+      const table = $(selector).DataTable({
         order: [[0, "asc"]],
         pageLength: 10,
-        lengthMenu: [5, 10, 25, 50, 100]
+        lengthMenu: [5, 10, 25, 50, 100],
+        lengthChange: true,
+        responsive: true,
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search staff..."
+        },
+        columnDefs: [
+          { targets: [3], className: 'text-end' },
+          { targets: [6], orderable: false, searchable: false } // action column index
+        ],
+        dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
       });
-    });
+
+      // style search input
+      const filter = $(selector + '_filter');
+      filter.parent().addClass('text-end');
+      filter.find('label').addClass('mb-0');
+      filter.find('input').removeClass('form-control-sm').addClass('form-control');
+    })();
 
     document.getElementById('year').textContent = new Date().getFullYear();
   </script>

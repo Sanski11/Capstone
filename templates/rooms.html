@@ -133,7 +133,12 @@
                                 <tr>
                                     <td>{{ room.room_number }}</td>
                                     <td>{{ room.room_type }}</td>
-                                    <td><span class="badge bg-{{ 'success' if room.room_status == 'Vacant' else 'danger' if room.room_status == 'Occupied' else 'warning' }}">{{ room.room_status }}</span></td>
+                                    <!-- normalize status comparison (case-insensitive) so 'Occupied' or 'occupied' always shows red -->
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if room.room_status|lower == 'vacant' else 'danger' if room.room_status|lower == 'occupied' else 'warning' }}">
+                                            {{ room.room_status }}
+                                        </span>
+                                    </td>
                                     <td>{{ room.last_update}}/ {{ room.timestamp }}</td>
                                     <td>
                                         <a href="#" class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
@@ -331,24 +336,24 @@
 
         // DataTables init
         $(function () {
-            // Initialize DataTables
-            const dt = $('#roomsTable').DataTable({
+            $('#roomsTable').DataTable({
                 pageLength: 10,
-                order: [[0, 'desc']],
-                lengthChange: false,
+                order: [[1, 'asc']],
+                lengthChange: true,
                 responsive: true,
                 language: {
                     search: "_INPUT_",
                     searchPlaceholder: "Search rooms...",
                 },
                 columnDefs: [
-                    // Ensure the 'Action' column is not searchable/orderable
+                    { targets: [3], className: 'text-end' },
                     { targets: [4], orderable: false, searchable: false }
-                ]
+                ],
+                dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
             });
             
             // Move DataTables search input into the custom header container
-            $('#roomsTable_filter').parent().addClass('d-flex justify-content-between align-items-center mb-3');
+            $('#roomsTable_filter').parent().addClass('text-end');
             $('#roomsTable_filter label').addClass('mb-0');
             $('#roomsTable_filter input').removeClass('form-control-sm');
             $('#roomsTable_filter input').addClass('form-control');
