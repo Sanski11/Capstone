@@ -248,7 +248,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="editForm" action="/updateBooking" method="POST">
-                    <div class="modal-header">
+                    <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
                         <h5 class="modal-title" id="editBookingModalLabel">Edit Booking</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
@@ -446,8 +446,11 @@
             // 2. Set the correct room number
             document.getElementById("edit_room_id").value = booking.room_id;
 
-            new bootstrap.Modal(document.getElementById('editBookingModal')).show();
-        }
+            //new bootstrap.Modal(document.getElementById('editBookingModal')).show();
+
+            const modalElement = document.getElementById('editBookingModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();        }
 
         function confirmDelete(booking_id, guest_name) {
             // Check usage logic would go here, currently only displays modal

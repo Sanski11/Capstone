@@ -352,7 +352,11 @@
             document.getElementById("edit_email").value = guest.email;
             document.getElementById("edit_phone").value = guest.phone;
             
-            new bootstrap.Modal(document.getElementById('editGuestModal')).show();
+            const modalElement = document.getElementById('editGuestModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+
+            //new bootstrap.Modal(document.getElementById('editGuestModal')).show();
         }
 
         // Check before deleting a guest

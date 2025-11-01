@@ -205,7 +205,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <form id="editRoomForm" action="/updateRoom" method="POST">
-                    <div class="modal-header">
+                    <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">                    
                         <h5 class="modal-title" id="editRoomModalLabel">Edit Room</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
@@ -304,8 +304,10 @@
             document.getElementById("edit_room_status").value = room.room_status;
             
             // Re-initialize Bootstrap modal instance (important for Vyzor structure)
-            const modal = new bootstrap.Modal(document.getElementById('editRoomModal'));
+            const modalElement = document.getElementById('editRoomModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
             modal.show();
+
         }
 
         // Function to confirm deletion of a record

@@ -224,7 +224,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" action="{{ url_for('updateMassage') }}">
-          <div class="modal-header"><h5 class="modal-title">Edit Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;"><h5 class="modal-title">Edit Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
           <div class="modal-body">
             <input type="hidden" id="edit_service_id" name="service_id">
             <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
