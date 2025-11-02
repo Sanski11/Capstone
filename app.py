@@ -776,19 +776,24 @@ def show_requests():
     
     cursor.execute("""
         SELECT r.*,
-               s.name AS service_name, f.name AS food_name,
-               s.category as service_category, f.category as food_category,
-               s.type as service_type, f.type as food_type,
-               st.first_name, st.last_name,
+               s.name AS service_name,
+               f.name AS food_name,
+               s.category AS service_category,
+               f.category AS food_category,
+               s.type AS service_type,
+               f.type AS food_type,
+               st.first_name AS staff_first_name,
+               st.last_name  AS staff_last_name,
                r.service_id, r.item_id,
                r.completion_time, r.notes, r.room_number, r.guest_id,
-               g.last_name as guest_last_name, g.first_name as guest_first_name
+               g.last_name AS guest_last_name, g.first_name AS guest_first_name
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        LEFT JOIN staff st ON r.staff_id = s.staff_id
-        LEFT JOIN guest g ON r.guest_id = g.guest_id
-        LEFT JOIN bookings b ON r.booking_id = b.booking_id
+        -- correct staff join: reference staff table column, not service alias
+        LEFT JOIN staff st ON st.staff_id = r.staff_id
+        LEFT JOIN guest g ON g.guest_id = r.guest_id
+        LEFT JOIN bookings b ON b.booking_id = r.booking_id
         WHERE b.status = 'Checked-in'
         ORDER BY r.request_time DESC
     """)
@@ -2910,7 +2915,7 @@ def update_user():
             old_data=old_data, 
             new_data=new_data 
         )
-        
+
         flash("✅ User updated successfully!", "success")
     except Exception as e:
         print("❌ Update error:", e)
@@ -3170,7 +3175,7 @@ def _resolve_target_role(cursor, request_id):
                 fi.category AS food_category
         FROM requests r
         LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
-        LEFT JOIN food_items fi     ON r.item_id = fi.item_id
+        LEFT JOIN food_items fi     ON r.item_id = f.item_id
         WHERE r.request_id = %s
     """, (request_id,))
     row = cursor.fetchone()
