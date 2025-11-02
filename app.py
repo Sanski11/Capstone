@@ -387,50 +387,64 @@ def dashboard():
         return redirect(url_for('login'))
 
     def get_stats_and_charts():
-        # Housekeeping Requests
+        # ======================
+        # REQUEST COUNTS BY TYPE
+        # ======================
+
+        # Housekeeping Requests (Checked-in only)
         cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM requests r 
-            JOIN hotel_services s ON r.service_id = s.service_id 
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN hotel_services s ON r.service_id = s.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
             WHERE s.category = 'Housekeeping'
+              AND b.status = 'Checked-in'
         """)
         housekeeping = cursor.fetchone()['count']
 
-        # Dining Requests
+        # Food/Dining Requests (Checked-in only)
         cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM requests r 
-            JOIN food_items f ON r.item_id = f.item_id 
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN food_items f ON r.item_id = f.item_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
         """)
         food = cursor.fetchone()['count']
 
-        # Laundry Requests
+        # Laundry Requests (Checked-in only)
         cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM requests r 
-            JOIN hotel_services s ON r.service_id = s.service_id 
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN hotel_services s ON r.service_id = s.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
             WHERE s.category = 'Laundry'
+              AND b.status = 'Checked-in'
         """)
         laundry = cursor.fetchone()['count']
 
-        # Spa/Massage Requests
+        # Massage/Spa Requests (Checked-in only)
+        # Massage/Spa Requests (Checked-in only)
         cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM requests r 
-            JOIN hotel_services s ON r.service_id = s.service_id 
+            SELECT COUNT(DISTINCT r.request_id) AS count
+            FROM requests r
+            LEFT JOIN hotel_services s ON r.service_id = s.service_id
+            LEFT JOIN bookings b ON r.booking_id = b.booking_id
             WHERE s.category = 'Massage'
+            AND b.status = 'Checked-in'
         """)
         spa = cursor.fetchone()['count']
 
-        # Active Users (Status = 1)
+        # ======================
+        # USER AND BOOKING STATS
+        # ======================
+
         cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
         active_users = cursor.fetchone()['count']
 
-        # Total Users
         cursor.execute("SELECT COUNT(*) AS count FROM users")
         total_users = cursor.fetchone()['count']
 
-        # Active Bookings (Currently Checked-In)
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM bookings 
@@ -438,7 +452,6 @@ def dashboard():
         """)
         active_bookings = cursor.fetchone()['count']
 
-        # Current Bookings (Active Reservations)
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM bookings 
@@ -446,7 +459,6 @@ def dashboard():
         """)
         current_bookings = cursor.fetchone()['count']
 
-        # Check-ins Today
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM bookings 
@@ -454,7 +466,6 @@ def dashboard():
         """)
         checkins_today = cursor.fetchone()['count']
 
-        # Check-outs Today
         cursor.execute("""
             SELECT COUNT(*) AS count 
             FROM bookings 
@@ -462,22 +473,30 @@ def dashboard():
         """)
         checkouts_today = cursor.fetchone()['count']
 
-        # Chart Data: Requests per Service Type
+        # ======================
+        # CHART DATA
+        # ======================
+
+        # Requests per Service Type (Checked-in only)
         cursor.execute("""
             SELECT s.category, COUNT(*) AS count
             FROM hotel_services s
             JOIN requests r ON s.service_id = r.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
             GROUP BY s.category
         """)
         service_data = cursor.fetchall()
 
-        # Chart Data: Staff Activity
+        # Staff Activity
         cursor.execute("""
             SELECT s.first_name AS staff, 
-                    COUNT(r.request_id) AS requests,
-                    SUM(CASE WHEN r.status = 'completed' THEN 1 ELSE 0 END) AS completed
+                   COUNT(r.request_id) AS requests,
+                   SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
             FROM requests r
             JOIN staff s ON r.staff_id = s.staff_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
             GROUP BY s.first_name
         """)
         staff_data = cursor.fetchall()
@@ -497,14 +516,16 @@ def dashboard():
         """)
         guests_checked_out = cursor.fetchone()['count']
 
-        # Final stats dict
+        # ======================
+        # FINAL DATA PACKAGE
+        # ======================
         return {
             "housekeeping": housekeeping,
             "food": food,
             "laundry": laundry,
             "spa": spa,
-            "active_users": active_users,   # Added
-            "total_users": total_users,     # Added
+            "active_users": active_users,
+            "total_users": total_users,
             "active_bookings": active_bookings,
             "current_bookings": current_bookings,
             "checkins_today": checkins_today,
@@ -513,7 +534,7 @@ def dashboard():
             "guests_checked_out": guests_checked_out
         }, service_data, staff_data
 
-    # For admin/manager/supervisor roles
+    # ROLE HANDLING
     if role in ['admin', 'manager', 'supervisor']:
         stats, service_data, staff_data = get_stats_and_charts()
         cursor.close()
@@ -526,7 +547,6 @@ def dashboard():
             user=user
         )
 
-    # For normal users
     elif role == 'user':
         cursor.close()
         return render_template(
