@@ -58,7 +58,7 @@
     <!-- Right: Profile Dropdown Only -->
     <div class="dropdown">
       <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-         <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="profile" width="36" height="36" class="rounded-circle me-2">
+         <img src="https://cdn-icons-png.flaticon.com
         <span class="fw-semibold">{{ session['username'] }}</span>
         <i class="ri-arrow-down-s-line ms-1"></i>
       </a>
@@ -334,13 +334,86 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 
     // Charts
-    const ctx1=document.getElementById('barChart');
-    if(ctx1){new Chart(ctx1,{type:'bar',data:{
-      labels:[{% for s in staff_data %}"{{ s.staff }}",{% endfor %}],
-      datasets:[
-        {label:'Pending',data:[{% for s in staff_data %}{{ s.requests }},{% endfor %}],backgroundColor:'rgba(138,43,226,0.8)'},
-        {label:'Completed',data:[{% for s in staff_data %}{{ s.completed }},{% endfor %}],backgroundColor:'rgba(255,105,180,0.8)'}
-      ]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});}
+    const ctx1 = document.getElementById('barChart');
+    let barChart = null;
+
+    function createBarChart() {
+      if (!ctx1) return;
+
+      const labels = [{% for s in staff_data %}"{{ s.staff }}",{% endfor %}];
+      const pending = [{% for s in staff_data %}{{ s.requests }},{% endfor %}];
+      const completed = [{% for s in staff_data %}{{ s.completed }},{% endfor %}];
+
+      const data = {
+        labels,
+        datasets: [
+          {
+            label: 'Pending',
+            data: pending,
+            backgroundColor: 'rgba(138,43,226,0.85)',
+            borderRadius: 6
+          },
+          {
+            label: 'Completed',
+            data: completed,
+            backgroundColor: 'rgba(255,105,180,0.85)',
+            borderRadius: 6
+          }
+        ]
+      };
+
+      const config = {
+        type: 'bar',
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 900,
+            easing: 'easeOutQuart'
+          },
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { enabled: true, mode: 'index', intersect: false }
+          },
+          scales: {
+            x: {
+              stacked: false,
+              ticks: { maxRotation: 45, minRotation: 0 }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0 }
+            }
+          }
+        }
+      };
+
+      if (barChart) {
+        barChart.destroy();
+      }
+      barChart = new Chart(ctx1, config);
+    }
+
+    // Call to create chart (animated)
+    createBarChart();
+
+    // optional helper to update with new data and animate
+    window.updateStaffActivity = function(newStaffData) {
+      // newStaffData should be array of { staff, requests, completed }
+      if (!barChart) return createBarChart();
+      const labels = newStaffData.map(s => s.staff);
+      const pending = newStaffData.map(s => s.requests);
+      const completed = newStaffData.map(s => s.completed);
+      barChart.data.labels = labels;
+      barChart.data.datasets[0].data = pending;
+      barChart.data.datasets[1].data = completed;
+      barChart.update({ duration: 800, easing: 'easeOutQuart' });
+    };
 
     const ctx2=document.getElementById('pieChart');
     if(ctx2){new Chart(ctx2,{type:'doughnut',data:{
