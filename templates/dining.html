@@ -45,6 +45,7 @@
     .bg-purple-transparent { background-color: rgba(138, 43, 226, 0.12) !important; }
     .dashboard-banner-card { background-color: #d8bfd8 !important; }
     .text-fixed-white { color: white !important; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
         </style>
 </head>
 
@@ -122,9 +123,11 @@
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Dining Menu Inventory</h5>
-                        <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addDiningModal">
-                            <i class="ri-add-line me-1"></i> Add Record
-                        </a>
+                        {% if role in ['admin', 'manager'] or department == "Dining" %}
+                            <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addDiningModal">
+                                <i class="ri-add-line me-1"></i> Add Record
+                            </a>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -148,16 +151,18 @@
                                         <td class="text-end">₱{{ "{:,.2f}".format(dining_service.price | float) }}</td>
                                         <td>{{ dining_service.last_update }} / {{ dining_service.timestamp }}</td>
                                         <td>
-                                            <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editDiningModal"
-                                                data-dining='{{ dining_service | tojson | safe }}'>
-                                                <i class="ri-pencil-line"></i>
-                                            </button>
-                                            <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                onclick="confirmDelete('{{ dining_service.item_id }}', '{{ dining_service.name | escape }}')">
-                                                <i class="ri-delete-bin-line"></i>
-                                            </button>
+                                            {% if role in ['admin', 'manager'] or department == "Dining" %}
+                                                <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editDiningModal"
+                                                    data-dining='{{ dining_service | tojson | safe }}'>
+                                                    <i class="ri-pencil-line"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
+                                                    onclick="confirmDelete('{{ dining_service.item_id }}', '{{ dining_service.name | escape }}')">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                </button>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}

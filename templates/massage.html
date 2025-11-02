@@ -138,10 +138,10 @@
         <div class="card custom-card">
           <div class="card-header justify-content-between">
             <h5 class="card-title mb-0">Massage Services</h5>
-            {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
-            <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-              <i class="ri-add-line me-1"></i> Add Record
-            </a>
+            {% if role in ['admin', 'manager'] or department == "Massage" %}
+              <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="ri-add-line me-1"></i> Add Record
+              </a>
             {% endif %}
           </div>
           <div class="card-body">
@@ -164,19 +164,17 @@
                     <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
                     <td>{{ ms.last_update }}</td>
                     <td>
-                      {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
-                      <div class="btn-list">
-                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" 
-                          onclick='openEditModal({{ ms | tojson | safe }})'>
-                          <i class="ri-pencil-line"></i>
-                        </button>
-                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
-                          onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
-                          <i class="ri-delete-bin-line"></i>
-                        </button>
-                      </div>
-                      {% else %}
-                      <span class="text-muted small">No actions</span>
+                      {% if role in ['admin', 'manager'] or department == "Massage" %}
+                        <div class="btn-list">
+                          <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" 
+                            onclick='openEditModal({{ ms | tojson | safe }})'>
+                            <i class="ri-pencil-line"></i>
+                          </button>
+                          <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
+                            onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
+                            <i class="ri-delete-bin-line"></i>
+                          </button>
+                        </div>
                       {% endif %}
                     </td>
                   </tr>

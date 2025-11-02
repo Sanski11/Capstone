@@ -125,9 +125,11 @@
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Laundry Services Inventory</h5>
-                        <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLaundryModal">
-                            <i class="ri-add-line me-1"></i> Add Record
-                        </a>
+                        {% if role in ['admin', 'manager'] or department == "Laundry" %}
+                          <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addLaundryModal">
+                              <i class="ri-add-line me-1"></i> Add Record
+                          </a>
+                        {% endif %}
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -149,6 +151,7 @@
                                         <td class="text-end">₱{{ "{:,.2f}".format(laundry_service.price | float) }}</td>
                                         <td>{{ laundry_service.last_update }} / {{ laundry_service.timestamp }}</td>
                                         <td>
+                                          {% if role in ['admin', 'manager'] or department == "Laundry" %}
                                             <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                 onclick='EditLaundryModal({{ laundry_service | tojson | safe }})'>
                                                 <i class="ri-pencil-line"></i>
@@ -157,6 +160,7 @@
                                                 onclick="confirmDelete('{{ laundry_service.service_id }}', '{{ laundry_service.name | escape }}')">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
+                                          {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
