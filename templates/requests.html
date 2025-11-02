@@ -454,7 +454,7 @@
 <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
 
 <script>
-  // strip HTML tags from cell content when DataTables searches (improves matching for cells with badges/links)
+  // strip HTML tags from cell content when DataTables searches
   $.fn.dataTable.ext.type.search.html = function (data) {
     if (!data) return '';
     return data.toString().replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
@@ -487,23 +487,25 @@
     // helper to set current year
     document.getElementById('year').textContent = new Date().getFullYear();
 
-    // DataTables
     $(function () {
-        $('#requestsTable').DataTable({
-            pageLength: 10,
-            order: [[0, 'desc']],
-            lengthChange: true,
-            responsive: true,
-            language: {
-                search: "_INPUT_",
-                searchPlaceholder: "Search requests..."
-            },
-            columnDefs: [
-                { targets: [4, 5], className: 'text-end' },
-                { targets: [8], orderable: false, searchable: false }
-            ]
-        });
+  const selector = '#requestsTable';
+  if (!$.fn.dataTable.isDataTable(selector)) {
+    $(selector).DataTable({
+      pageLength: 10,
+      order: [[0, 'desc']],
+      lengthChange: true,
+      responsive: true,
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search requests..."
+      },
+      columnDefs: [
+        { targets: [4, 5], className: 'text-end' },
+        { targets: [8], orderable: false, searchable: false }
+      ]
     });
+  }
+});
 
     // ---------- Add / Edit form behavior ----------
     function showServiceOrFoodFor(type, prefix = '') {
