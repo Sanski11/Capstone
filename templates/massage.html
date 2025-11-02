@@ -175,11 +175,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Massage" readonly></div>
+            <div class="mb-3"><input name="category" class="form-control" value="Massage" hidden></div>
             <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
             <div class="mb-3"><label>Description</label><input name="description" class="form-control" required></div>
             <div class="mb-3"><label>Price</label><input type="number" name="price" class="form-control" step="0.01" min="0" required></div>
-            <div class="mb-3"><label>Type</label><input name="type" class="form-control" value="Service" readonly></div>
+            <div class="mb-3"><input name="type" class="form-control" value="Service" hidden></div>
           </div>
           <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
         </form>
@@ -200,11 +200,11 @@
           </div>
           <div class="modal-body">
             <input type="hidden" id="edit_service_id" name="service_id">
-            <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
+            <div class="mb-3"><input id="edit_category" name="edit_category" class="form-control" hidden></div>
             <div class="mb-3"><label>Name</label><input id="edit_name" name="edit_name" class="form-control" required></div>
             <div class="mb-3"><label>Description</label><input id="edit_description" name="edit_description" class="form-control" required></div>
             <div class="mb-3"><label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required></div>
-            <div class="mb-3"><label>Type</label><input id="edit_type" name="edit_type" class="form-control" readonly></div>
+            <div class="mb-3"><input id="edit_type" name="edit_type" class="form-control" hidden></div>
           </div>
           <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
         </form>
@@ -215,20 +215,41 @@
   <!-- ===================== -->
   <!-- DELETE CONFIRMATION MODAL -->
   <!-- ===================== -->
-  <div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal fade" id="deleteMassageModal" tabindex="-1">
     <div class="modal-dialog">
-      <div class="modal-content text-center">
-        <div class="modal-body">
-          <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
-          <h5>Are you sure you want to delete <span id="modalServiceName"></span>?</h5>
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <b><span id="modalServiceName"></span></b>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+            </div>
         </div>
-        <div class="modal-footer justify-content-center">
-          <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        </div>
-      </div>
     </div>
+</div>
+
+<!-- IN USE MODAL -->
+<div class="modal fade" id="inUseModal" tabindex="-1">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header bg-warning text-dark">
+              <h5 class="modal-title">Cannot Delete</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+              This massage service is currently used in a request and cannot be deleted.
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+          </div>
+      </div>
   </div>
+</div>
 
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -257,25 +278,21 @@
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
 
-    function confirmDelete(service_id, name) {
-      fetch(`/checkServices/${service_id}`)
-        .then(r => r.json())
+    function confirmDelete(id, name) {
+      fetch(`/checkServices/${id}`)
+        .then(res => res.json())
         .then(data => {
           if (data.in_use) {
-            alert("This service is currently in use and cannot be deleted.");
+            new bootstrap.Modal(document.getElementById('inUseModal')).show();
           } else {
             document.getElementById("modalServiceName").innerText = name;
-            document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${id}`;
+            new bootstrap.Modal(document.getElementById('deleteMassageModal')).show();
           }
         })
-        .catch(() => {
-          document.getElementById("modalServiceName").innerText = name;
-          document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
-          new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        });
-    }
-
+        .catch(err => console.error(err)); // optional, helps debug
+    } 
+      
     // Number counter animation
     document.querySelectorAll('.summary-card h3').forEach(el => {
       const end = parseInt(el.textContent);

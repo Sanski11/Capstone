@@ -903,7 +903,7 @@ def view_auditlogs():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
     
     cursor.execute("""
-                   SELECT * FROM audit_log ORDER BY log_id desc
+                   SELECT * FROM audit_log ORDER BY log_id DESC
                    """)
     logs = cursor.fetchall() #After executing sql, fetch results
     return render_template('auditlogs.html', logs=logs) #pass the contents of logs to auditlogs.html
@@ -953,6 +953,7 @@ def add_rooms():
         flash("Room number already exists. Please enter a unique room number.", "danger")
     finally:
         cursor.close() #Close db connection
+        flash('Room added successfully', 'success')
         return redirect('/rooms') 
 
 
@@ -1040,6 +1041,7 @@ def deleteRoom(room_id):
     )
     mysql.connection.commit() #Save to db
     cursor.close() #Close connection
+    flash('Room deleted successfully', 'success')
     return redirect('/rooms') #Return to rooms
 
 #Called by ROOMS Menu - check if room exists in bookngs
@@ -1095,7 +1097,7 @@ def add_guests():
             new_data=new_data_for_log
         )
     cursor.close() #Close connection
-
+    flash('Guest added successfully', 'success')
     return redirect('/guests')
 
 #Called by GUESTS Menu - edit a guest
@@ -1229,7 +1231,7 @@ def add_request():
             new_data=new_data_for_log 
         )
     cursor.close()
-
+    flash('Request added successfully', 'success')
     return redirect('/requests')
 
 from datetime import datetime
@@ -1353,6 +1355,7 @@ def deleteRequest(request_id):
     
     mysql.connection.commit()
     cursor.close()
+    flash('Request deleted successfully', 'success')
     return redirect('/requests')
 
 @app.route('/completedRequest', methods=['POST'])
@@ -1637,7 +1640,7 @@ def add_housekeeping():
             
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
-
+    flash('Housekeeping service added successfully', 'success')
     return redirect('/housekeeping')
 
 #Called by DINING Menu - add new dining
@@ -1688,7 +1691,6 @@ def add_dining():
         
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
-
     return redirect('/dining')
 
 #Called by LAUNDRY Menu - add new laundry
@@ -1734,7 +1736,7 @@ def add_laundry():
         )
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
-
+    flash('Laundry service added successfully', 'success')
     return redirect('/laundry')
 
 # #Called by MASSAGE Menu - add new massage
@@ -1780,7 +1782,6 @@ def add_massage():
             new_data=new_data_for_log 
         )
     cursor.close() #Close db connection
-
     return redirect('/massage')
 
 #Called by HOUSEKEEPING Menu - edit a housekeeping
@@ -2054,6 +2055,7 @@ def deleteHousekeeping(service_id):
 
     mysql.connection.commit()
     cursor.close()
+    flash('Housekeeping service deleted successfully', 'success')
     return redirect('/housekeeping')
 
 #Called by DINING Menu - delete a dining
@@ -2117,6 +2119,7 @@ def deleteLaundry(service_id):
 
     mysql.connection.commit()
     cursor.close()
+    flash('Laundry service deleted successfully', 'success')
     return redirect('/laundry')
 
 #Called by MASSAGE Menu - delete a massage
@@ -2191,7 +2194,7 @@ def add_staff():
         )
     
     cursor.close() #Close db connection
-
+    flash('Staff added successfully', 'success')
     return redirect('/staff')
 
 #Called by STAFF Menu - edit a staff
@@ -2282,6 +2285,7 @@ def deleteStaff(staff_id):
     )
     
     cursor.close()
+    flash('Staff deleted successfully', 'success')
     return redirect('/staff')
 
 #Called by SERVICES Menu - check if service exist in requests
@@ -2348,6 +2352,7 @@ def deleteGuest(guest_id):
 
     mysql.connection.commit() #Save to db
     cursor.close() #Close connection
+    flash('Guest deleted successfully', 'success')
     return redirect('/guests') #Return to rooms
 
 #Called by BOOKINGS Menu - display bookings
@@ -2441,6 +2446,7 @@ def add_booking():
             new_data=new_data_for_log 
         )
     cursor.close()
+    flash('Booking added successfully', 'success')
     return redirect('/bookings')
 
 #Called by BOOKINGS Menu - edit a booking
@@ -2598,7 +2604,7 @@ def checkin():
     )
 
     cursor.close()
-    flash('Guest checked in successfully.', 'success')
+    flash('Check-in successful.', 'success')
     return redirect('/roomGuest')
 
 
@@ -2658,7 +2664,7 @@ def checkout():
     )
 
     cursor.close()
-    flash('Guest checked out successfully.', 'success')
+    flash('Check-out successful.', 'success')
     return redirect('/roomGuest')
 
 @app.route('/bill/<int:booking_id>')
@@ -2815,6 +2821,7 @@ def add_user():
         flash(f"❌ Failed to add user: {str(e)}", "danger")
     finally:
         cursor.close() #Close db connection
+        flash('User added successfully', 'success')
         return redirect('/users')
     
 #Called by USER Menu - check if user exist in requests
@@ -2855,6 +2862,7 @@ def delete_user(user_id):
     
     mysql.connection.commit()
     cursor.close()
+    flash('User deleted successfully', 'success')
     return redirect('/users')
 
 @app.route('/updateUser', methods=['POST'])

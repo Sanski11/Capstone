@@ -141,7 +141,7 @@
                         {% endif %}
                       </span>
                     </td>
-                    <td>{{ user.last_update }}/{{user.timestamp}}</td>
+                    <td>{{ user.last_update }} / {{ user.timestamp }}</td>
                     <td>
                       {% if session.get('role', '').lower() == 'admin' %}
                         <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" title="Edit"

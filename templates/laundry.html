@@ -175,11 +175,11 @@
             <form method="POST" action="{{ url_for('add_laundry') }}">
             <div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Record</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-                <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Laundry" readonly></div>
+                <div class="mb-3"><input name="category" class="form-control" value="Laundry" hidden></div>
                 <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
                 <div class="mb-3"><label>Description</label><input name="description" class="form-control" required></div>
                 <div class="mb-3"><label>Price</label><input type="number" name="price" class="form-control" step="0.01" min="0" required></div>
-                <div class="mb-3"><label>Type</label><input name="type" class="form-control" value="Service" readonly></div>
+                <div class="mb-3"><input name="type" class="form-control" value="Service" hidden></div>
             </div>
             <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
             </form>
@@ -196,11 +196,11 @@
             <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;"><h5 class="modal-title">Edit laundry</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="edit_service_id" name="service_id">
-                <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
+                <div class="mb-3"><input id="edit_category" name="edit_category" class="form-control" hidden></div>
                 <div class="mb-3"><label>Name</label><input id="edit_name" name="edit_name" class="form-control" required></div>
                 <div class="mb-3"><label>Description</label><input id="edit_description" name="edit_description" class="form-control" required></div>
                 <div class="mb-3"><label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required></div>
-                <div class="mb-3"><label>Type</label><input id="edit_type" name="edit_type" class="form-control" readonly></div>
+                <div class="mb-3"><input id="edit_type" name="edit_type" class="form-control" hidden></div>
             </div>
             <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
             </form>
@@ -211,19 +211,41 @@
     <!-- Delete Modal for confirming removal of a  record -->
     <!-- Prompts the user to verify before permanently deleting the selected service -->
     <div class="modal fade" id="deleteLaundryModal" tabindex="-1">
-        <div class="modal-dialog">
-        <div class="modal-content text-center">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title">Confirm Delete</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                  Are you sure you want to delete <b><span id="modalServiceName"></span></b>?
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+              </div>
+          </div>
+      </div>
+  </div>
+  
+  <!-- IN USE MODAL -->
+  <div class="modal fade" id="inUseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Cannot Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <div class="modal-body">
-            <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
-            <h5>Are you sure you want to delete <span id="modalServiceName"></span>?</h5>
+                This laundry service is currently used in a request and cannot be deleted.
             </div>
-            <div class="modal-footer justify-content-center">
-            <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
             </div>
-        </div>
         </div>
     </div>
+  </div>
+  
 
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -258,25 +280,22 @@
     
         // Function to confirm deletion of a record
         // Checks first if the record is linked or in use before deleting        
-        function confirmDelete(service_id, name) {
-          fetch(`/checkServices/${service_id}`)
-            .then(r => r.json())
-            .then(data => {
+        function confirmDelete(id, name) {
+          fetch(`/checkServices/${id}`)
+          .then(res => res.json())
+          .then(data => {
               if (data.in_use) {
-                new bootstrap.Modal(document.getElementById('inUseModal')).show();
+                  new bootstrap.Modal(document.getElementById('inUseModal')).show();
               } else {
-                document.getElementById("modalServiceName").innerText = name;
-                document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${service_id}`;
-                new bootstrap.Modal(document.getElementById('deleteLaundryModal')).show();
+                  document.getElementById("modalServiceName").innerText = name;
+                  document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${id}`;
+                  new bootstrap.Modal(document.getElementById('deleteLaundryModal')).show();
               }
-            })
-            .catch(() => {
-              document.getElementById("modalServiceName").innerText = name;
-              document.getElementById("confirmDeleteBtn").href = `/deleteLaundry/${service_id}`;
-              new bootstrap.Modal(document.getElementById('deleteLaundryModal')).show();
-            });
-        }
-         document.querySelectorAll('.summary-card h3').forEach(el => {
+          });
+      }
+      
+
+        document.querySelectorAll('.summary-card h3').forEach(el => {
         const end = parseInt(el.textContent);
         let start = 0;
         const step = Math.max(1, Math.floor(end / 60));
