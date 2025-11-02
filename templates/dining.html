@@ -99,6 +99,20 @@
     </div>
   </div>
 </div>
+<!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="mb-3">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% endwith %}
+
                 <!-- Dining Table -->
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
@@ -351,6 +365,16 @@
                 ]
             });
         });
+
+    document.addEventListener("DOMContentLoaded", function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 4000); // 4000 ms = 4 seconds
+    });
+  });
     </script>
 </body>
 </html>

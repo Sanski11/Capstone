@@ -160,7 +160,7 @@
 
         <footer class="footer mt-auto py-3 text-center">
             <div class="container-fluid">
-                <span class="text-muted">Copyright © <span id="year">2024</span> ezStay. All rights reserved.</span>
+                <span class="text-muted">Copyright © <span id="year">2025</span> ezStay. All rights reserved.</span>
             </div>
         </footer>
     </div>
@@ -311,6 +311,16 @@
         }
         animate();
       });
+
+      document.addEventListener("DOMContentLoaded", function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 4000); // 4000 ms = 4 seconds
+    });
+  });
       </script>
     </body>
 </html>

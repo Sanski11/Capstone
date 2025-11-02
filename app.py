@@ -786,7 +786,7 @@ def show_requests():
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        LEFT JOIN staff st ON r.staff_id = st.staff_id
+        LEFT JOIN staff st ON r.staff_id = s.staff_id
         LEFT JOIN guest g ON r.guest_id = g.guest_id
         LEFT JOIN bookings b ON r.booking_id = b.booking_id
         WHERE b.status = 'Checked-in'
@@ -1051,7 +1051,7 @@ def check_room_booking(room_id):
     cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE room_id = %s", (room_id,)) #Count how many room_id are there in bookings
     result = cursor.fetchone() #Fetch results
     cursor.close() #Close db connection
-    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0;  if in_use is TRUE (meaning, the room_id is used in bookings), then it will tell rooms.html that the room cannot be deleted
+    return jsonify({"in_use": result['count'] > 0}) #Return to rooms; set "in_use" to TRUE if count > 0;  if in_use is true, it means that the room cannot be deleted
 
 #Called by GUESTS Menu - add a new guest
 @app.route('/addGuests', methods=['POST'])
@@ -1646,8 +1646,6 @@ def add_housekeeping():
 #Called by DINING Menu - add new dining
 @app.route('/addDining', methods=['POST'])
 def add_dining():
-    
-    #Get the values entered in Add Form
     category = request.form['category']
     name = request.form['name']
     description = request.form['description']
@@ -1656,18 +1654,16 @@ def add_dining():
     last_update = session['username']
     timestamp = datetime.now()
 
-
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     new_item_id = None
 
     cursor.execute(
         "INSERT INTO food_items (category, name, description, price, type, last_update, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s)",
         (category, name, description, price, type, last_update, timestamp)
-    )    
-    
-    new_item_id = cursor.lastrowid #Get the ID of the newly inserted record
-    
-    #Get new data and save logs
+    )
+    new_item_id = cursor.lastrowid
+    mysql.connection.commit()
+
     if new_item_id:
         new_data_for_log = {
             'item_id': new_item_id,
@@ -1682,16 +1678,17 @@ def add_dining():
         log_audit_event(
             actor_id = session['username'],
             timestamp=timestamp,
-            table_name='food_items', 
-            action_type='INSERT', 
-            record_id=str(new_item_id), 
-            old_data=None,           # Record did not exist, so old_data is None
-            new_data=new_data_for_log 
+            table_name='food_items',
+            action_type='INSERT',
+            record_id=str(new_item_id),
+            old_data=None,
+            new_data=new_data_for_log
         )
-        
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close db connection
-    return redirect('/dining')
+
+    cursor.close()
+    # use a dining-specific flash category and redirect to the dining view
+    flash('Dining item added successfully', 'dining')
+    return redirect('/dining')   # <-- use the actual view function name for /dining
 
 #Called by LAUNDRY Menu - add new laundry
 @app.route('/addLaundry', methods=['POST'])
@@ -1782,6 +1779,7 @@ def add_massage():
             new_data=new_data_for_log 
         )
     cursor.close() #Close db connection
+    flash('Massage service added successfully', 'success')
     return redirect('/massage')
 
 #Called by HOUSEKEEPING Menu - edit a housekeeping
@@ -1812,7 +1810,7 @@ def updateHousekeeping():
     new_data = old_data.copy()
     new_data['service_id'] = service_id
     new_data['category'] = category
-    new_data['name']= name
+    new_data['name'] = name
     new_data['description'] = description
     new_data['type'] = type
     new_data['price'] = price
@@ -1847,8 +1845,6 @@ def updateHousekeeping():
 #Called by DINING Menu - edit a dining
 @app.route('/updateDining', methods=['POST'])
 def updateDining():
-    
-    #Get the values entered in the Edit Form
     item_id = int(request.form['item_id'])
     category = request.form['edit_category']
     name = request.form['edit_name']
@@ -1858,54 +1854,40 @@ def updateDining():
     last_update = session['username']
     timestamp = datetime.now()
 
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    
-    #Get old data
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("SELECT * FROM food_items WHERE item_id = %s", (item_id,))
-    old_data = cursor.fetchone() 
-
+    old_data = cursor.fetchone()
     if not old_data:
-        # Handle error: record not found
+        cursor.close()
         return "Food not found", 404
-    
-    #Get new data 
+
     new_data = old_data.copy()
-    new_data['item_id'] = item_id
-    new_data['category'] = category
-    new_data['name']= name
-    new_data['description'] = description
-    new_data['type'] = type
-    new_data['price'] = price
-    new_data['last_update'] = last_update
-    new_data['timestamp'] = timestamp
-    
+    new_data.update({'item_id': item_id, 'category': category, 'name': name, 'description': description, 'type': type, 'price': price, 'last_update': last_update, 'timestamp': timestamp})
+
     cursor.execute(
         """
         UPDATE food_items
-        SET category =%s, name = %s, description =%s, type =%s, price = %s, last_update=%s, timestamp=%s
+        SET category = %s, name = %s, description = %s, type = %s, price = %s, last_update = %s, timestamp = %s
         WHERE item_id = %s
         """,
         (category, name, description, type, price, last_update, timestamp, item_id)
     )
-    
-    
-    #Save logs
+
     log_audit_event(
-        actor_id=session['username'],
-        timestamp=timestamp,
-        table_name='food_items', 
-        action_type='UPDATE', 
-        record_id=str(item_id), 
-        old_data=old_data, 
-        new_data=new_data 
+        actor_id = session['username'],
+        timestamp = timestamp,
+        table_name='food_items',
+        action_type='UPDATE',
+        record_id=str(item_id),
+        old_data=old_data,
+        new_data=new_data
     )
 
-
-    mysql.connection.commit() #Save to db
-    cursor.close() #Close db connection
-
-    return redirect('/dining')
+    mysql.connection.commit()
+    cursor.close()
+    # use a dining-specific flash category and redirect to the dining view
+    flash('Dining item updated successfully', 'dining')
+    return redirect('/dining')   # <-- use the actual view function name for /dining
 
 #Called by LAUNDRY Menu - edit a service
 @app.route('/updateLaundry', methods=['POST'])
@@ -1935,7 +1917,7 @@ def updateLaundry():
     new_data = old_data.copy()
     new_data['service_id'] = service_id
     new_data['category'] = category
-    new_data['name']= name
+    new_data['name'] = name
     new_data['description'] = description
     new_data['type'] = type
     new_data['price'] = price
@@ -1994,7 +1976,7 @@ def updateMassage():
     new_data = old_data.copy()
     new_data['service_id'] = service_id
     new_data['category'] = category
-    new_data['name']= name
+    new_data['name'] = name
     new_data['description'] = description
     new_data['type'] = type
     new_data['price'] = price
@@ -2062,32 +2044,31 @@ def deleteHousekeeping(service_id):
 @app.route('/deleteDining/<int:item_id>', methods=['GET'])
 def deleteDining(item_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    #Get old data
-    cursor.execute("SELECT * FROM food_items WHERE item_id =%s", (item_id,))
+    cursor.execute("SELECT * FROM food_items WHERE item_id = %s", (item_id,))
     old_data = cursor.fetchone()
     timestamp = datetime.now()
-    
+
     if not old_data:
         cursor.close()
-        #Handle case where the service ID doesn't exist
         return "In room dining service not found or already deleted", 404
-    
+
     cursor.execute("DELETE FROM food_items WHERE item_id = %s", (item_id,))
 
-    #Save logs
     log_audit_event(
         actor_id = session['username'],
         timestamp=timestamp,
-        table_name='food_items', 
-        action_type='DELETE', 
-        record_id=str(item_id), 
-        old_data=old_data, 
-        new_data=None 
+        table_name='food_items',
+        action_type='DELETE',
+        record_id=str(item_id),
+        old_data=old_data,
+        new_data=None
     )
+
     mysql.connection.commit()
     cursor.close()
-    return redirect('/dining')
+    # use a dining-specific flash category and redirect to the dining view
+    flash('Dining item deleted successfully', 'dining')
+    return redirect('/dining')   # <-- use the actual view function name for /dining
 
 #Called by LAUNDRY Menu - delete a laundry
 @app.route('/deleteLaundry/<int:service_id>', methods=['GET'])
@@ -2148,6 +2129,7 @@ def deleteMassage(service_id):
     )
     mysql.connection.commit()
     cursor.close()
+    flash('Massage service deleted successfully', 'success')
     return redirect('/massage')
 
 #Called by STAFF Menu - add a new staff
@@ -2422,6 +2404,7 @@ def add_booking():
     """, (guest_id, room_type, room_id, exp_check_in, exp_check_out, status, random_booking_ref, last_update, timestamp))
     new_booking_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
     mysql.connection.commit()
+    
     #Get new data and save logs
     if new_booking_id:  #change room_id
         new_data_for_log = {
