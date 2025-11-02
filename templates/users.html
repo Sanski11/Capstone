@@ -142,10 +142,12 @@
                 <thead>
                   <tr>
                     <th>Username</th>
+                    <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
                     <th>Department</th>
                     <th>Status</th>
+                    <th>Last Update/on</th>
                     <th>Action</th>
                   </tr>
                 </thead>
@@ -153,6 +155,7 @@
                   {% for user in users %}
                   <tr data-user="{{ user.user_id }}" data-status="{{ user.status }}">
                     <td>{{ user.username }}</td>
+                    <td>{{ user.name }}</td>
                     <td>
                       {{ user.email }}
                       {% if user.email_verified == 1 or user.email_verified == "1" %}
@@ -172,10 +175,11 @@
                         {% endif %}
                       </span>
                     </td>
+                    <td>{{ user.last_update }}/{{user.timestamp}}</td>
                     <td>
                       {% if session.get('role', '').lower() == 'admin' %}
                         <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" title="Edit"
-                          onclick="showEditModal('{{ user.user_id }}','{{ user.username }}','{{ user.email }}','{{ user.role }}','{{ user.department }}','{{ user.status }}')">
+                          onclick="showEditModal('{{ user.user_id }}','{{ user.username }}' ,'{{ user.first_name }}','{{ user.middle_name }}','{{ user.last_name }}','{{ user.email }}','{{ user.role }}','{{ user.department }}','{{ user.status }}')">
                           <i class="ri-pencil-line"></i>
                         </button>
                         <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" title="co"
@@ -209,6 +213,18 @@
                     <input type="text" name="username" class="form-control" required>
                   </div>
                   <div class="col-md-6">
+                    <label class="form-label">First Name</label>
+                    <input type="text" name="first_name" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Middle Name</label>
+                    <input type="text" name="middle_name" class="form-control">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" name="last_name" class="form-control" required>
+                  </div>
+                <div class="col-md-6">
                     <label class="form-label">Email</label>
                     <input type="email" name="email" class="form-control" required>
                   </div>
@@ -270,6 +286,18 @@
                   <div class="col-md-6">
                     <label class="form-label">Username</label>
                     <input type="text" id="edit_username" name="edit_username" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">First Name</label>
+                    <input type="text" id="edit_first_name" name="edit_first_name" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Middle Name</label>
+                    <input type="text" id="edit_middle_name" name="edit_middle_name" class="form-control">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Last Name</label>
+                    <input type="text" id="edit_last_name" name="edit_last_name" class="form-control" required>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Email</label>
@@ -408,9 +436,12 @@
       } catch (e) { console.error(e); }
     }
 
-    function showEditModal(id, username, email, role, department, status) {
+    function showEditModal(id, username, first_name, middle_name, last_name, email, role, department, status) {
       document.getElementById('edit_user_id').value = id;
       document.getElementById('edit_username').value = username;
+      document.getElementById('edit_first_name').value = first_name;
+      document.getElementById('edit_middle_name').value = middle_name;
+      document.getElementById('edit_last_name').value = last_name;
       document.getElementById('edit_email').value = email;
       document.getElementById('edit_role').value = role;
       document.getElementById('edit_department').value = department || '';
@@ -434,7 +465,7 @@
 
     // Auto-apply edit changes to UI and persist to server in background
     document.getElementById('editUserForm').addEventListener('submit', function(e) {
-      e.preventDefault();
+      //e.preventDefault();
       const form = e.target;
       const fd = new FormData(form);
       const userId = fd.get('edit_user_id');

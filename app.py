@@ -826,7 +826,7 @@ def view_auditlogs():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
     
     cursor.execute("""
-                   SELECT * FROM audit_log
+                   SELECT * FROM audit_log ORDER BY log_id desc
                    """)
     logs = cursor.fetchall() #After executing sql, fetch results
     return render_template('auditlogs.html', logs=logs) #pass the contents of logs to auditlogs.html
@@ -2612,7 +2612,6 @@ def users_page():
 
     # Search functionality
     cursor.execute("SELECT * FROM users ORDER BY user_id ASC")
-
     users = cursor.fetchall()
 
     # Summary counts
@@ -2647,21 +2646,26 @@ def users_page():
 @app.route('/addUser', methods=['POST'])
 def add_user():
     username = request.form['username']
+    first_name = request.form['first_name']
+    middle_name = request.form['middle_name']
+    last_name = request.form['last_name']
     email = request.form['email']
     password = request.form['password']
     role = request.form['role']
     department = request.form.get('department')
     status = int(request.form.get('status', 1))  # Default Active
     account_status = "" 
-    middle_name = ""
-    name = ""
-
+    name = f"{first_name} {middle_name} {last_name}".strip()
+    last_update = session['username']
+    timestamp = datetime.now()
 
     # Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    new_user_id = None #change room_id
+    
     try:
         
         # Check if username already exists
@@ -2681,10 +2685,38 @@ def add_user():
         token_expires_at = datetime.now() + timedelta(hours=24)
         
         cursor.execute("""
-            INSERT INTO users (username, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, middle_name, name)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (username, email, password, role, department, status, False, verification_token, token_expires_at, account_status, middle_name, name))
+            INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now()))
+        new_user_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
         mysql.connection.commit()
+        
+        #Get new data and save logs
+        if new_user_id:  #change room_id
+            new_data_for_log = {
+                'user_id': new_user_id,
+                'username': username,  #change field names
+                'first_name': first_name,
+                'middle_name': middle_name,
+                'last_name': last_name,
+                'name': name,
+                'email': email,
+                'role': role,
+                'department': department,
+                'last_update': last_update,
+                'timestamp': timestamp
+            }
+            
+            log_audit_event(
+                actor_id = session['username'],
+                timestamp=timestamp,
+                table_name='users',  #change 
+                action_type='INSERT', 
+                record_id=str(new_user_id),  #change
+                old_data=None,           # Record did not exist, so old_data is None
+                new_data=new_data_for_log 
+            )
+        
 
         flash("✅ User added successfully!", "success")
         
@@ -2714,7 +2746,30 @@ def check_user(username):
 @app.route('/deleteUser/<int:user_id>', methods=['GET'])
 def delete_user(user_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+   #Get old data
+    cursor.execute("SELECT * FROM users WHERE user_id =%s", (user_id,)) #change table and field name
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        #Handle case where the room ID doesn't exist
+        return "User not found or already deleted", 404 #change message
+    
     cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
+    
+    #Save logs
+    log_audit_event(
+        actor_id = session['username'],
+        timestamp=timestamp,
+        table_name='users',  #change
+        action_type='DELETE', 
+        record_id=str(user_id), #change
+        old_data=old_data, 
+        new_data=None 
+    )
+    
     mysql.connection.commit()
     cursor.close()
     return redirect('/users')
@@ -2722,24 +2777,66 @@ def delete_user(user_id):
 @app.route('/updateUser', methods=['POST'])
 def update_user():
     user_id = request.form['edit_user_id']
-    username = request.form['edit_username']
+    user_name = request.form['edit_username']
+    first_name = request.form['edit_first_name']
+    middle_name = request.form['edit_middle_name']
+    last_name = request.form['edit_last_name']
     email = request.form['edit_email']
     role = request.form['edit_role']
     department = request.form.get('edit_department')
     status = int(request.form.get('edit_status', 1))
+    name = f"{first_name} {middle_name} {last_name}".strip()
+    last_update = session['username']
+    timestamp = datetime.now()
 
     # Remove department for certain roles
-    if role in ['admin', 'supervisor', 'user']:
+    if role in ['admin', 'user']:
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #Get old data
+    cursor.execute("SELECT * FROM users WHERE user_id = %s", (user_id,)) #change table and field names
+    old_data = cursor.fetchone() 
+
+    if not old_data:
+        # Handle error: record not found
+        return "User not found", 404 #change message
+    
+    #Get new data 
+    new_data = old_data.copy()
+    new_data['user_id'] = user_id  #change ALL field names (should be similar to the table)
+    new_data['username'] = user_name
+    new_data['first_name'] = first_name
+    new_data['middle_name'] = middle_name
+    new_data['last_name'] = last_name
+    new_data['email'] = email
+    new_data['role'] = role
+    new_data['department'] = department
+    new_data['status'] = status
+    new_data['name'] = name
+    new_data['last_update'] = last_update
+    new_data['timestamp'] = timestamp
+    
     try:
         cursor.execute("""
             UPDATE users 
-            SET username=%s, email=%s, role=%s, department=%s, status=%s 
+            SET username=%s, first_name=%s, middle_name=%s, last_name=%s, name=%s, email=%s, role=%s, department=%s, status=%s, last_update=%s, timestamp=%s
             WHERE user_id=%s
-        """, (username, email, role, department, status, user_id))
+        """, (username, first_name, middle_name, last_name, name, email, role, department, status, last_update, timestamp, user_id))
         mysql.connection.commit()
+        
+        #Save logs
+        log_audit_event(
+            actor_id=session['username'],
+            timestamp=timestamp,
+            table_name='users',  #change table name
+            action_type='UPDATE', 
+            record_id=str(user_id), #change field name
+            old_data=old_data, 
+            new_data=new_data 
+        )
+        
         flash("✅ User updated successfully!", "success")
     except Exception as e:
         print("❌ Update error:", e)
