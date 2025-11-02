@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign Up</title>
+  <title>ezStay - Sign Up</title>
 
   <!-- Favicon -->
   <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
@@ -14,7 +14,7 @@
   <!-- Icons -->
   <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
 
-  <!-- Vyzor Styles -->
+  <!-- Main Styles -->
   <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
 </head>
 
@@ -39,10 +39,11 @@
   {% endif %}
   {% endwith %}
 
+  <!-- Sign Up Card -->
   <div class="container">
     <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
       <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
-        <div class="card custom-card border-0 my-4">
+        <div class="card custom-card border-0 my-4 shadow">
           <div class="card-body p-5">
             <div class="text-center mb-4">
               <h4 class="fw-semibold">Create Your Account</h4>
@@ -67,7 +68,7 @@
                 <label class="form-label text-default d-block">Password</label>
                 <div class="position-relative">
                   <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()" id="button-addon2">
+                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()">
                     <i class="ri-eye-off-line align-middle"></i>
                   </a>
                 </div>
@@ -78,9 +79,9 @@
                 <label class="form-label text-default">Select Role</label>
                 <select name="role" class="form-select" required>
                   <option value="" disabled selected>-- Choose a Role --</option>
-                  <option value="manager">Manager</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="admin">Admin</option>
+                  <option value="user">User</option>
+                  <option value="guest">Guest</option>
+                  <option value="staff">Staff</option>
                 </select>
               </div>
 
@@ -94,7 +95,8 @@
 
               <!-- Login Link -->
               <div class="text-center mt-3 fw-medium">
-                Already have an account? <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
+                Already have an account? 
+                <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
               </div>
 
               <!-- Error Message -->
@@ -128,7 +130,6 @@
     });
   </script>
 
-  <!-- Bootstrap JS -->
   <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 </body>
 </html>

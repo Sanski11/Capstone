@@ -139,6 +139,25 @@ def inject_user_details():
         'department': session.get('department')
     }
 
+@app.context_processor
+def inject_current_booking():
+    user_id = session.get('user_id')
+    role = session.get('role')
+    current_booking_id = None
+    if role in ['user', 'guest'] and user_id:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            SELECT booking_id 
+            FROM bookings 
+            WHERE guest_id = %s AND status = 'Checked-in' 
+            LIMIT 1
+        """, (user_id,))
+        booking = cursor.fetchone()
+        cursor.close()
+        if booking:
+            current_booking_id = booking['booking_id']
+    return dict(current_booking_id=current_booking_id)
+
 @app.route('/')
 def home():
     return redirect(url_for('login'))
@@ -294,38 +313,71 @@ def signup():
         email = request.form['email']
         username = request.form['username']
         password = request.form['password']
+        selected_role = request.form.get('role', 'user').lower()
 
-        # Get selected role safely, fallback to 'user' if invalid
-        role = request.form.get('role', 'user').lower()
-        allowed_roles = ['manager', 'supervisor', 'admin', 'user']
-        if role not in allowed_roles:
-            role = 'user'
+        # Define allowed roles
+        allowed_roles = ['admin', 'manager', 'supervisor', 'user']
+
+        # Security: Only admins can create privileged roles
+        if selected_role in ['admin', 'manager', 'supervisor']:
+            if 'role' not in session or session.get('role', '').lower() != 'admin':
+                flash("Only administrators can create admin, manager, or supervisor accounts.", "danger")
+                return redirect(url_for('signup'))
+        else:
+            selected_role = 'user'  # Force default for public signup
 
         status = 1  # Active by default
+        account_status = 'Pending'  # Account status starts as Pending
 
-        cursor = mysql.connection.cursor()
+        # Safe defaults for all user info fields
+        department = None
+        verified = False
+        email_verified = False
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        created_at = datetime.now()
 
-        # Check if username already exists
+        first_name = request.form.get('first_name', '')
+        middle_name = request.form.get('middle_name', '')
+        last_name = request.form.get('last_name', '')
+        name = f"{first_name} {middle_name} {last_name}".strip()
+        phone = request.form.get('phone', '')
+
+        reset_token = None
+        reset_token_expiry = None
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Check for duplicates
         cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
         if cursor.fetchone():
             flash("Username already taken.", "danger")
             return redirect(url_for('signup'))
 
-        # Check if email already exists
         cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
         if cursor.fetchone():
             flash("Email already registered. Please log in.", "danger")
             return redirect(url_for('signup'))
 
-        # Generate verification token
-        verification_token = generate_verification_token()
-        token_expires_at = datetime.now() + timedelta(hours=24)
-
-        # Insert user record with chosen or default role
+        # Insert safely
         cursor.execute("""
-            INSERT INTO users (username, email, password, role, status, email_verified, verification_token, token_expires_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (username, email, password, role, status, False, verification_token, token_expires_at))
+            INSERT INTO users (
+                username, email, password, role, status, department,
+                verified, email_verified, verification_token, token_expires_at,
+                account_status, created_at, first_name, last_name, middle_name,
+                name, phone, reset_token, reset_token_expiry
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            )
+        """, (
+            username, email, password, selected_role, status, department,
+            verified, email_verified, verification_token, token_expires_at,
+            account_status, created_at, first_name, last_name, middle_name,
+            name, phone, reset_token, reset_token_expiry
+        ))
         mysql.connection.commit()
 
         # Send verification email
@@ -333,10 +385,9 @@ def signup():
             flash("Check your email for a verification link.", "success")
             return redirect(url_for('verification_pending'))
         else:
-            flash("Could not send email. Contact support.", "danger")
+            flash("Could not send email. Please contact support.", "danger")
 
     return render_template('signup.html')
-
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):
@@ -371,38 +422,53 @@ def verification_pending():
 
 @app.route('/dashboard')
 def dashboard():
-    # 1. AUTHENTICATION & USER RETRIEVAL
+    # 1. AUTHENTICATION & SESSION VALIDATION
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
 
     username = session['username']
+    user_id = session.get('user_id')
     role = session['role']
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch user data for profile display
+    # ===========================
+    # CURRENT BOOKING (for users)
+    # ===========================
+    current_booking_id = None
+    if role == 'user' and user_id:
+        cursor.execute("""
+            SELECT booking_id 
+            FROM bookings 
+            WHERE guest_id = %s 
+            ORDER BY booking_id DESC 
+            LIMIT 1
+        """, (user_id,))
+        current_booking = cursor.fetchone()
+        current_booking_id = current_booking['booking_id'] if current_booking else None
+
+    # ===========================
+    # FETCH USER DATA
+    # ===========================
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
     if not user:
         cursor.close()
         return redirect(url_for('login'))
 
+    # ===========================
+    # FUNCTION: STATS & CHARTS
+    # ===========================
     def get_stats_and_charts():
-        # ======================
-        # REQUEST COUNTS BY TYPE
-        # ======================
-
-        # Housekeeping Requests (Checked-in only)
         cursor.execute("""
             SELECT COUNT(*) AS count
             FROM requests r
             JOIN hotel_services s ON r.service_id = s.service_id
             JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Housekeeping'
-              AND b.status = 'Checked-in'
+            WHERE s.category = 'Housekeeping' AND b.status = 'Checked-in'
         """)
         housekeeping = cursor.fetchone()['count']
 
-        # Food/Dining Requests (Checked-in only)
         cursor.execute("""
             SELECT COUNT(*) AS count
             FROM requests r
@@ -412,32 +478,23 @@ def dashboard():
         """)
         food = cursor.fetchone()['count']
 
-        # Laundry Requests (Checked-in only)
         cursor.execute("""
             SELECT COUNT(*) AS count
             FROM requests r
             JOIN hotel_services s ON r.service_id = s.service_id
             JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Laundry'
-              AND b.status = 'Checked-in'
+            WHERE s.category = 'Laundry' AND b.status = 'Checked-in'
         """)
         laundry = cursor.fetchone()['count']
 
-        # Massage/Spa Requests (Checked-in only)
-        # Massage/Spa Requests (Checked-in only)
         cursor.execute("""
             SELECT COUNT(DISTINCT r.request_id) AS count
             FROM requests r
             LEFT JOIN hotel_services s ON r.service_id = s.service_id
             LEFT JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Massage'
-            AND b.status = 'Checked-in'
+            WHERE s.category = 'Massage' AND b.status = 'Checked-in'
         """)
         spa = cursor.fetchone()['count']
-
-        # ======================
-        # USER AND BOOKING STATS
-        # ======================
 
         cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
         active_users = cursor.fetchone()['count']
@@ -445,39 +502,18 @@ def dashboard():
         cursor.execute("SELECT COUNT(*) AS count FROM users")
         total_users = cursor.fetchone()['count']
 
-        cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM bookings 
-            WHERE status = 'Checked-in'
-        """)
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status = 'Checked-in'")
         active_bookings = cursor.fetchone()['count']
 
-        cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM bookings 
-            WHERE status IN ('Active', 'Confirmed')
-        """)
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
         current_bookings = cursor.fetchone()['count']
 
-        cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM bookings 
-            WHERE DATE(actual_check_in) = CURDATE()
-        """)
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in) = CURDATE()")
         checkins_today = cursor.fetchone()['count']
 
-        cursor.execute("""
-            SELECT COUNT(*) AS count 
-            FROM bookings 
-            WHERE DATE(actual_check_out) = CURDATE()
-        """)
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out) = CURDATE()")
         checkouts_today = cursor.fetchone()['count']
 
-        # ======================
-        # CHART DATA
-        # ======================
-
-        # Requests per Service Type (Checked-in only)
         cursor.execute("""
             SELECT s.category, COUNT(*) AS count
             FROM hotel_services s
@@ -488,7 +524,6 @@ def dashboard():
         """)
         service_data = cursor.fetchall()
 
-        # Staff Activity
         cursor.execute("""
             SELECT s.first_name AS staff, 
                    COUNT(r.request_id) AS requests,
@@ -501,14 +536,9 @@ def dashboard():
         """)
         staff_data = cursor.fetchall()
 
-        # Guests currently checked in
-        cursor.execute("""
-            SELECT COUNT(DISTINCT guest_id) AS count 
-            FROM bookings WHERE status = 'Checked-in'
-        """)
+        cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status = 'Checked-in'")
         guests_checked_in = cursor.fetchone()['count']
 
-        # Guests checked out today
         cursor.execute("""
             SELECT COUNT(DISTINCT guest_id) AS count 
             FROM bookings 
@@ -516,9 +546,6 @@ def dashboard():
         """)
         guests_checked_out = cursor.fetchone()['count']
 
-        # ======================
-        # FINAL DATA PACKAGE
-        # ======================
         return {
             "housekeeping": housekeeping,
             "food": food,
@@ -534,7 +561,9 @@ def dashboard():
             "guests_checked_out": guests_checked_out
         }, service_data, staff_data
 
-    # ROLE HANDLING
+    # ===========================
+    # RENDER PER ROLE
+    # ===========================
     if role in ['admin', 'manager', 'supervisor']:
         stats, service_data, staff_data = get_stats_and_charts()
         cursor.close()
@@ -544,6 +573,7 @@ def dashboard():
             stats=stats,
             service_data=service_data,
             staff_data=staff_data,
+            current_booking_id=current_booking_id,
             user=user
         )
 
@@ -555,11 +585,35 @@ def dashboard():
             stats={},
             service_data=[],
             staff_data=[],
-            user=user
+            user=user,
+            current_booking_id=current_booking_id
         )
 
     cursor.close()
     return redirect(url_for('login'))
+
+@app.route('/request-service', methods=['GET', 'POST'])
+def request_service():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT * FROM services WHERE available = 1")
+    services = cursor.fetchall()
+
+    if request.method == 'POST':
+        service_id = request.form['service_id']
+        quantity = request.form.get('quantity', 1)
+        username = session['username']
+        cursor.execute("""
+            INSERT INTO requests (booking_id, service_id, quantity, status, request_time)
+            SELECT b.booking_id, %s, %s, 'Pending', NOW()
+            FROM bookings b WHERE b.username = %s ORDER BY b.checkin_date DESC LIMIT 1
+        """, (service_id, quantity, username))
+        mysql.connection.commit()
+        flash("Your service request has been submitted.", "success")
+        return redirect(url_for('my_requests'))
+
+    return render_template('request_service.html', services=services)
 
 from flask import render_template, session, redirect, url_for, flash
 # Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
