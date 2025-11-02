@@ -5,17 +5,15 @@
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>ezStay - Housekeeping Management</title>
 
+    <!-- Bootstrap and Vendor CSS -->
     <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
-    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
-    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-    
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
     <style>
@@ -23,14 +21,8 @@
         .app-sidebar { background-color: var(--ez-primary) !important; }
         .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
         .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-        .text-fixed-white { color: white !important; }
+        .text-purple { color: var(--ez-primary) !important; }
 
-        .main-menu .slide a.active, .main-menu .slide a:hover {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        /* Summary Card Styling */
         .summary-card {
             background: #fff;
             border-radius: 10px;
@@ -42,363 +34,308 @@
         .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
         .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
         .summary-card h3 { font-weight: 700; color: #343a40; }
-        .text-purple { color: var(--ez-primary) !important; }
+
         table.dataTable thead th { background-color: var(--ez-primary); color: white; }
     </style>
 </head>
 
 <body>
-    <div class="page">
-        <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-        <!-- Left: Logo or Page Title -->
-        <a class="navbar-brand fw-bold text-purple"></a>
-
-        <!-- Right: Profile Dropdown -->
-        <div class="dropdown">
-            <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="me-2">{{ session['username'] }}</span>
-                <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-            </ul>
-        </div>
+<div class="page">
+    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+  <div class="container-fluid d-flex justify-content-end align-items-center">
+    <!-- Right: Profile Dropdown Only -->
+    <div class="dropdown">
+      <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="fw-semibold">{{ session['username'] }}</span>
+        <i class="ri-arrow-down-s-line ms-1"></i>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
+      </ul>
     </div>
+  </div>
 </header>
-<!-- SIDEBAR -->
-<aside class="app-sidebar sticky" id="sidebar">
-    <div class="main-sidebar-header p-3 text-center">
-        <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
-    </div>
-    <div class="main-sidebar" id="sidebar-scroll">
-        <nav class="main-menu-container nav nav-pills flex-column sub-open">
-        <ul class="main-menu">
-            <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
 
-            {% if role == 'admin','manager' %}
-            <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
-            <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
-            <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
-            <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
-            <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
-            <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
-            <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
-            <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
-            <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
-            <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
-            <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
-            {% endif %}
+    <!-- SIDEBAR -->
+    {% include '_sidebar.html' %}
 
-            {% if role == 'admin' %}
-            <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-            <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-            {% endif %}
-            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
-        </ul>
-        </nav>
-    </div>
-    </aside>
-          
-        <!-- Main Content -->
-        <div class="main-content app-content">
-            <div class="container-fluid page-container main-body-container">
-                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                    <h1 class="page-title fw-medium fs-20 mb-0">Housekeeping Management</h1>
-                </div>
+    <!-- MAIN CONTENT -->
+    <div class="main-content app-content">
+        <div class="container-fluid page-container main-body-container">
+            <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+                <h1 class="page-title fw-medium fs-20 mb-0">Housekeeping Management</h1>
+            </div>
 
-                <!-- Summary Cards -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3 col-sm-6">
-                        <div class="summary-card">
-                            <h6>Total Requests</h6>
-                            <h3>{{ housekeeping_stats.total_requests or 0 }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="summary-card">
-                            <h6>Pending</h6>
-                            <h3 class="text-warning">{{ housekeeping_stats.pending or 0 }}</h3>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-6">
-                        <div class="summary-card">
-                            <h6>Completed</h6>
-                            <h3 class="text-success">{{ housekeeping_stats.completed or 0 }}</h3>
-                        </div>
+            <!-- Summary Cards -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="summary-card">
+                        <h6>Total Services</h6>
+                        <h3 class="text-purple">{{ hotel_services|length }}</h3>
                     </div>
                 </div>
-
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-3">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
+                <div class="col-md-3 col-sm-6">
+                    <div class="summary-card">
+                        <h6>Total Requests</h6>
+                        <h3 class="text-purple">{{ housekeeping_stats.total_requests or 0 }}</h3>
                     </div>
-                {% endif %}
-                {% endwith %}
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="summary-card">
+                        <h6>Pending</h6>
+                        <h3 class="text-warning">{{ housekeeping_stats.pending or 0 }}</h3>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="summary-card">
+                        <h6>Completed</h6>
+                        <h3 class="text-success">{{ housekeeping_stats.completed or 0 }}</h3>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Housekeeping Table -->
-                <div class="card custom-card">
-                    <div class="card-header justify-content-between">
-                        <h5 class="card-title mb-0">Housekeeping Services Inventory</h5>
-                         <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addHousekeepingModal">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Table -->
+            <div class="card custom-card">
+                <div class="card-header justify-content-between">
+                    <h5 class="card-title mb-0">Housekeeping Services Inventory</h5>
+                    <a href="#" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addHousekeepingModal">
                         <i class="ri-add-line me-1"></i> Add Record
                     </a>
-                    </div>
-                    <div class="card-body">
-                        
-                        <div class="table-responsive">
-                            <table id="housekeepingTable" class="table text-nowrap table-hover table-bordered">
-                                <thead class="table-primary">
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Description</th>
-                                        <th class="text-end">Amount</th>
-                                        <th>Last Update</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for hotel_service in hotel_services %}
-                                    <tr>
-                                        <td>{{ hotel_service.name }}</td>
-                                        <td>{{ hotel_service.description }}</td>
-                                        <td class="text-end">₱{{ "{:,.2f}".format(hotel_service.price | float) }}</td>
-                                        <td>{{ hotel_service.last_update }} / {{ hotel_service.timestamp }}</td>
-                                        <td>
-                                            <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#editHousekeepingModal"
-                                                data-service='{{ hotel_service | tojson | safe }}'>
-                                                <i class="ri-pencil-line"></i>
-                                            </button>
-                                            <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
-                                                onclick="confirmDelete('{{ hotel_service.service_id }}', '{{ hotel_service.name | escape }}')">
-                                                <i class="ri-delete-bin-line"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="housekeepingTable" class="table text-nowrap table-hover table-bordered">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                    <th>Last Update</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for service in hotel_services %}
+                                <tr>
+                                    <td>{{ service.name }}</td>
+                                    <td>{{ service.description }}</td>
+                                    <td class="text-end">₱{{ "{:,.2f}".format(service.price | float) }}</td>
+                                    <td>{{ service.last_update }} / {{ service.timestamp }}</td>
+                                    <td>
+                                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editHousekeepingModal"
+                                            data-service='{{ service | tojson | safe }}'>
+                                            <i class="ri-pencil-line"></i>
+                                        </button>
+                                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
+                                            onclick="confirmDelete('{{ service.service_id }}', '{{ service.name | escape }}')">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-
             </div>
-        </div>
 
-        <footer class="footer mt-auto py-3 text-center">
-            <div class="container-fluid">
-                <span class="text-muted"> Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
-            </div>
-        </footer>
-    </div>
-
-    <!-- Add Modal for creating a new housekeeping service -->
-    <!-- Opens a form where users can input housekeeping service details to be saved in the database -->
-    <div class="modal fade" id="addHousekeepingModal" tabindex="-1" aria-labelledby="addHousekeepingModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="addForm" action="/addHousekeeping" method="POST">
-                    <div class="modal-header bg-primary text-white" style="background-color: var(--ez-primary) !important;">
-                        <h5 class="modal-title" id="addHousekeepingModalLabel">Add Record</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="category" class="form-label">Category:</label>
-                            <select class="form-select" id="category" name="category" required readonly>
-                                <option value="Housekeeping" selected>Housekeeping</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Name:</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="description" class="form-label">Description:</label>
-                            <input type="text" class="form-control" id="description" name="description" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="price" class="form-label">Price:</label>
-                            <input type="number" class="form-control" id="price" name="price" step="0.01" value="0" required min="0" max="99999999.99">
-                        </div>
-                        <div class="mb-3">
-                            <label for="type" class="form-label">Type:</label>
-                            <input type="text" class="form-control" id="type" name="type" value="Service" required readonly>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Submit</button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
 
-    <!-- Edit Modal for updating an existing housekeeping service -->
-    <!-- Displays the selected housekeeping service details in editable form fields for modification -->
-    <div class="modal fade" id="editHousekeepingModal" tabindex="-1" aria-labelledby="editHousekeepingModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="editForm" action="/updateHousekeeping" method="POST">
-                    <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
-                        <h5 class="modal-title" id="editHousekeepingModalLabel">Edit Housekeeping Service</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="edit_service_id" name="service_id" required>
-                        <div class="mb-3">
-                            <label for="edit_category" class="form-label">Category:</label>
-                            <select class="form-select" id="edit_category" name="edit_category" required readonly>
-                                <option value="Housekeeping" selected>Housekeeping</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_name" class="form-label">Name:</label>
-                            <input type="text" class="form-control" id="edit_name" name="edit_name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_description" class="form-label">Description:</label>
-                            <input type="text" class="form-control" id="edit_description" name="edit_description" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_price" class="form-label">Price:</label>
-                            <input type="number" class="form-control" id="edit_price" name="edit_price" step="0.01" required min="0" max="99999999.99">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_type" class="form-label">Type:</label>
-                            <input type="text" class="form-control" id="edit_type" name="edit_type" value="Service" required readonly>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success">Update</button>
-                    </div>
-                </form>
-            </div>
+    <footer class="footer mt-auto py-3 text-center">
+        <div class="container-fluid">
+            <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
         </div>
-    </div>
+    </footer>
+</div>
 
-    <!-- Delete Modal for confirming removal of a  housekeeping service -->
-    <!-- Prompts the user to verify before permanently deleting the selected housekeeping service -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white" style="background-color: #dc3545 !important;">
-                    <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- ADD MODAL -->
+<div class="modal fade" id="addHousekeepingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/addHousekeeping">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Add Housekeeping Service</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    Are you sure you want to delete Housekeeping service: <span id="modalServiceName" class="fw-semibold"></span>?
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <input type="text" class="form-control" name="category" value="Housekeeping" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label>Name</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <input type="text" class="form-control" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Price</label>
+                        <input type="number" class="form-control" name="price" step="0.01" min="0" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Type</label>
+                        <input type="text" class="form-control" name="type" value="Service" readonly>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+                    <button type="submit" class="btn btn-primary">Submit</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
+</div>
 
-    <!-- In Use Modal for notifying the user that deletion is not allowed -->
-    <!-- Displays a warning when the selected housekeeping service is currently linked to existing requests -->
-    <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
-                    <h5 class="modal-title" id="inUseModalLabel">Cannot Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editHousekeepingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/updateHousekeeping">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">Edit Housekeeping Service</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    This service is currently used in a request and cannot be deleted.
+                    <input type="hidden" id="edit_service_id" name="service_id">
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <input id="edit_category" name="edit_category" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label>Name</label>
+                        <input id="edit_name" name="edit_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <input id="edit_description" name="edit_description" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Price</label>
+                        <input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Type</label>
+                        <input id="edit_type" name="edit_type" class="form-control" readonly>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Update</button>
                 </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete <b><span id="modalServiceName"></span></b>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-    
-    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
-    
-    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+<!-- IN USE MODAL -->
+<div class="modal fade" id="inUseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Cannot Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                This housekeeping service is currently used in a request and cannot be deleted.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
+<!-- Scripts -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 
-        // DataTables init
-        $(function () {
-            $('#housekeepingTable').DataTable({
-                pageLength: 10,
-                order: [[1, 'asc']],
-                lengthChange: true,
-                responsive: true,
-                language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search services...",
-                },
-                columnDefs: [
-                    { targets: [3], className: 'text-end' },
-                    { targets: [4], orderable: false, searchable: false }
-                ],
-                dom: '<"row align-items-center mb-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>><"row"<"col-sm-12"tr>><"row"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>'
-            });
-            
-            // Function to set up the modal for editing a service entry
-            // Retrieves data from the clicked button and populates the edit form fields            
-            $('#editHousekeepingModal').on('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const serviceData = JSON.parse(button.getAttribute('data-service'));
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
 
-                document.getElementById("edit_service_id").value = serviceData.service_id;
-                document.getElementById("edit_category").value = serviceData.category;
-                document.getElementById("edit_name").value = serviceData.name;
-                document.getElementById("edit_description").value = serviceData.description;
-                document.getElementById("edit_price").value = serviceData.price;
-                document.getElementById("edit_type").value = serviceData.type;
-            });
-        });
+// DataTable setup
+$(function () {
+    $('#housekeepingTable').DataTable({
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search services..."
+        },
+        columnDefs: [{ targets: [4], orderable: false }]
+    });
 
-        // Function to confirm deletion of a service entry
-        // Checks first if the service is linked or in use before deleting        
-        function confirmDelete(service_id, name) {
-            fetch(`/checkServices/${service_id}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.in_use) {
-                    new bootstrap.Modal(document.getElementById('inUseModal')).show();
-                } else {
-                    document.getElementById("modalServiceName").innerText = name;
-                    document.getElementById("confirmDeleteBtn").href = `/deleteHousekeeping/${service_id}`;
-                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                }
-            })
-            .catch(error => console.error("Error checking services:", error));
+    // Populate Edit Modal
+    $('#editHousekeepingModal').on('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const data = JSON.parse(button.getAttribute('data-service'));
+        document.getElementById("edit_service_id").value = data.service_id;
+        document.getElementById("edit_category").value = data.category;
+        document.getElementById("edit_name").value = data.name;
+        document.getElementById("edit_description").value = data.description;
+        document.getElementById("edit_price").value = data.price;
+        document.getElementById("edit_type").value = data.type;
+    });
+});
+
+// Confirm delete
+function confirmDelete(id, name) {
+    fetch(`/checkServices/${id}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.in_use) {
+            new bootstrap.Modal(document.getElementById('inUseModal')).show();
+        } else {
+            document.getElementById("modalServiceName").innerText = name;
+            document.getElementById("confirmDeleteBtn").href = `/deleteHousekeeping/${id}`;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
-        window.confirmDelete = confirmDelete;
-    </script>
+    });
+}
+</script>
+
 </body>
 </html>

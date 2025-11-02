@@ -25,126 +25,91 @@
 
   <style>
     :root { --ez-primary: #8a2be2; }
-    .app-sidebar { background-color: var(--ez-primary) !important; }
-    .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-    .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-    .text-fixed-white { color: white !important; }
-    .main-menu .slide a.active, .main-menu .slide a:hover {
-      color: #fff !important;
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-    /* Summary Card Styling */
+        .app-sidebar { background-color: var(--ez-primary) !important; }
+        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
+        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
         .summary-card {
             background: #fff;
             border-radius: 10px;
             text-align: center;
             padding: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-            transition: transform .15s ease, box-shadow .15s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
         }
-        .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-        .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
-        .summary-card h3 { font-weight: 700; color: #343a40; }
-    .modal-header { border-bottom: none; }
-    .modal-footer { border-top: none; }
-    .text-purple { color: var(--ez-primary) !important; }
-    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .summary-card h6 { color: #6c757d; font-weight: 600; }
+        .summary-card h3 { font-weight: 700; margin-top: 5px; }
+        .text-purple { color: var(--ez-primary) !important; }
+        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
   </style>
 </head>
 
 <body>
   <div class="page">
+    <!-- HEADER ONLY -->
     <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-        <!-- Left: Logo or Page Title -->
-        <a class="navbar-brand fw-bold text-purple"></a>
-
-        <!-- Right: Profile Dropdown -->
+      <div class="container-fluid d-flex justify-content-end align-items-center">
         <div class="dropdown">
-            <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="me-2">{{ session['username'] }}</span>
-                <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
-                <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
-                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-            </ul>
-        </div>
-    </div>
-</header>
-    <!-- SIDEBAR -->
-    <aside class="app-sidebar sticky" id="sidebar">
-      <div class="main-sidebar-header p-3 text-center">
-        <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
-      </div>
-      <div class="main-sidebar" id="sidebar-scroll">
-        <nav class="main-menu-container nav nav-pills flex-column sub-open">
-          <ul class="main-menu">
-            <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
-
-            {% if role == 'admin','manager' %}
-              <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
-              <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
-              <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
-              <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
-              <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
-              <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
-              <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
-              <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
-              <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
-              <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
-              <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
-            {% endif %}
-
-            {% if role == 'admin' %}
-              <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-              <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-            {% endif %}
-            <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-            <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
+          <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown"
+             role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="fw-semibold">{{ session['username'] }}</span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
           </ul>
-        </nav>
+        </div>
       </div>
-    </aside>
+    </header>
 
-    <!-- Main content -->
+    {% include '_sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
     <div class="main-content app-content">
-      <div class="card custom-card">
-                    <div class="card-header justify-content-between">
-                        <h5 class="card-title mb-0">Massage Management</h5>
+      <div class="container-fluid page-container main-body-container mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h1 class="page-title fw-medium fs-20 mb-0">Massage Management</h1>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-sm-6">
+                    <div class="summary-card">
+                    <h6>Total Services</h6>
+                    <h3 class="text-purple">{{ total_services }}</h3>
                     </div>
-        
+                </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Total Spa Requests</h6>
+              <h3 class="text-primary">{{ spa_stats.total_requests or 0 }}</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Pending Requests</h6>
+              <h3 class="text-warning">{{ spa_stats.pending or 0 }}</h3>
+            </div>
+          </div>
+          <div class="col-md-3 col-sm-6">
+            <div class="summary-card">
+              <h6>Completed Requests</h6>
+              <h3 class="text-success">{{ spa_stats.completed or 0 }}</h3>
+            </div>
+          </div>
 
-       <!-- Summary Cards -->
-<div class="row g-3 mb-4">
-  <div class="col-md-3 col-sm-6">
-    <div class="summary-card">
-      <h6>Total Spa Requests</h6>
-      <h3>{{ spa_stats.total_requests or 0 }}</h3>
-    </div>
-  </div>
-  <div class="col-md-3 col-sm-6">
-    <div class="summary-card">
-      <h6>Pending Requests</h6>
-      <h3 class="text-warning">{{ spa_stats.pending or 0 }}</h3>
-    </div>
-  </div>
-  <div class="col-md-3 col-sm-6">
-    <div class="summary-card">
-      <h6>Completed Requests</h6>
-      <h3 class="text-success">{{ spa_stats.completed or 0 }}</h3>
-    </div>
-  </div>
-</div>
-
-
-        <!-- Massage Table -->
+        <!-- Table -->
         <div class="card custom-card">
           <div class="card-header justify-content-between">
             <h5 class="card-title mb-0">Massage Services</h5>
             <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-                            <i class="ri-add-line me-1"></i> Add Record
-                        </a>
+              <i class="ri-add-line me-1"></i> Add Record
+            </a>
           </div>
           <div class="card-body">
             <div class="table-responsive">
@@ -164,14 +129,16 @@
                     <td>{{ ms.name }}</td>
                     <td>{{ ms.description }}</td>
                     <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
-                    <td>{{ ms.last_update}} / {{ ms.timestamp }}</td>
+                    <td>{{ ms.last_update }} / {{ ms.timestamp }}</td>
                     <td>
                       {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                       <div class="btn-list">
-                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" onclick='openEditModal({{ ms | tojson | safe }})'>
+                        <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" 
+                                onclick='openEditModal({{ ms | tojson | safe }})'>
                           <i class="ri-pencil-line"></i>
                         </button>
-                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
+                        <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
+                                onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
                           <i class="ri-delete-bin-line"></i>
                         </button>
                       </div>
@@ -191,20 +158,22 @@
 
     <footer class="footer mt-auto py-3 text-center">
       <div class="container-fluid">
-        <span class="text-muted"> Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+        <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
       </div>
     </footer>
   </div>
 
-  <!-- ========== MODALS ========== -->
-
-    <!-- Add Modal for creating a new record -->
-    <!-- Opens a form where users can input  details to be saved in the database -->
+  <!-- ===================== -->
+  <!-- ADD MASSAGE MODAL -->
+  <!-- ===================== -->
   <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" action="{{ url_for('add_massage') }}">
-          <div class="modal-header bg-primary text-white"><h5 class="modal-title">Add Record</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">Add Record</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
           <div class="modal-body">
             <div class="mb-3"><label>Category</label><input name="category" class="form-control" value="Massage" readonly></div>
             <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
@@ -218,13 +187,17 @@
     </div>
   </div>
 
-  <!-- Edit Modal for updating an existing record -->
-  <!-- Displays the selected service details in editable form fields for modification -->
+  <!-- ===================== -->
+  <!-- EDIT MASSAGE MODAL -->
+  <!-- ===================== -->
   <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
         <form method="POST" action="{{ url_for('updateMassage') }}">
-          <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;"><h5 class="modal-title">Edit Massage</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-header bg-warning text-dark">
+            <h5 class="modal-title">Edit Massage</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
           <div class="modal-body">
             <input type="hidden" id="edit_service_id" name="service_id">
             <div class="mb-3"><label>Category</label><input id="edit_category" name="edit_category" class="form-control" readonly></div>
@@ -239,8 +212,9 @@
     </div>
   </div>
 
-  <!-- Delete Modal for confirming removal of a  record -->
-  <!-- Prompts the user to verify before permanently deleting the selected service -->
+  <!-- ===================== -->
+  <!-- DELETE CONFIRMATION MODAL -->
+  <!-- ===================== -->
   <div class="modal fade" id="deleteModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content text-center">
@@ -261,8 +235,6 @@
   <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
   <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
@@ -275,8 +247,6 @@
       columnDefs: [{ targets: [3], orderable: false, searchable: false }]
     });
 
-    // Function to set up the modal for editing a record
-    // Retrieves data from the clicked button and populates the edit form fields            
     function openEditModal(ms) {
       $('#edit_service_id').val(ms.service_id);
       $('#edit_category').val(ms.category);
@@ -287,14 +257,12 @@
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
 
-    // Function to confirm deletion of a record
-    // Checks first if the record is linked or in use before deleting        
     function confirmDelete(service_id, name) {
       fetch(`/checkServices/${service_id}`)
         .then(r => r.json())
         .then(data => {
           if (data.in_use) {
-            new bootstrap.Modal(document.getElementById('inUseModal')).show();
+            alert("This service is currently in use and cannot be deleted.");
           } else {
             document.getElementById("modalServiceName").innerText = name;
             document.getElementById("confirmDeleteBtn").href = `/deleteMassage/${service_id}`;
@@ -307,22 +275,23 @@
           new bootstrap.Modal(document.getElementById('deleteModal')).show();
         });
     }
-     document.querySelectorAll('.summary-card h3').forEach(el => {
-    const end = parseInt(el.textContent);
-    let start = 0;
-    const step = Math.max(1, Math.floor(end / 60));
 
-    function animate() {
-      start += step;
-      if (start < end) {
-        el.textContent = start;
-        requestAnimationFrame(animate);
-      } else {
-        el.textContent = end;
+    // Number counter animation
+    document.querySelectorAll('.summary-card h3').forEach(el => {
+      const end = parseInt(el.textContent);
+      let start = 0;
+      const step = Math.max(1, Math.floor(end / 60));
+      function animate() {
+        start += step;
+        if (start < end) {
+          el.textContent = start;
+          requestAnimationFrame(animate);
+        } else {
+          el.textContent = end;
+        }
       }
-    }
-    animate();
-  });
+      animate();
+    });
   </script>
 </body>
 </html>

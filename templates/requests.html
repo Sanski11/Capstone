@@ -37,56 +37,24 @@
 <body>
 <div class="page">
     <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-        <div class="container-fluid d-flex justify-content-between align-items-center">
-            <a class="navbar-brand fw-bold text-purple"></a>
-
-            <div class="dropdown">
-                <a class="d-flex align-items-center text-dark text-decoration-none profile-icon" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="me-2">{{ session['username'] }}</span>
-                    <img src="{{ url_for('static', filename='images/faces/12.jpg') }}" alt="Profile" width="32" height="32" class="rounded-circle">
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
-                    <li><a class="dropdown-item" href="{{ url_for('profile') }}">Profile</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </header>
+  <div class="container-fluid d-flex justify-content-end align-items-center">
+    <!-- Right: Profile Dropdown Only -->
+    <div class="dropdown">
+      <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="fw-semibold">{{ session['username'] }}</span>
+        <i class="ri-arrow-down-s-line ms-1"></i>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</header>
 
     <!-- SIDEBAR -->
-    <aside class="app-sidebar sticky" id="sidebar">
-        <div class="main-sidebar-header p-3 text-center">
-            <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
-        </div>
-        <div class="main-sidebar" id="sidebar-scroll">
-            <nav class="main-menu-container nav nav-pills flex-column sub-open">
-                <ul class="main-menu">
-                    <li class="slide"><a href="{{ url_for('dashboard') }}" class="side-menu__item active"><i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span></a></li>
-
-                    {% if role == 'admin','manager' %}
-                    <li class="slide"><a href="/rooms" class="side-menu__item"><i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span></a></li>
-                    <li class="slide"><a href="/housekeeping" class="side-menu__item"><i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span></a></li>
-                    <li class="slide"><a href="/dining" class="side-menu__item"><i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span></a></li>
-                    <li class="slide"><a href="/laundry" class="side-menu__item"><i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span></a></li>
-                    <li class="slide"><a href="/massage" class="side-menu__item"><i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span></a></li>
-                    <li class="slide"><a href="/guests" class="side-menu__item"><i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span></a></li>
-                    <li class="slide"><a href="/staff" class="side-menu__item"><i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span></a></li>
-                    <li class="slide"><a href="/bookings" class="side-menu__item"><i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span></a></li>
-                    <li class="slide"><a href="/roomGuest" class="side-menu__item"><i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span></a></li>
-                    <li class="slide"><a href="/requests" class="side-menu__item"><i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span></a></li>
-                    <li class="slide"><a href="/calendar" class="side-menu__item"><i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span></a></li>
-                    {% endif %}
-
-                    {% if role == 'admin' %}
-                    <li class="slide"><a href="/users" class="side-menu__item"><i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span></a></li>
-                    <li class="slide"><a href="/auditlogs" class="side-menu__item"><i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span></a></li>
-                    {% endif %}
-                    <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
-                    <li class="slide"><a href="{{ url_for('profile') }}" class="side-menu__item"><i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span></a></li>
-                </ul>
-            </nav>
-        </div>
-    </aside>
+    {% include '_sidebar.html' %}
 
     <div class="main-content app-content">
         <div class="container-fluid page-container main-body-container">

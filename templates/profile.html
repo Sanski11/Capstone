@@ -108,37 +108,42 @@
             </div>
           </div>
 
-          <!-- User Stats -->
-          <div class="col-lg-6">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <div class="summary-card">
-                  <h6>Total Requests</h6>
-                  <h3>{{ total_requests or 0 }}</h3>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="summary-card">
-                  <h6>Completed Tasks</h6>
-                  <h3>{{ completed_tasks or 0 }}</h3>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="summary-card">
-                  <h6>Bookings Handled</h6>
-                  <h3>{{ total_bookings or 0 }}</h3>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="summary-card">
-                  <h6>Login Count</h6>
-                  <h3>{{ login_count or 0 }}</h3>
-                </div>
-              </div>
-            </div>
-          </div>
+<!-- Right Side: User Stats and Activity -->
+  <div class="col-lg-6">
+    <div class="row g-3">
+      <!-- Stats Cards -->
+      <div class="col-md-6">
+        <div class="summary-card">
+          <h6>Completed Tasks</h6>
+          <h3>{{ completed_tasks or 0 }}</h3>
         </div>
+      </div>
+      <div class="col-md-6">
+        <div class="summary-card">
+          <h6>Bookings Handled</h6>
+          <h3>{{ total_bookings or 0 }}</h3>
+        </div>
+      </div>
+    </div>
 
+    <!-- Activity Overview -->
+    <div class="card custom-card mt-4">
+      <div class="card-body">
+        <h5 class="fw-semibold mb-3"><i class="ri-time-line me-2 text-primary"></i>Recent Activity</h5>
+        {% if activities %}
+          <ul class="list-group list-group-flush">
+            {% for activity in activities %}
+              <li class="list-group-item small d-flex justify-content-between align-items-center">
+                <span><i class="ri-check-double-line text-success me-1"></i> {{ activity.description }}</span>
+                <span class="text-muted">{{ activity.timestamp.strftime('%b %d, %Y %I:%M %p') }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small mb-0">No recent activity logged.</p>
+        {% endif %}
+      </div>
+    </div>
       </div>
     </div>
 

@@ -581,15 +581,72 @@ def profile():
         return redirect(url_for('login'))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch user information
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
-    cursor.close()
 
     if not user:
+        cursor.close()
         flash("⚠️ User not found.")
         return redirect(url_for('login'))
 
-    return render_template('profile.html', user=user, role=user['role'])
+    # ===============================
+    # 1. USER STATISTICS
+    # ===============================
+
+    # Completed requests
+    cursor.execute("""
+        SELECT COUNT(*) AS completed_tasks
+        FROM requests r
+        JOIN bookings b ON r.booking_id = b.booking_id
+        WHERE b.guest_id = %s AND r.status = 'Completed'
+    """, (user['user_id'],))
+    completed_tasks = cursor.fetchone()['completed_tasks']
+
+    # Total bookings handled (for staff/admin)
+    cursor.execute("""
+        SELECT COUNT(*) AS total_bookings
+        FROM bookings
+        WHERE last_update = %s
+    """, (username,))
+    total_bookings = cursor.fetchone()['total_bookings']
+
+    # ===============================
+    # 2. RECENT ACTIVITY (AUDIT LOG)
+    # ===============================
+    cursor.execute("""
+        SELECT table_name, action_type, timestamp
+        FROM audit_log
+        WHERE username = %s
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """, (username,))
+    logs = cursor.fetchall()
+
+    # Convert to display-friendly structure
+    activities = [
+        {
+            "description": f"{log['action_type']} action on {log['table_name']}",
+            "timestamp": log['timestamp']
+        }
+        for log in logs
+    ]
+
+    cursor.close()
+
+    # ===============================
+    # 3. RENDER PAGE
+    # ===============================
+    return render_template(
+        'profile.html',
+        user=user,
+        role=user['role'],
+        completed_tasks=completed_tasks,
+        total_bookings=total_bookings,
+        activities=activities
+    )
+
 
 @app.route('/edit_user/<int:user_id>', methods=['POST'])
 def edit_user(user_id):
@@ -1352,8 +1409,7 @@ def view_housekeeping():
         SELECT 
             COUNT(*) AS total_requests,
             SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
         FROM requests
         WHERE service_id IN (
             SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
@@ -1366,8 +1422,7 @@ def view_housekeeping():
         housekeeping_stats = {
             'total_requests': 0,
             'pending': 0,
-            'completed': 0,
-            'cancelled': 0
+            'completed': 0
         }
 
     cursor.close()
@@ -1392,24 +1447,25 @@ def view_laundry():
         ORDER BY name
     """)
     laundry_services = cursor.fetchall()
+    total_services = len(laundry_services)
 
     # --- Fetch laundry statistics (for summary cards) ---
-    stats_query = """
+    cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_requests
-        FROM requests r
-        JOIN hotel_services s ON r.service_id = s.service_id
-        WHERE s.category = 'Laundry'
-    """
-    cursor.execute(stats_query)
-    laundry_stats = cursor.fetchone() or {
-        'total_requests': 0,
-        'pending_requests': 0,
-        'completed_requests': 0,
-        'cancelled_requests': 0
+            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
+        FROM requests
+        WHERE service_id IN (
+            SELECT service_id FROM hotel_services WHERE category = 'Laundry'
+        )
+    """)
+    laundry_stats = cursor.fetchone() or {}
+
+    laundry_stats = {
+        'total_requests': laundry_stats.get('total_requests', 0),
+        'pending_requests': laundry_stats.get('pending_requests', 0),
+        'completed_requests': laundry_stats.get('completed_requests', 0)
     }
 
     cursor.close()
@@ -1417,7 +1473,8 @@ def view_laundry():
     return render_template(
         'laundry.html',
         laundry_services=laundry_services,
-        laundry_stats=laundry_stats
+        laundry_stats=laundry_stats,
+        total_services=total_services
     )
 
 #Called by DINING Menu - display list of dining
@@ -1425,46 +1482,52 @@ def view_laundry():
 def view_dining():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Retrieve menu items
+    # Retrieve dining items
     cursor.execute("""
         SELECT item_id, name, description, price, category, type, last_update, timestamp
         FROM food_items
-        ORDER BY item_id
+        WHERE type = 'food'
+        ORDER BY name
     """)
-
     dining_services = cursor.fetchall()
+    total_items = len(dining_services)
 
-    # Get request statistics for Dining category
-    stats_query = """
+    # Retrieve dining request statistics
+    cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests,
-            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled_requests
-        FROM requests r
-        JOIN food_items fi ON r.item_id = fi.item_id
-        WHERE fi.type = 'food'
-    """
-    cursor.execute(stats_query)
-    dining_stats = cursor.fetchone() or {
-        'total_requests': 0,
-        'pending_requests': 0,
-        'completed_requests': 0,
-        'cancelled_requests':0
+            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
+        FROM requests
+        WHERE item_id IN (
+            SELECT item_id FROM food_items WHERE type = 'food'
+        )
+    """)
+    dining_stats = cursor.fetchone() or {}
+
+    dining_stats = {
+        'total_requests': dining_stats.get('total_requests', 0),
+        'pending_requests': dining_stats.get('pending_requests', 0),
+        'completed_requests': dining_stats.get('completed_requests', 0)
     }
 
     cursor.close()
 
-    return render_template('dining.html', 
-                           dining_services=dining_services,
-                           dining_stats=dining_stats)
+    return render_template(
+        'dining.html',
+        dining_services=dining_services,
+        dining_stats=dining_stats,
+        total_items=total_items
+    )
 
 #Called by MASSAGE Menu - display list of massage
 @app.route('/massage')
 def view_massage():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Query for massage services
+    # ==============================
+    # 1. Query for massage services
+    # ==============================
     cursor.execute("""
         SELECT *
         FROM hotel_services
@@ -1473,15 +1536,16 @@ def view_massage():
     """)
     massage_services = cursor.fetchall()
 
+    total_services = len(massage_services)
+
     # ==============================
-    # Get Spa/Massage request stats
+    # 2. Get Spa/Massage request stats
     # ==============================
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
-            SUM(CASE WHEN upper(status) = 'CANCELLED' THEN 1 ELSE 0 END) AS cancelled
+            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
         FROM requests
         WHERE service_id IN (
             SELECT service_id 
@@ -1489,23 +1553,22 @@ def view_massage():
             WHERE category = 'Massage'
         )
     """)
-    spa_stats = cursor.fetchone()
+    spa_stats = cursor.fetchone() or {}
 
-    # Handle None values (in case there are no requests yet)
-    if not spa_stats:
-        spa_stats = {
-            'total_requests': 0,
-            'pending': 0,
-            'completed': 0,
-            'cancelled': 0
-        }
+    # Ensure default values if no data
+    spa_stats = {
+        'total_requests': spa_stats.get('total_requests', 0),
+        'pending': spa_stats.get('pending', 0),
+        'completed': spa_stats.get('completed', 0)
+    }
 
     cursor.close()
 
-    # ✅ Include spa_stats in render_template
+    # Return consistent variable names for your template
     return render_template(
         'massage.html',
         massage_services=massage_services,
+        total_services=total_services,
         spa_stats=spa_stats
     )
 

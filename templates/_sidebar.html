@@ -1,0 +1,103 @@
+<aside class="app-sidebar sticky" id="sidebar">
+  <div class="main-sidebar-header p-3 text-center">
+    <a class="header-logo fs-3 fw-bold text-purple">ezStay</a>
+  </div>
+  <div class="main-sidebar" id="sidebar-scroll">
+    <nav class="main-menu-container nav nav-pills flex-column sub-open">
+      <ul class="main-menu">
+        <li class="slide">
+          <a href="{{ url_for('dashboard') }}" class="side-menu__item {% if request.path == url_for('dashboard') %}active{% endif %}">
+            <i class="ri-home-2-line side-menu__icon"></i><span class="side-menu__label">Dashboard</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_rooms') }}" class="side-menu__item {% if request.path.startswith('/rooms') %}active{% endif %}">
+            <i class="ri-door-line side-menu__icon"></i><span class="side-menu__label">Rooms</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_housekeeping') }}" class="side-menu__item {% if request.path.startswith('/housekeeping') %}active{% endif %}">
+            <i class="ri-brush-3-line side-menu__icon"></i><span class="side-menu__label">Housekeeping</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_dining') }}" class="side-menu__item {% if request.path.startswith('/dining') %}active{% endif %}">
+            <i class="ri-restaurant-line side-menu__icon"></i><span class="side-menu__label">In-Room Dining</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_laundry') }}" class="side-menu__item {% if request.path.startswith('/laundry') %}active{% endif %}">
+            <i class="ri-t-shirt-line side-menu__icon"></i><span class="side-menu__label">Laundry</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_massage') }}" class="side-menu__item {% if request.path.startswith('/massage') %}active{% endif %}">
+            <i class="ri-body-scan-line side-menu__icon"></i><span class="side-menu__label">Massage/Spa</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_guests') }}" class="side-menu__item {% if request.path.startswith('/guests') %}active{% endif %}">
+            <i class="ri-group-line side-menu__icon"></i><span class="side-menu__label">Guests</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_staffs') }}" class="side-menu__item {% if request.path.startswith('/staff') %}active{% endif %}">
+            <i class="ri-team-line side-menu__icon"></i><span class="side-menu__label">Staff</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('view_bookings') }}" class="side-menu__item {% if request.path.startswith('/bookings') %}active{% endif %}">
+            <i class="ri-calendar-check-line side-menu__icon"></i><span class="side-menu__label">Bookings</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('show_roomGuest') }}" class="side-menu__item {% if request.path.startswith('/roomGuest') %}active{% endif %}">
+            <i class="ri-exchange-line side-menu__icon"></i><span class="side-menu__label">Check-in/Checkout</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('show_requests') }}" class="side-menu__item {% if request.path.startswith('/requests') %}active{% endif %}">
+            <i class="ri-task-line side-menu__icon"></i><span class="side-menu__label">Requests</span>
+          </a>
+        </li>
+
+        <li class="slide">
+          <a href="{{ url_for('calendar') }}" class="side-menu__item {% if request.path.startswith('/calendar') %}active{% endif %}">
+            <i class="ri-calendar-line side-menu__icon"></i><span class="side-menu__label">Calendar</span>
+          </a>
+        </li>
+
+        {% if session.get('role', '').lower() == 'admin' %}
+        <li class="slide">
+          <a href="{{ url_for('users_page') }}" class="side-menu__item {% if request.path.startswith('/users') %}active{% endif %}">
+            <i class="ri-shield-user-line side-menu__icon"></i><span class="side-menu__label">Authorized Users</span>
+          </a>
+        </li>
+        <li class="slide">
+          <a href="{{ url_for('view_auditlogs') }}" class="side-menu__item {% if request.path.startswith('/auditlogs') %}active{% endif %}">
+            <i class="ri-file-list-line side-menu__icon"></i><span class="side-menu__label">Audit Trail</span>
+          </a>
+        </li>
+        {% endif %}
+
+        <li class="slide my-3 border-top border-light opacity-25 mx-4"></li>
+
+        <li class="slide">
+          <a href="{{ url_for('profile') }}" class="side-menu__item {% if request.path.startswith('/profile') %}active{% endif %}">
+            <i class="ri-user-settings-line side-menu__icon"></i><span class="side-menu__label">Profile</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</aside>
