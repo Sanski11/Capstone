@@ -1,719 +1,159 @@
 <!DOCTYPE html>
 <html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
 <head>
-    <meta charset="UTF-8">
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>ezStay - Requests Management</title>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>ezStay - Requests Management</title>
 
-    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
-    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <!-- Core CSS -->
+  <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
 
-    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-
-    <style>
-        :root { --ez-primary: #8a2be2; }
-        .app-sidebar { background-color: var(--ez-primary) !important; }
-        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-        .text-fixed-white { color: white !important; }
-        .main-menu .slide a.active, .main-menu .slide a:hover {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .modal-header { border-bottom: none; }
-        .modal-footer { border-top: none; }
-        .text-purple { color: var(--ez-primary) !important; }
-        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
-    </style>
+  <style>
+    :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
+    }
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
+    }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
+  </style>
 </head>
 
 <body>
 <div class="page">
-    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-  <div class="container-fluid d-flex justify-content-end align-items-center">
-    <!-- Right: Profile Dropdown Only -->
-    <div class="dropdown">
-      <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="fw-semibold">{{ session['username'] }}</span>
-        <i class="ri-arrow-down-s-line ms-1"></i>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
-        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
-      </ul>
-    </div>
-  </div>
-</header>
+  <!-- HEADER -->
+  <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+      <div class="container-fluid d-flex justify-content-end align-items-center">
+        <div class="dropdown">
+          <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown"
+             role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="fw-semibold">{{ session['username'] }}</span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
 
-    <!-- SIDEBAR -->
+  <!-- SIDEBAR -->
     {% include '_sidebar.html' %}
 
-    <div class="main-content app-content">
-        <div class="container-fluid page-container main-body-container">
-            <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                <h1 class="page-title fw-medium fs-20 mb-0">Requests Management</h1>
-            </div>
+  <!-- MAIN CONTENT -->
+  <div class="main-content app-content">
+    <div class="container-fluid page-container main-body-container">
+      <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
+        <h1 class="page-title fw-medium fs-20 mb-0">Requests Management</h1>
+      </div>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            <div class="mb-3">
-                {% for category, message in messages %}
-                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-            {% endwith %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="mb-3">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
 
-            <div class="card custom-card">
-                <div class="card-header justify-content-between">
-                    <h5 class="card-title mb-0">Service Requests</h5>
-                    {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
-                    <button class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addModal">
-                        <i class="ri-add-line me-1"></i> Add Request
-                    </button>
-                    {% endif %}
-                </div>
+      <!-- Request Table -->
+      <div class="card custom-card">
+        <div class="card-header justify-content-between">
+          <h5 class="card-title mb-0">Service Requests</h5>
+          {% if session['role'] in ['admin','manager','supervisor'] %}
+          <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+            <i class="ri-add-line me-1"></i> Add Request
+          </button>
+          {% endif %}
+        </div>
 
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table id="requestsTable" class="table text-nowrap table-hover table-bordered">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Guest Details</th>
-                                    <th>Request Details</th>
-                                    <th>Quantity / Amount</th>
-                                    <th>Status</th>
-                                    <th>Notes</th>
-                                    <th>Assigned To</th>
-                                    <th>Completion Details</th>
-                                    <th>Last Update</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for request in requests %}
-                                <tr>
-                                    <td>
-                                        Room: {{ request.room_number }}  <br>
-                                        Guest: {{ request.guest_last_name }}, {{ request.guest_first_name }}<br>
-                                    </td>
-                                    <td>
-                                        {% if request.service_name %}
-                                            {{ request.service_name }}<br>
-                                            {{ request.request_time }}
-                                        {% elif request.food_name %}
-                                            {{ request.food_name }}<br>
-                                            {{ request.request_time }}
-                                        {% else %}
-                                            Unknown
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ request.quantity }} x {{ "{:,.2f}".format(request.unit_cost | float) }}
-                                        <br> {{ "{:,.2f}".format(request.total_cost | float) }}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if request.status|upper == 'COMPLETED' else 'warning' if request.status == 'for assignment' else 'danger' if request.status == 'cancelled' else 'primary' }}">{{ request.status|capitalize }}</span>
-                                    </td>
-                                    <td>{{ request.notes }}</td>
-                                    <td>
-                                        {% if request.first_name %}
-                                            <span class="badge bg-info-transparent">Assigned to: {{ request.first_name }} {{ request.last_name }}</span>
-                                        {% else %}
-                                            <span class="text-muted">Unassigned</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ request.completion_time }}</td>
-                                    <td>{{ request.last_update }} <br> {{ request.timestamp }}</td>
-                                    <td>
-                                        {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
-                                        <div class="d-flex flex-column gap-1">
-                                            <div class="btn-list">
-                                                <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                    onclick="openEditModal(this)"
-                                                    data-request_id="{{ request.request_id }}"
-                                                    data-booking_id="{{ request.booking_id }}"
-                                                    data-quantity="{{ request.quantity }}"
-                                                    data-unit_cost="{{ request.unit_cost }}"
-                                                    data-notes="{{ request.notes }}"
-                                                    data-status="{{ request.status }}"
-                                                    data-request_time="{{ request.request_time }}"
-                                                    data-category="{{ request.service_category or request.food_category }}"
-                                                    data-request_type="{{ 'service' if request.service_name else 'food' }}"
-                                                    data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
-                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
-                                                    <i class="ri-pencil-line"></i>
-                                                </button>
-
-                                                <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                    onclick="confirmDelete('{{ request.request_id }}')"
-                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </button>
-
-                                                <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
-                                                    onclick="openCompletedModal('{{ request.request_id }}')"
-                                                    {% if request.status|upper != 'PENDING' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
-                                                    <i class="bi bi-check-circle"></i>
-                                                </button>
-                                            </div>
-
-                                            <div class="d-flex gap-1 mt-1">
-                                                <button class="btn btn-sm btn-primary-light btn-wave"
-                                                    onclick="openAssignModal('{{ request.request_id }}')"
-                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
-                                                    <i class="ri-user-line me-1"></i> Manual
-                                                </button>
-
-                                                <form method="POST" action="/assigntask" style="display:inline;">
-                                                    <input type="hidden" name="assignTask_request_id" value="{{ request.request_id }}">
-                                                    <button type="submit" class="btn btn-sm btn-success-light btn-wave"
-                                                            {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
-                                                      <i class="ri-lightning-line me-1"></i> Auto
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table id="requestsTable" class="table text-nowrap table-hover table-bordered">
+              <thead class="table-primary">
+                <tr>
+                  <th>Guest Details</th>
+                  <th>Request Details</th>
+                  <th>Quantity / Amount</th>
+                  <th>Status</th>
+                  <th>Notes</th>
+                  <th>Assigned To</th>
+                  <th>Completion Details</th>
+                  <th>Last Update</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for request in requests %}
+                <tr>
+                  <td>Room: {{ request.room_number }}<br>Guest: {{ request.guest_last_name }}, {{ request.guest_first_name }}</td>
+                  <td>{% if request.service_name %}{{ request.service_name }}<br>{{ request.request_time }}{% elif request.food_name %}{{ request.food_name }}<br>{{ request.request_time }}{% else %}Unknown{% endif %}</td>
+                  <td>{{ request.quantity }} x {{ "{:,.2f}".format(request.unit_cost|float) }}<br>{{ "{:,.2f}".format(request.total_cost|float) }}</td>
+                  <td><span class="badge bg-{{ 'success' if request.status|upper == 'COMPLETED' else 'warning' if request.status == 'for assignment' else 'danger' if request.status == 'cancelled' else 'primary' }}">{{ request.status|capitalize }}</span></td>
+                  <td>{{ request.notes }}</td>
+                  <td>{% if request.first_name %}<span class="badge bg-info-transparent">Assigned to: {{ request.first_name }} {{ request.last_name }}</span>{% else %}<span class="text-muted">Unassigned</span>{% endif %}</td>
+                  <td>{{ request.completion_time }}</td>
+                  <td>{{ request.last_update }}</td>
+                  <td>
+                    {% if session['role'] in ['admin','manager','supervisor'] %}
+                    <div class="d-flex gap-1">
+                      <button class="btn btn-warning btn-sm" onclick="openEditModal(this)" data-request_id="{{ request.request_id }}" data-booking_id="{{ request.booking_id }}" data-quantity="{{ request.quantity }}" data-unit_cost="{{ request.unit_cost }}" data-notes="{{ request.notes }}" data-status="{{ request.status }}" data-request_time="{{ request.request_time }}" data-category="{{ request.service_category or request.food_category }}" data-request_type="{{ 'service' if request.service_name else 'food' }}" data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"><i class="ri-pencil-line"></i></button>
+                      <button class="btn btn-danger btn-sm" onclick="confirmDelete('{{ request.request_id }}')"><i class="ri-delete-bin-line"></i></button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <footer class="footer mt-auto py-3 text-center">
-        <div class="container-fluid">
-            <span class="text-muted"> Copyright © <span id="year"></span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
-        </div>
-    </footer>
-</div>
-
-<!-- Add Modal -->
-<div class="modal fade" id="addModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="/addRequest">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">Add Request</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-            <div class="mb-3">
-                <label for="booking_id" class="form-label">Booking ID:</label>
-                <select class="form-control" id="booking_id" name="booking_id" required>
-                    {% for booking in booking_list %}
-                    <option value="{{ booking.booking_id }}">Booking {{ booking.booking_id }} (Room {{ booking.room_number }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Request Type:</label>
-                <select class="form-control" id="request_type" required>
-                    <option value="service">Service</option>
-                    <option value="food">Food</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Category:</label>
-                <select class="form-control" id="category" name="category" required>
-                    <optgroup id="service_categories" label="Service Categories">
-                        {% for service_category in service_category_list %}
-                        <option value="{{ service_category.category }}">{{ service_category.category }}</option>
-                        {% endfor %}
-                    </optgroup>
-
-                    <optgroup id="food_categories" label="Food Categories" style="display:none;">
-                        {% for food_category in food_category_list %}
-                        <option value="{{ food_category.category }}">{{ food_category.category }}</option>
-                        {% endfor %}
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="name" class="form-label">Name:</label>
-                <select class="form-control" id="name" name="name" required>
-                    {% for service_name in service_names %}
-                    <option value="service_{{ service_name.service_id }}" data-category="{{ service_name.category }}" data-price="{{ service_name.price }}" data-source="service">{{ service_name.name }}</option>
-                    {% endfor %}
-                    {% for food_name in food_names %}
-                    <option value="food_{{ food_name.item_id }}" data-category="{{ food_name.category }}" data-price="{{ food_name.price }}" data-source="food">{{ food_name.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="quantity" class="form-label">Quantity:</label>
-                <input type="number" class="form-control" id="quantity" name="quantity" value="1" min="1" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="unit_cost" class="form-label">Unit Cost:</label>
-                <input type="text" class="form-control" id="unit_cost" name="unit_cost" readonly>
-            </div>
-
-            <div class="mb-3">
-                <label for="notes" class="form-label">Notes:</label>
-                <input type="text" class="form-control" id="notes" name="notes">
-            </div>
-
-            <input type="hidden" id="status" name="status" value="pending">
-
-            <div class="mb-3">
-                <label for="request_time" class="form-label">Request Time:</label>
-                <input type="datetime-local" class="form-control" id="request_time" name="request_time" required>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Add Request</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-    <div class="modal fade" id="editModal" tabindex="-1">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <form method="POST" action="{{ url_for('update_request') }}">
-            <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">          <h5 class="modal-title" id="checkOutModalLabel">Check-In</h5>
-              <h5 class="modal-title">Edit Request</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-              <input type="hidden" id="edit_request_id" name="edit_request_id">
-              <div class="mb-3">
-                <label for="edit_booking_id" class="form-label">Booking ID:</label>
-                <select class="form-control" id="edit_booking_id" name="edit_booking_id" required>
-                    {% for booking in booking_list %}
-                    <option value="{{ booking.booking_id }}">Booking {{ booking.booking_id }} (Room {{ booking.room_number }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Request Type:</label>
-                <select class="form-control" id="edit_request_type" required>
-                    <option value="service">Service</option>
-                    <option value="food">Food</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Category:</label>
-                <select class="form-control" id="edit_category" name="edit_category" required>
-                    <optgroup id="edit_service_categories" label="Service Categories">
-                        {% for service_category in service_category_list %}
-                        <option value="{{ service_category.category }}">{{ service_category.category }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup id="edit_food_categories" label="Food Categories" style="display:none;">
-                        {% for food_category in food_category_list %}
-                        <option value="{{ food_category.category }}">{{ food_category.category }}</option>
-                        {% endfor %}
-                    </optgroup>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="edit_name" class="form-label">Name:</label>
-                <select class="form-control" id="edit_name" name="edit_name" required>
-                    {% for service_name in service_names %}
-                    <option value="service_{{ service_name.service_id }}" data-category="{{ service_name.category }}" data-price="{{ service_name.price }}" data-source="service">{{ service_name.name }}</option>
-                    {% endfor %}
-                    {% for food_name in food_names %}
-                    <option value="food_{{ food_name.item_id }}" data-category="{{ food_name.category }}" data-price="{{ food_name.price }}" data-source="food">{{ food_name.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="edit_quantity" class="form-label">Quantity:</label>
-                <input type="number" class="form-control" id="edit_quantity" name="edit_quantity" min="1" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="edit_unit_cost" class="form-label">Unit Cost:</label>
-                <input type="text" class="form-control" id="edit_unit_cost" name="edit_unit_cost" readonly>
-            </div>
-
-            <div class="mb-3">
-                <label for="edit_notes" class="form-label">Notes:</label>
-                <input type="text" class="form-control" id="edit_notes" name="edit_notes">
-            </div>
-
-            <input type="hidden" id="edit_status" name="edit_status" value="pending">
-
-            <div class="mb-3">
-                <label for="edit_request_time" class="form-label">Request Time:</label>
-                <input type="datetime-local" class="form-control" id="edit_request_time" name="edit_request_time" required>
-            </div>
-        </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Modal -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-body text-center">
-        <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
-        <h5>Are you sure you want to delete Request <span id="modalRequestId"></span>?</h5>
-      </div>
-      <div class="modal-footer justify-content-center">
-        <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Assign Modal -->
-<div class="modal fade" id="assignModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="POST" action="/forceassigntask">
-        <div class="modal-header">
-          <h5 class="modal-title">Assign Task Manually</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" id="assignTask_request_id" name="assignTask_request_id">
-          <div class="mb-3">
-            <label>Assign to Staff</label>
-            <select name="assignTask_staff_id" class="form-select" required>
-              {% for staff in staff_list %}
-              <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
-              {% endfor %}
-            </select>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
-        <div class="modal-footer"><button type="submit" class="btn btn-primary">Assign</button></div>
-      </form>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Completed Modal -->
-<div class="modal fade" id="completedModal" tabindex="-1" aria-labelledby="completedModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-    <form action="/completedRequest" method="POST" class="modal-content">
-        <div class="modal-header">
-        <h5 class="modal-title" id="completedModalLabel">Completed Request</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-        <input type="hidden" name="completed_request_id" id="completed_request_id">
-        <div class="mb-3">
-            <label for="completion_time" class="form-label">Completion Date:</label>
-            <input type="datetime-local" class="form-control" id="completion_time" name="completion_time" required>
-        </div>
-        </div>
-        <div class="modal-footer">
-        <button type="submit" class="btn btn-success">Submit</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        </div>
-    </form>
+  <footer class="footer mt-auto py-3 text-center">
+    <div class="container-fluid">
+      <span class="text-muted">© <span id="year"></span> ezStay. All rights reserved.</span>
     </div>
+  </footer>
 </div>
 
+<!-- JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-
-<script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
 <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
 <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
-
-<script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
-<script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
-<script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
-<script src="{{ url_for('static', filename='js/main.js') }}"></script>
-<script src="{{ url_for('static', filename='js/custom.js') }}"></script>
-
+<script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
 <script>
-  // strip HTML tags from cell content when DataTables searches
-  $.fn.dataTable.ext.type.search.html = function (data) {
-    if (!data) return '';
-    return data.toString().replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  };
-
-  // ensure DataTable is created only once
-  $(function () {
-      const selector = '#requestsTable';
-      if (!$.fn.dataTable.isDataTable(selector)) {
-        $(selector).DataTable({
-            pageLength: 10,
-            order: [[0, 'desc']],
-            lengthChange: true,
-            responsive: true,
-            language: {
-                search: "_INPUT_",
-                searchPlaceholder: "Search requests..."
-            },
-            columnDefs: [
-                { targets: [4, 5], className: 'text-end' },
-                { targets: [8], orderable: false, searchable: false }
-            ]
-        });
-      }
-  });
-
-    // expose the requests variable from server to client
-    const requests = {{ requests | tojson | safe }};
-
-    // helper to set current year
-    document.getElementById('year').textContent = new Date().getFullYear();
-
-    $(function () {
-  const selector = '#requestsTable';
-  if (!$.fn.dataTable.isDataTable(selector)) {
-    $(selector).DataTable({
-      pageLength: 10,
-      order: [[0, 'desc']],
-      lengthChange: true,
-      responsive: true,
-      language: {
-        search: "_INPUT_",
-        searchPlaceholder: "Search requests..."
-      },
-      columnDefs: [
-        { targets: [4, 5], className: 'text-end' },
-        { targets: [8], orderable: false, searchable: false }
-      ]
-    });
-  }
-});
-
-    // ---------- Add / Edit form behavior ----------
-    function showServiceOrFoodFor(type, prefix = '') {
-        // prefix is '' for add form, 'edit_' for edit form
-        const serviceOptgroup = document.getElementById(prefix + 'service_categories');
-        const foodOptgroup = document.getElementById(prefix + 'food_categories');
-
-        if (type === 'service') {
-            serviceOptgroup.style.display = '';
-            foodOptgroup.style.display = 'none';
-        } else {
-            serviceOptgroup.style.display = 'none';
-            foodOptgroup.style.display = '';
-        }
-    }
-
-    function filterNamesFor(prefix = '') {
-        const category = document.getElementById(prefix + 'category').value;
-        const type = (document.getElementById(prefix + 'request_type') || { value: 'service' }).value;
-        const wanted = (type === 'service') ? 'service' : 'food';
-        const nameSelect = document.getElementById(prefix + 'name') || document.getElementById(prefix + 'name');
-
-        if (!nameSelect) return;
-
-        [...nameSelect.options].forEach(opt => {
-            const optCategory = opt.getAttribute('data-category');
-            const optSource = opt.getAttribute('data-source');
-            opt.style.display = (optCategory === category && optSource === wanted) ? 'block' : 'none';
-        });
-
-        // clear selection so user chooses correctly
-        nameSelect.value = '';
-    }
-
-    function updateUnitCost(prefix = '') {
-        const sel = document.getElementById(prefix + 'name');
-        if (!sel) return;
-        const opt = sel.options[sel.selectedIndex] || null;
-        const price = opt && opt.dataset ? opt.dataset.price : '';
-        const costInput = document.getElementById(prefix + 'unit_cost') || document.getElementById(prefix + 'unit_cost');
-        if (costInput) costInput.value = price ? Number(price).toFixed(2) : '';
-    }
-
-    // set default request_time when add modal opens
-    const addModalEl = document.getElementById('addModal');
-    if (addModalEl) {
-        addModalEl.addEventListener('show.bs.modal', function () {
-            const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-            document.getElementById('request_time').value = now.toISOString().slice(0,16);
-
-            // ensure add modal shows service by default and filters names
-            showServiceOrFoodFor('service', '');
-            filterNamesFor('');
-            updateUnitCost('');
-        });
-    }
-
-    // events wiring for add form
-    const addRequestTypeEl = document.getElementById('request_type');
-    if (addRequestTypeEl) {
-        addRequestTypeEl.addEventListener('change', function() {
-            showServiceOrFoodFor(this.value, '');
-            filterNamesFor('');
-            updateUnitCost('');
-        });
-    }
-    const addCategoryEl = document.getElementById('category');
-    if (addCategoryEl) {
-        addCategoryEl.addEventListener('change', function(){ filterNamesFor(''); updateUnitCost(''); });
-    }
-    const addNameEl = document.getElementById('name');
-    if (addNameEl) addNameEl.addEventListener('change', () => updateUnitCost(''));
-
-    // events wiring for edit form
-    const editRequestTypeEl = document.getElementById('edit_request_type');
-    if (editRequestTypeEl) {
-        editRequestTypeEl.addEventListener('change', function() {
-            showServiceOrFoodFor(this.value, 'edit_');
-            // clear edit_name after toggling
-            const editName = document.getElementById('edit_name');
-            if (editName) editName.value = '';
-            updateUnitCost('edit_');
-        });
-    }
-    const editCategoryEl = document.getElementById('edit_category');
-    if (editCategoryEl) editCategoryEl.addEventListener('change', function(){ filterNamesFor('edit_'); updateUnitCost('edit_'); });
-    const editNameEl = document.getElementById('edit_name');
-    if (editNameEl) editNameEl.addEventListener('change', () => updateUnitCost('edit_'));
-
-    // ---------- open edit modal populated ----------
-    function openEditModal(button) {
-        const btn = button;
-        const request_id = btn.getAttribute('data-request_id');
-        const booking_id = btn.getAttribute('data-booking_id');
-        const quantity = btn.getAttribute('data-quantity');
-        const unit_cost = btn.getAttribute('data-unit_cost');
-        const notes = btn.getAttribute('data-notes');
-        const status = btn.getAttribute('data-status');
-        const request_time = btn.getAttribute('data-request_time');
-        const category = btn.getAttribute('data-category');
-        const request_type = btn.getAttribute('data-request_type');
-        const name = btn.getAttribute('data-name');
-
-        $('#edit_request_id').val(request_id);
-        $('#edit_booking_id').val(booking_id);
-        $('#edit_quantity').val(quantity);
-        $('#edit_unit_cost').val(unit_cost);
-        $('#edit_notes').val(notes);
-        $('#edit_status').val(status);
-
-        if (request_time) {
-            $('#edit_request_time').val(new Date(request_time).toISOString().slice(0,16));
-        }
-
-        if (request_type) {
-            $('#edit_request_type').val(request_type);
-            showServiceOrFoodFor(request_type, 'edit_');
-        }
-        if (category) {
-            $('#edit_category').val(category);
-        }
-        // filter edit names then set name value
-        filterNamesFor('edit_');
-        if (name) {
-            $('#edit_name').val(name);
-            updateUnitCost('edit_');
-        }
-
-        new bootstrap.Modal(document.getElementById('editModal')).show();
-    }
-
-    // ---------- confirm delete ----------
-    function confirmDelete(request_id) {
-        document.getElementById("modalRequestId").innerText = request_id;
-        document.getElementById("confirmDeleteBtn").href = `/deleteRequest/${request_id}`;
-        new bootstrap.Modal(document.getElementById('deleteModal')).show();
-    }
-
-    // ---------- assign ----------
-    function openAssignModal(requestId) {
-        document.getElementById('assignTask_request_id').value = requestId;
-        new bootstrap.Modal(document.getElementById('assignModal')).show();
-    }
-
-    // ---------- completed ----------
-    function openCompletedModal(requestId) {
-        document.getElementById('completed_request_id').value = requestId;
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        document.getElementById('completion_time').value = now.toISOString().slice(0,16);
-        new bootstrap.Modal(document.getElementById('completedModal')).show();
-    }
-
-    // small safety: hide unavailable options on load
-    document.addEventListener('DOMContentLoaded', function() {
-        showServiceOrFoodFor(document.getElementById('request_type') ? document.getElementById('request_type').value : 'service', '');
-        showServiceOrFoodFor(document.getElementById('edit_request_type') ? document.getElementById('edit_request_type').value : 'service', 'edit_');
-    });
-
-    // Add this to your users.html file
-    function toggleStatus(userId, button) {
-        const currentStatus = button.getAttribute('data-status');
-        const newStatus = currentStatus == '1' ? '0' : '1';
-
-        fetch('/updateUserStatus', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                user_id: userId,
-                status: newStatus
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Update button appearance
-                button.setAttribute('data-status', newStatus);
-                if (newStatus == '1') {
-                    button.classList.remove('btn-secondary');
-                    button.classList.add('btn-success');
-                    button.textContent = 'Active';
-                } else {
-                    button.classList.remove('btn-success');
-                    button.classList.add('btn-secondary');
-                    button.textContent = 'Inactive';
-                }
-            } else {
-                alert('Failed to update status: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating status');
-        });
-    }
-
-    document.addEventListener("DOMContentLoaded", function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-      setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      }, 4000); // 4000 ms = 4 seconds
-    });
-  });
+  document.getElementById('year').textContent = new Date().getFullYear();
+  $('#requestsTable').DataTable({ pageLength: 10, order: [[0, 'desc']] });
+  document.querySelector('.sidebar-toggle').addEventListener('click', ()=> document.getElementById('sidebar').classList.toggle('show'));
 </script>
 </body>
 </html>

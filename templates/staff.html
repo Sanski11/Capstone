@@ -19,18 +19,37 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
     <style>
-        :root { --ez-primary: #8a2be2; }
-        .app-sidebar { background-color: var(--ez-primary) !important; }
-        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-        .text-fixed-white { color: white !important; }
-
-        .main-menu .slide a.active, .main-menu .slide a:hover {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.1);
+        :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
+    }
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
+    }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+        .summary-card {
+            background: #fff;
+            border-radius: 10px;
+            text-align: center;
+            padding: 18px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            transition: transform .15s ease, box-shadow .15s ease;
         }
-        .text-purple { color: var(--ez-primary) !important; }
-        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+        .summary-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+        .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
+        .summary-card h3 { font-weight: 700; color: #343a40; }
+        .text-fixed-white { color: white !important; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
     </style>
 </head>
 

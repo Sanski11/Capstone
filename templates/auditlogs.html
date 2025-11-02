@@ -1,173 +1,193 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light" data-header-styles="light" data-width="fullwidth" data-menu-styles="dark" data-page-style="flat" data-toggled="close">
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light"
+      data-header-styles="light" data-width="fullwidth" data-menu-styles="dark"
+      data-page-style="flat" data-toggled="close">
 <head>
-    <meta charset="UTF-8">
-    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>ezStay - Rooms Management</title>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>ezStay - Audit Logs</title>
 
-    <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
-    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
-    <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    
-    <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
-    
-    <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+  <!-- Core CSS -->
+  <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
 
-    <style>
-        :root { --ez-primary: #8a2be2; }
-        .app-sidebar { background-color: var(--ez-primary) !important; }
-        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-        .text-fixed-white { color: white !important; }
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
 
-        /* Vyzor Sidebar Active/Hover */
-        .main-menu .slide a.active, .main-menu .slide a:hover {
-            color: #fff !important;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .text-purple { color: var(--ez-primary) !important; }
-        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
-        </style>
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
+    }
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
+    }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+    .text-fixed-white { color: white !important; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
+  </style>
 </head>
 
 <body>
-    <div class="page">
-        <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-  <div class="container-fluid d-flex justify-content-end align-items-center">
-    <!-- Right: Profile Dropdown Only -->
-    <div class="dropdown">
-      <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="fw-semibold">{{ session['username'] }}</span>
-        <i class="ri-arrow-down-s-line ms-1"></i>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
-        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
-      </ul>
-    </div>
-  </div>
-</header>
+  <div class="page">
+    <!-- HEADER -->
+    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+      <div class="container-fluid d-flex justify-content-end align-items-center">
+        <div class="dropdown">
+          <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown"
+             role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="fw-semibold">{{ session['username'] }}</span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
     <!-- SIDEBAR -->
     {% include '_sidebar.html' %}
-      </aside>
-          
-        <div class="main-content app-content">
-            <div class="container-fluid page-container main-body-container">
 
-                <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-                    <h1 class="page-title fw-medium fs-20 mb-0">Logs Management</h1>
-                </div>
-
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="mb-3">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-                {% endwith %}
-
-                <div class="card custom-card">
-                    <div class="card-header justify-content-between">
-                        <h5 class="card-title mb-0">Audit Logs</h5>
-                    </div>
-                    <div class="card-body">
-                        <div style="overflow-x: auto;">
-                            <table id="auditlogsTable" class="table table-hover table-bordered">
-                                <thead class="table-primary">
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Timestamp</th>
-                                        <th>Tablename</th>
-                                        <th>Action Type</th>
-                                        <th>Record ID</th>
-                                        <th>Old Value</th>
-                                        <th>New Value</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for log in logs %}
-                                    <tr>
-                                        <td>{{ log.username }}</td>
-                                        <td>{{ log.timestamp }}</td>
-                                        <td>{{ log.table_name }}</td>
-                                        <td>{{ log.action_type }}</td>
-                                        <td>{{ log.record_id }}</td>
-                                        <td>{{ log.old_value }}</td>
-                                        <td>{{ log.new_value }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+    <!-- MAIN CONTENT -->
+    <div class="main-content app-content">
+      <div class="container-fluid page-container main-body-container mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h1 class="page-title fw-medium fs-20 mb-0">Audit Logs</h1>
+          <button id="exportBtn" class="btn btn-sm btn-outline-secondary">
+              <i class="ri-download-2-line me-1"></i>Export CSV
+            </button>
         </div>
 
-        <footer class="footer mt-auto py-3 text-center">
-            <div class="container-fluid">
-                <span class="text-muted"> Copyright © <span id="year">2025</span> <a href="javascript:void(0);" class="text-dark fw-medium">ezStay</a>. All rights reserved.</span>
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mb-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Audit Logs Table -->
+        <div class="card custom-card">
+          <div class="card-header justify-content-between">
+            <h5 class="card-title mb-0">System Activity Logs</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="auditlogsTable" class="table table-hover table-bordered align-middle">
+                <thead class="table-primary">
+                  <tr>
+                    <th>Username</th>
+                    <th>Timestamp</th>
+                    <th>Table</th>
+                    <th>Action</th>
+                    <th>Record ID</th>
+                    <th>Old Value</th>
+                    <th>New Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for log in logs %}
+                  <tr>
+                    <td>{{ log.username }}</td>
+                    <td>{{ log.timestamp }}</td>
+                    <td>{{ log.table_name }}</td>
+                    <td>{{ log.action_type }}</td>
+                    <td>{{ log.record_id }}</td>
+                    <td>{{ log.old_value or '-' }}</td>
+                    <td>{{ log.new_value or '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
             </div>
-        </footer>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <footer class="footer mt-auto py-3 text-center">
+      <div class="container-fluid">
+        <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+      </div>
+    </footer>
+  </div>
 
+  <!-- JS Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
-    
-    <script src="{{ url_for('static', filename='libs/@popperjs/core/umd/popper.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/node-waves/waves.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='libs/simplebar/simplebar.min.js') }}"></script>
-    
-    <script src="{{ url_for('static', filename='js/defaultmenu.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/sticky.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/simplebar.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/custom.js') }}"></script>
+    // Initialize DataTables
+    $(document).ready(function() {
+      $('#auditlogsTable').DataTable({
+        pageLength: 10,
+        order: [[1, 'desc']],
+        responsive: true,
+        language: {
+          search: "_INPUT_",
+          searchPlaceholder: "Search logs..."
+        }
+      });
+    });
 
-    <script>
-        const rooms = {{ logs | tojson | safe }};
+    // Auto close flash messages
+    document.addEventListener("DOMContentLoaded", function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(alert => {
+        setTimeout(() => {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }, 4000);
+      });
+    });
 
-        // DataTables init
-        $(function () {
-            // Initialize DataTables
-            const dt = $('#auditlogsTable').DataTable({
-                pageLength: 10,
-                order: [[1, 'desc']],
-                lengthChange: false,
-                responsive: true,
-                language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search logs...",
-                },
-                columnDefs: [
-                    // Ensure the 'Action' column is not searchable/orderable
-                    //{ targets: [4], orderable: false, searchable: false }
-                ]
-            });
-            
-            // Move DataTables search input into the custom header container
-            $('#auditogsTable_filter').parent().addClass('d-flex justify-content-between align-items-center mb-3');
-            $('#auditogsTable_filter label').addClass('mb-0');
-            $('#auditogsTable_filter input').removeClass('form-control-sm');
-            $('#auditogsTable_filter input').addClass('form-control');
-        });
-    </script>
+     // CSV Export Button
+      $('#exportBtn').on('click', function() {
+        let csv = [];
+        const rows = document.querySelectorAll("#auditlogsTable tr");
+        for (let row of rows) {
+          const cols = row.querySelectorAll("th, td");
+          let rowData = [];
+          cols.forEach(col => rowData.push('"' + col.innerText.replace(/"/g, '""') + '"'));
+          csv.push(rowData.join(","));
+        }
+        const blob = new Blob([csv.join("\n")], { type: "text/csv" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "audit_logs.csv";
+        link.click();
+      });
+  </script>
 </body>
 </html>

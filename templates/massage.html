@@ -24,32 +24,47 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
 
   <style>
-    :root { --ez-primary: #8a2be2; }
-        .app-sidebar { background-color: var(--ez-primary) !important; }
-        .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-        .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-        .summary-card {
-            background: #fff;
-            border-radius: 10px;
-            text-align: center;
-            padding: 18px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-        .summary-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        .summary-card h6 { color: #6c757d; font-weight: 600; }
-        .summary-card h3 { font-weight: 700; margin-top: 5px; }
-        .text-purple { color: var(--ez-primary) !important; }
-        table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
+    }
+    /* Sidebar */
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
+    }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+    /* Summary Cards */
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
+      text-align: center;
+      padding: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+    .summary-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+    .summary-card h6 { color: #6c757d; font-weight: 600; }
+    .summary-card h3 { font-weight: 700; margin-top: 5px; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
   </style>
 </head>
 
 <body>
   <div class="page">
-    <!-- HEADER ONLY -->
+    <!-- HEADER -->
     <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
       <div class="container-fluid d-flex justify-content-end align-items-center">
         <div class="dropdown">
@@ -67,6 +82,7 @@
       </div>
     </header>
 
+    <!-- SIDEBAR -->
     {% include '_sidebar.html' %}
 
     <!-- MAIN CONTENT -->
@@ -79,11 +95,11 @@
         <!-- Summary Cards -->
         <div class="row g-3 mb-4">
           <div class="col-md-3 col-sm-6">
-                    <div class="summary-card">
-                    <h6>Total Services</h6>
-                    <h3 class="text-purple">{{ total_services }}</h3>
-                    </div>
-                </div>
+            <div class="summary-card">
+              <h6>Total Services</h6>
+              <h3 class="text-purple">{{ total_services or 0 }}</h3>
+            </div>
+          </div>
           <div class="col-md-3 col-sm-6">
             <div class="summary-card">
               <h6>Total Spa Requests</h6>
@@ -102,28 +118,31 @@
               <h3 class="text-success">{{ spa_stats.completed or 0 }}</h3>
             </div>
           </div>
+        </div>
 
-          <!-- Flash Messages -->
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="mb-3">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-            {% endwith %}
-            
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-3">
+          {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
         <!-- Table -->
         <div class="card custom-card">
           <div class="card-header justify-content-between">
             <h5 class="card-title mb-0">Massage Services</h5>
+            {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
             <a href="#" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
               <i class="ri-add-line me-1"></i> Add Record
             </a>
+            {% endif %}
           </div>
           <div class="card-body">
             <div class="table-responsive">
@@ -143,16 +162,16 @@
                     <td>{{ ms.name }}</td>
                     <td>{{ ms.description }}</td>
                     <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
-                    <td>{{ ms.last_update }} / {{ ms.timestamp }}</td>
+                    <td>{{ ms.last_update }}</td>
                     <td>
                       {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                       <div class="btn-list">
                         <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1" 
-                                onclick='openEditModal({{ ms | tojson | safe }})'>
+                          onclick='openEditModal({{ ms | tojson | safe }})'>
                           <i class="ri-pencil-line"></i>
                         </button>
                         <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave" 
-                                onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
+                          onclick="confirmDelete('{{ ms.service_id }}', '{{ ms.name | escape }}')">
                           <i class="ri-delete-bin-line"></i>
                         </button>
                       </div>
@@ -172,14 +191,12 @@
 
     <footer class="footer mt-auto py-3 text-center">
       <div class="container-fluid">
-        <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+        <span class="text-muted">© <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
       </div>
     </footer>
   </div>
 
-  <!-- ===================== -->
   <!-- ADD MASSAGE MODAL -->
-  <!-- ===================== -->
   <div class="modal fade" id="addModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -189,11 +206,11 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <div class="mb-3"><input name="category" class="form-control" value="Massage" hidden></div>
-            <div class="mb-3"><label>Name</label><input name="name" class="form-control" required></div>
-            <div class="mb-3"><label>Description</label><input name="description" class="form-control" required></div>
-            <div class="mb-3"><label>Price</label><input type="number" name="price" class="form-control" step="0.01" min="0" required></div>
-            <div class="mb-3"><input name="type" class="form-control" value="Service" hidden></div>
+            <input name="category" value="Massage" hidden>
+            <label>Name</label><input name="name" class="form-control mb-2" required>
+            <label>Description</label><input name="description" class="form-control mb-2" required>
+            <label>Price</label><input type="number" name="price" step="0.01" class="form-control" required>
+            <input name="type" value="Service" hidden>
           </div>
           <div class="modal-footer"><button type="submit" class="btn btn-primary">Add</button></div>
         </form>
@@ -201,9 +218,7 @@
     </div>
   </div>
 
-  <!-- ===================== -->
   <!-- EDIT MASSAGE MODAL -->
-  <!-- ===================== -->
   <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -214,11 +229,9 @@
           </div>
           <div class="modal-body">
             <input type="hidden" id="edit_service_id" name="service_id">
-            <div class="mb-3"><input id="edit_category" name="edit_category" class="form-control" hidden></div>
-            <div class="mb-3"><label>Name</label><input id="edit_name" name="edit_name" class="form-control" required></div>
-            <div class="mb-3"><label>Description</label><input id="edit_description" name="edit_description" class="form-control" required></div>
-            <div class="mb-3"><label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" min="0" class="form-control" required></div>
-            <div class="mb-3"><input id="edit_type" name="edit_type" class="form-control" hidden></div>
+            <label>Name</label><input id="edit_name" name="edit_name" class="form-control mb-2" required>
+            <label>Description</label><input id="edit_description" name="edit_description" class="form-control mb-2" required>
+            <label>Price</label><input id="edit_price" name="edit_price" type="number" step="0.01" class="form-control" required>
           </div>
           <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Changes</button></div>
         </form>
@@ -226,44 +239,39 @@
     </div>
   </div>
 
-  <!-- ===================== -->
-  <!-- DELETE CONFIRMATION MODAL -->
-  <!-- ===================== -->
+  <!-- DELETE MODALS -->
   <div class="modal fade" id="deleteMassageModal" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Are you sure you want to delete <b><span id="modalServiceName"></span></b>?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- IN USE MODAL -->
-<div class="modal fade" id="inUseModal" tabindex="-1">
-  <div class="modal-dialog">
       <div class="modal-content">
-          <div class="modal-header bg-warning text-dark">
-              <h5 class="modal-title">Cannot Delete</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-              This massage service is currently used in a request and cannot be deleted.
-          </div>
-          <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
-          </div>
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Confirm Delete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">Are you sure you want to delete <b><span id="modalServiceName"></span></b>?</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+        </div>
       </div>
+    </div>
   </div>
-</div>
+
+  <div class="modal fade" id="inUseModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title">Cannot Delete</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          This massage service is currently used in a request and cannot be deleted.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -284,11 +292,9 @@
 
     function openEditModal(ms) {
       $('#edit_service_id').val(ms.service_id);
-      $('#edit_category').val(ms.category);
       $('#edit_name').val(ms.name);
       $('#edit_description').val(ms.description);
       $('#edit_price').val(ms.price);
-      $('#edit_type').val(ms.type);
       new bootstrap.Modal(document.getElementById('editModal')).show();
     }
 
@@ -304,12 +310,11 @@
             new bootstrap.Modal(document.getElementById('deleteMassageModal')).show();
           }
         })
-        .catch(err => console.error(err)); // optional, helps debug
-    } 
-      
-    // Number counter animation
+        .catch(err => console.error(err));
+    }
+
     document.querySelectorAll('.summary-card h3').forEach(el => {
-      const end = parseInt(el.textContent);
+      const end = parseInt(el.textContent) || 0;
       let start = 0;
       const step = Math.max(1, Math.floor(end / 60));
       function animate() {
@@ -325,14 +330,14 @@
     });
 
     document.addEventListener("DOMContentLoaded", function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-      setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      }, 4000); // 4000 ms = 4 seconds
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(alert => {
+        setTimeout(() => {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }, 4000);
+      });
     });
-  });
   </script>
 </body>
 </html>
