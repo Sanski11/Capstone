@@ -2774,9 +2774,9 @@ def add_user():
         token_expires_at = datetime.now() + timedelta(hours=24)
         
         cursor.execute("""
-            INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now()))
+            INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at, last_update, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now(), last_update, timestamp))
         new_user_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
         mysql.connection.commit()
         
@@ -2868,7 +2868,7 @@ def delete_user(user_id):
 @app.route('/updateUser', methods=['POST'])
 def update_user():
     user_id = request.form['edit_user_id']
-    user_name = request.form['edit_username']
+    username = request.form['edit_username']
     first_name = request.form['edit_first_name']
     middle_name = request.form['edit_middle_name']
     last_name = request.form['edit_last_name']
@@ -2897,7 +2897,7 @@ def update_user():
     #Get new data 
     new_data = old_data.copy()
     new_data['user_id'] = user_id  #change ALL field names (should be similar to the table)
-    new_data['username'] = user_name
+    new_data['username'] = username
     new_data['first_name'] = first_name
     new_data['middle_name'] = middle_name
     new_data['last_name'] = last_name
