@@ -2827,20 +2827,18 @@ def add_user():
     role = request.form['role']
     department = request.form.get('department')
     status = int(request.form.get('status', 1))  # Default Active
-    account_status = "" 
+    account_status = ""
     name = f"{first_name} {middle_name} {last_name}".strip()
     last_update = session['username']
     timestamp = datetime.now()
 
-    # Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    new_user_id = None #change room_id
-    
+    new_user_id = None
+
     try:
-        
         # Check if username already exists
         cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
         if cursor.fetchone():
@@ -2853,22 +2851,46 @@ def add_user():
             flash("Email already registered. Please log in.", "danger")
             return redirect('/users')
 
+        # Hash password
+        hashed_password = generate_password_hash(password)
+
         # Generate verification token
         verification_token = generate_verification_token()
         token_expires_at = datetime.now() + timedelta(hours=24)
-        
+
+        # Insert into users table
         cursor.execute("""
-            INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at, last_update, timestamp)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now(), last_update, timestamp))
-        new_user_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
+            INSERT INTO users (
+                username, first_name, middle_name, last_name, name, email, password,
+                role, department, status, email_verified, verification_token,
+                token_expires_at, account_status, created_at, last_update, timestamp
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s
+            )
+        """, (
+            username, first_name, middle_name, last_name, name, email, hashed_password,
+            role, department, status, False, verification_token,
+            token_expires_at, account_status, datetime.now(), last_update, timestamp
+        ))
+
+        new_user_id = cursor.lastrowid
         mysql.connection.commit()
-        
-        #Get new data and save logs
-        if new_user_id:  #change room_id
+
+        # ✅ Add to staff table automatically if role matches
+        if role in ['staff', 'supervisor', 'manager']:
+            cursor.execute("""
+                INSERT INTO staff (user_id, first_name, middle_name, last_name, email, role, department, status, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+            """, (new_user_id, first_name, middle_name, last_name, email, role, department, status))
+            mysql.connection.commit()
+
+        # Log to audit table
+        if new_user_id:
             new_data_for_log = {
                 'user_id': new_user_id,
-                'username': username,  #change field names
+                'username': username,
                 'first_name': first_name,
                 'middle_name': middle_name,
                 'last_name': last_name,
@@ -2879,34 +2901,32 @@ def add_user():
                 'last_update': last_update,
                 'timestamp': timestamp
             }
-            
             log_audit_event(
-                actor_id = session['username'],
+                actor_id=session['username'],
                 timestamp=timestamp,
-                table_name='users',  #change 
-                action_type='INSERT', 
-                record_id=str(new_user_id),  #change
-                old_data=None,           # Record did not exist, so old_data is None
-                new_data=new_data_for_log 
+                table_name='users',
+                action_type='INSERT',
+                record_id=str(new_user_id),
+                old_data=None,
+                new_data=new_data_for_log
             )
-        
 
         flash("✅ User added successfully!", "success")
-        
+
         # Send verification email
         if send_verification_email(email, username, verification_token):
             flash("Check your email for a verification link.", "success")
             return redirect(url_for('verification_pending'))
         else:
-            flash("Could not send email. Contact support.", "danger")      
-        
+            flash("Could not send email. Contact support.", "danger")
+
     except Exception as e:
         mysql.connection.rollback()
         flash(f"❌ Failed to add user: {str(e)}", "danger")
     finally:
-        cursor.close() #Close db connection
-        flash('User added successfully', 'success')
+        cursor.close()
         return redirect('/users')
+
     
 #Called by USER Menu - check if user exist in requests
 @app.route('/checkUser/<username>')
@@ -3024,53 +3044,39 @@ def update_user():
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form['booking_id']
-    amount = int(request.form['amount'])
-    method = "card"  #Always use 'card' for PayMongo links
+    amount = int(request.form['amount'])  # in centavos
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
         "Content-Type": "application/json"
     }
 
-    #Create payment intent
-    intent_payload = {
+    payload = {
         "data": {
             "attributes": {
                 "amount": amount,
-                "currency": "PHP",
                 "description": f"Booking #{booking_id} Payment",
-                "payment_method_allowed": ["card", "gcash", "grab_pay"],  #Show all options
-                "payment_method_options": {
-                    "card": {"request_three_d_secure": "any"}
-                }
-            }
-        }
-    }
-    intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
-    intent_data = intent_response.json()
-    if "data" not in intent_data:
-        return "<h3>❌ Error creating payment intent.</h3><pre>{}</pre>".format(json.dumps(intent_data, indent=2))
-    intent_id = intent_data["data"]["id"]
-
-    #Create checkout link
-    checkout_payload = {
-        "data": {
-            "attributes": {
-                "billing": {"name": "ezStay Guest"},
-                "payment_intent": intent_id,
-                "description": f"Booking #{booking_id} Payment",
-                "amount": amount,
+                "remarks": "ezStay payment link",
                 "currency": "PHP",
                 "success_url": url_for('success', booking_id=booking_id, _external=True),
                 "cancel_url": url_for('failed', _external=True)
             }
         }
     }
-    checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
-    checkout_data = checkout_response.json()
-    if "data" not in checkout_data:
-        return "<h3>❌ Error creating checkout link.</h3><pre>{}</pre>".format(json.dumps(checkout_data, indent=2))
-    return redirect(checkout_data["data"]["attributes"]["checkout_url"])
+
+    try:
+        response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=payload)
+        data = response.json()
+
+        # If PayMongo returned an error
+        if "data" not in data:
+            return jsonify({"error": data}), 400
+
+        checkout_url = data["data"]["attributes"]["checkout_url"]
+        return jsonify({"checkout_url": checkout_url})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/success')
 def success():
@@ -3116,10 +3122,6 @@ def failed():
       </body>
     </html>
     """
-
-from flask import request, session, redirect, url_for, flash
-from datetime import datetime, timedelta
-import random
 
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
