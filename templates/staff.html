@@ -133,7 +133,8 @@
                                                 <i class="ri-pencil-line"></i>
                                             </button>
                                             <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                onclick="confirmDelete('{{ staff.staff_id }}', '{{ staff.last_name | escape }}')">
+                                                onclick="confirmDelete('{{ staff.staff_id if staff.staff_id is defined else staff.user_id }}', '{{ staff.last_name | escape }}')">
+
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
@@ -333,19 +334,19 @@
         }
 
         // Delete Confirmation Logic
-        function confirmDelete(staff_id, last_name) {
-            fetch(`/checkStaff/${staff_id}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.in_use) {
-                        new bootstrap.Modal(document.getElementById('inUseModal')).show();
-                    } else {
-                        document.getElementById("modalStaffLastName").innerText = last_name;
-                        document.getElementById("confirmDeleteBtn").href = `/deleteStaff/${staff_id}`;
-                        new bootstrap.Modal(document.getElementById('deleteModal')).show();
-                    }
-                })
-                .catch(error => console.error("Error checking staff:", error));
+        function confirmDelete(record_id, last_name, type) {
+        fetch(`/checkStaff/${record_id}?type=${type}`)
+        .then(response => response.json())
+            .then(data => {
+                if (data.in_use) {
+                    new bootstrap.Modal(document.getElementById('inUseModal')).show();
+                } else {
+                    document.getElementById("modalStaffLastName").innerText = last_name;
+                    document.getElementById("confirmDeleteBtn").href = `/deleteStaff/${record_id}?type=${type}`;
+                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                }
+            })
+            .catch(error => console.error("Error checking staff:", error));
         }
 
         window.openEditModal = openEditModal;

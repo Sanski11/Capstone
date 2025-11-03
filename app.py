@@ -72,6 +72,15 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mysql = MySQL(app)
 
+# Folder for uploaded profile pictures
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads', 'profile_pics')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
 @login_manager.user_loader
 def load_user(user_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -121,64 +130,6 @@ def send_reset_otp(email):
     # Here, send the OTP via email (SMTP / Mailtrap / SendGrid)
     print(f"OTP for {email}: {otp}")  # for testing
     flash("A verification code has been sent to your email.", "info")
-    
-def _resolve_target_role(cursor, request_id):
-    """Determine target role based on request category."""
-    cursor.execute("""
-        SELECT r.service_id, r.item_id,
-               hs.category AS service_category,
-               fi.category AS food_category
-        FROM requests r
-        LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
-        LEFT JOIN food_items fi ON r.item_id = fi.item_id
-        WHERE r.request_id = %s
-    """, (request_id,))
-    row = cursor.fetchone()
-    if not row:
-        return None
-    if row['service_id']:
-        dept = row['service_category'] or ''
-        return f"{dept} - Staff"
-    return "Food/Dining - Staff"
-
-def _pick_least_loaded_staff(cursor, target_role):
-    """Pick staff with the fewest active requests."""
-    cursor.execute("""
-        SELECT s.staff_id,
-               COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
-        FROM staff s
-        LEFT JOIN requests r ON r.staff_id = s.staff_id
-        WHERE s.role = %s
-        GROUP BY s.staff_id
-        ORDER BY load_now ASC, s.staff_id ASC
-        LIMIT 1
-    """, (target_role,))
-    return cursor.fetchone()
-
-def _ensure_staff_exists(cursor, staff_id):
-    """Ensure a staff_id exists in the staff table, insert from users if missing."""
-    # Check if staff already exists
-    cursor.execute("SELECT 1 FROM staff WHERE staff_id=%s", (staff_id,))
-    if cursor.fetchone():
-        return True
-
-    # Fetch user data without department
-    cursor.execute("""
-        SELECT user_id, username, '' AS last_name, role, email
-        FROM users
-        WHERE user_id=%s
-    """, (staff_id,))
-    user = cursor.fetchone()
-    if not user:
-        return False
-
-    # Insert into staff without department
-    cursor.execute("""
-        INSERT INTO staff (staff_id, first_name, last_name, role, email)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (user['user_id'], user['username'], user['last_name'], user['role'], user['email']))
-    return True
-
     
 @app.context_processor
 def inject_user_details():
@@ -244,7 +195,7 @@ def login():
         password = request.form.get('password')
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        
+
         # Updated: allow login with either username or email
         cursor.execute(
             'SELECT * FROM users WHERE (username = %s OR email = %s) AND password = %s',
@@ -252,13 +203,9 @@ def login():
         )
         user = cursor.fetchone()
         cursor.close()
-        
+
         if user:
-            if str(user['status']) == '0':
-                flash("Your account is not yet activated. Please wait for admin approval.", "warning")
-                return render_template('login.html')
-            
-            # OTP generation and email logic here
+            # Generate OTP valid for 5 minutes
             otp = str(random.randint(100000, 999999))
             session['otp'] = otp
             session['otp_expiry'] = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
@@ -269,15 +216,16 @@ def login():
                 "email": user['email']
             }
 
+            # Send OTP to user’s email
             send_email(user['email'], "EzStay Login OTP", f"Your OTP is {otp}. It expires in 5 minutes.")
+
+            # Reset failed attempts after successful login
             session['login_attempts'] = 0
             session.pop('lockout_until', None)
 
             flash("An OTP has been sent to your email. Please verify.", "info")
             return redirect(url_for('verify_otp'))
-
         else:
-            # User not found, wrong username/email or password
             session['login_attempts'] += 1
             attempts_left = 3 - session['login_attempts']
             if attempts_left > 0:
@@ -288,6 +236,7 @@ def login():
                 flash("Maximum login attempts reached. Please try again in 3 minutes.", "danger")
 
     return render_template('login.html')
+
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
@@ -364,12 +313,29 @@ def signup():
         email = request.form['email']
         username = request.form['username']
         password = request.form['password']
+        selected_role = request.form.get('role', 'user').lower()
 
-        # Force role to 'user' for public signup
-        selected_role = 'user'
+        # Define allowed roles
+        allowed_roles = ['admin', 'manager', 'supervisor', 'user']
+
+        # Security: Only admins can create privileged roles
+        if selected_role in ['admin', 'manager', 'supervisor']:
+            if 'role' not in session or session.get('role', '').lower() != 'admin':
+                flash("Only administrators can create admin, manager, or supervisor accounts.", "danger")
+                return redirect(url_for('signup'))
+        else:
+            selected_role = 'user'  # Force default for public signup
 
         status = 1  # Active by default
-        account_status = 'Pending'
+        account_status = 'Pending'  # Account status starts as Pending
+
+        # Safe defaults for all user info fields
+        department = None
+        verified = False
+        email_verified = False
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        created_at = datetime.now()
 
         first_name = request.form.get('first_name', '')
         middle_name = request.form.get('middle_name', '')
@@ -377,15 +343,8 @@ def signup():
         name = f"{first_name} {middle_name} {last_name}".strip()
         phone = request.form.get('phone', '')
 
-        verified = False
-        email_verified = False
-        verification_token = generate_verification_token()
-        token_expires_at = datetime.now() + timedelta(hours=24)
-        created_at = datetime.now()
-
         reset_token = None
         reset_token_expiry = None
-        department = None
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
@@ -400,7 +359,7 @@ def signup():
             flash("Email already registered. Please log in.", "danger")
             return redirect(url_for('signup'))
 
-        # Insert user
+        # Insert safely
         cursor.execute("""
             INSERT INTO users (
                 username, email, password, role, status, department,
@@ -429,81 +388,6 @@ def signup():
             flash("Could not send email. Please contact support.", "danger")
 
     return render_template('signup.html')
-
-@app.route('/staff_signup', methods=['GET', 'POST'])
-def staff_signup():
-    if request.method == 'POST':
-        email = request.form['email']
-        username = request.form['username']
-        password = request.form['password']
-        role = request.form.get('role')  # supervisor, manager, staff
-
-        # Only allow specific roles
-        if role not in ['staff', 'supervisor', 'manager']:
-            flash("Invalid role selected.", "danger")
-            return redirect(url_for('staff_signup'))
-
-        # Staff accounts start inactive until admin approval
-        status = 0
-        account_status = 'Pending Approval'
-
-        first_name = request.form.get('first_name', '')
-        middle_name = request.form.get('middle_name', '')
-        last_name = request.form.get('last_name', '')
-        name = f"{first_name} {middle_name} {last_name}".strip()
-        phone = request.form.get('phone', '')
-
-        verified = False
-        email_verified = False
-        verification_token = generate_verification_token()
-        token_expires_at = datetime.now() + timedelta(hours=24)
-        created_at = datetime.now()
-        department = request.form.get('department', None)
-        reset_token = None
-        reset_token_expiry = None
-
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-        # Check for duplicates
-        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
-        if cursor.fetchone():
-            flash("Username already taken.", "danger")
-            return redirect(url_for('staff_signup'))
-
-        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
-        if cursor.fetchone():
-            flash("Email already registered. Please log in.", "danger")
-            return redirect(url_for('staff_signup'))
-
-        # Insert staff account
-        cursor.execute("""
-            INSERT INTO users (
-                username, email, password, role, status, department,
-                verified, email_verified, verification_token, token_expires_at,
-                account_status, created_at, first_name, last_name, middle_name,
-                name, phone, reset_token, reset_token_expiry
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s,
-                %s, %s, %s, %s, %s,
-                %s, %s, %s, %s
-            )
-        """, (
-            username, email, password, role, status, department,
-            verified, email_verified, verification_token, token_expires_at,
-            account_status, created_at, first_name, last_name, middle_name,
-            name, phone, reset_token, reset_token_expiry
-        ))
-        mysql.connection.commit()
-
-        # Send verification email (optional)
-        if send_verification_email(email, username, verification_token):
-            flash("Staff account created! Pending admin approval.", "success")
-            return redirect(url_for('staff_signup'))
-        else:
-            flash("Could not send email. Please contact support.", "danger")
-
-    return render_template('staff_signup.html')
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):
@@ -543,111 +427,173 @@ def dashboard():
         return redirect(url_for('login'))
 
     username = session['username']
-    role = session['role']
     user_id = session.get('user_id')
+    role = session['role']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # ===========================
-    # SERVICE COUNTS
+    # CURRENT BOOKING (for users)
     # ===========================
-    cursor.execute("""
-        SELECT s.category, COUNT(*) AS count
-        FROM hotel_services s
-        JOIN requests r ON s.service_id = r.service_id
-        JOIN bookings b ON r.booking_id = b.booking_id
-        WHERE b.status='Checked-in'
-        GROUP BY s.category
-    """)
-    service_data = cursor.fetchall()
-
-    # ===========================
-    # STAFF ACTIVITY
-    # ===========================
-    cursor.execute("""
-        SELECT s.first_name AS staff,
-               COUNT(r.request_id) AS requests,
-               SUM(CASE WHEN UPPER(r.status)='COMPLETED' THEN 1 ELSE 0 END) AS completed
-        FROM requests r
-        JOIN staff s ON r.staff_id = s.staff_id
-        JOIN bookings b ON r.booking_id = b.booking_id
-        WHERE b.status='Checked-in'
-        GROUP BY s.first_name
-    """)
-    staff_data = cursor.fetchall()
+    current_booking_id = None
+    if role == 'user' and user_id:
+        cursor.execute("""
+            SELECT booking_id 
+            FROM bookings 
+            WHERE guest_id = %s 
+            ORDER BY booking_id DESC 
+            LIMIT 1
+        """, (user_id,))
+        current_booking = cursor.fetchone()
+        current_booking_id = current_booking['booking_id'] if current_booking else None
 
     # ===========================
-    # GENERAL STATS
+    # FETCH USER DATA
     # ===========================
-    stats = {}
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone()
+    if not user:
+        cursor.close()
+        return redirect(url_for('login'))
 
-    # Active users
-    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status=1")
-    stats['active_users'] = cursor.fetchone()['count']
+    # ===========================
+    # FUNCTION: STATS & CHARTS
+    # ===========================
+    def get_stats_and_charts():
+        cursor.execute("""
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN hotel_services s ON r.service_id = s.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE s.category = 'Housekeeping' AND b.status = 'Checked-in'
+        """)
+        housekeeping = cursor.fetchone()['count']
 
-    # Total users
-    cursor.execute("SELECT COUNT(*) AS count FROM users")
-    stats['total_users'] = cursor.fetchone()['count']
+        cursor.execute("""
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN food_items f ON r.item_id = f.item_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
+        """)
+        food = cursor.fetchone()['count']
 
-    # Active bookings
-    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status='Checked-in'")
-    stats['active_bookings'] = cursor.fetchone()['count']
+        cursor.execute("""
+            SELECT COUNT(*) AS count
+            FROM requests r
+            JOIN hotel_services s ON r.service_id = s.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE s.category = 'Laundry' AND b.status = 'Checked-in'
+        """)
+        laundry = cursor.fetchone()['count']
 
-    # Current bookings
-    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
-    stats['current_bookings'] = cursor.fetchone()['count']
+        cursor.execute("""
+            SELECT COUNT(DISTINCT r.request_id) AS count
+            FROM requests r
+            LEFT JOIN hotel_services s ON r.service_id = s.service_id
+            LEFT JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE s.category = 'Massage' AND b.status = 'Checked-in'
+        """)
+        spa = cursor.fetchone()['count']
 
-    # Check-ins today
-    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in)=CURDATE()")
-    stats['checkins_today'] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
+        active_users = cursor.fetchone()['count']
 
-    # Check-outs today
-    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out)=CURDATE()")
-    stats['checkouts_today'] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) AS count FROM users")
+        total_users = cursor.fetchone()['count']
 
-    # Service-specific stats
-    service_categories = ['Housekeeping','Laundry','Massage','Food']
-    for cat in service_categories:
-        if cat == 'Food':
-            cursor.execute("""
-                SELECT COUNT(*) AS count
-                FROM requests r
-                JOIN food_items f ON r.item_id=f.item_id
-                JOIN bookings b ON r.booking_id=b.booking_id
-                WHERE b.status='Checked-in'
-            """)
-        else:
-            cursor.execute(f"""
-                SELECT COUNT(*) AS count
-                FROM requests r
-                JOIN hotel_services s ON r.service_id=s.service_id
-                JOIN bookings b ON r.booking_id=b.booking_id
-                WHERE s.category='{cat}' AND b.status='Checked-in'
-            """)
-        stats[cat.lower()] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status = 'Checked-in'")
+        active_bookings = cursor.fetchone()['count']
 
-    # Guests checked in
-    cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status='Checked-in'")
-    stats['guests_checked_in'] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
+        current_bookings = cursor.fetchone()['count']
 
-    # Guests checked out today
-    cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status='Checked-out' AND DATE(actual_check_out)=CURDATE()")
-    stats['guests_checked_out'] = cursor.fetchone()['count']
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in) = CURDATE()")
+        checkins_today = cursor.fetchone()['count']
+
+        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out) = CURDATE()")
+        checkouts_today = cursor.fetchone()['count']
+
+        cursor.execute("""
+            SELECT s.category, COUNT(*) AS count
+            FROM hotel_services s
+            JOIN requests r ON s.service_id = r.service_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
+            GROUP BY s.category
+        """)
+        service_data = cursor.fetchall()
+
+        cursor.execute("""
+            SELECT s.first_name AS staff, 
+                   COUNT(r.request_id) AS requests,
+                   SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+            FROM requests r
+            JOIN staff s ON r.staff_id = s.staff_id
+            JOIN bookings b ON r.booking_id = b.booking_id
+            WHERE b.status = 'Checked-in'
+            GROUP BY s.first_name
+        """)
+        staff_data = cursor.fetchall()
+
+        cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status = 'Checked-in'")
+        guests_checked_in = cursor.fetchone()['count']
+
+        cursor.execute("""
+            SELECT COUNT(DISTINCT guest_id) AS count 
+            FROM bookings 
+            WHERE status = 'Checked-out' AND DATE(actual_check_out) = CURDATE()
+        """)
+        guests_checked_out = cursor.fetchone()['count']
+
+        return {
+            "housekeeping": housekeeping,
+            "food": food,
+            "laundry": laundry,
+            "spa": spa,
+            "active_users": active_users,
+            "total_users": total_users,
+            "active_bookings": active_bookings,
+            "current_bookings": current_bookings,
+            "checkins_today": checkins_today,
+            "checkouts_today": checkouts_today,
+            "guests_checked_in": guests_checked_in,
+            "guests_checked_out": guests_checked_out
+        }, service_data, staff_data
+
+    # ===========================
+    # RENDER PER ROLE
+    # ===========================
+    if role in ['admin', 'manager', 'supervisor']:
+        stats, service_data, staff_data = get_stats_and_charts()
+        cursor.close()
+        return render_template(
+            'dashboard.html',
+            role=role,
+            stats=stats,
+            service_data=service_data,
+            staff_data=staff_data,
+            current_booking_id=current_booking_id,
+            user=user
+        )
+
+    elif role == 'user':
+        cursor.close()
+        return render_template(
+            'dashboard.html',
+            role=role,
+            stats={},
+            service_data=[],
+            staff_data=[],
+            user=user,
+            current_booking_id=current_booking_id
+        )
 
     cursor.close()
+    return redirect(url_for('login'))
 
-    # ===========================
-    # RENDER DASHBOARD
-    # ===========================
-    return render_template(
-        'dashboard.html',
-        role=role,
-        stats=stats,
-        service_data=service_data,
-        staff_data=staff_data,
-        user={'username': username}
-    )
-
+from flask import render_template, session, redirect, url_for, flash
+# Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
 
 @app.route('/calendar')
 def calendar():
@@ -798,43 +744,14 @@ def logout():
 #Called by STAFF Menu - display staff
 @app.route('/staff')
 def view_staffs():
-    selected_staff = request.args.get('staff_id', '')  # Get the id of the selected staff
+    selected_staff = request.args.get('staff_id', '') #Get the id of the selected staff
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch staff from 'staff' table
     cursor.execute("""
-        SELECT staff_id AS id,
-               first_name,
-               last_name,
-               role,
-               email,
-               COALESCE(phone, '') AS phone,
-               'staff_table' AS source
-        FROM staff
+        SELECT * FROM staff ORDER BY last_name, first_name
     """)
-    staff_table = list(cursor.fetchall())  # convert to list
-
-    # Fetch users who are staff from 'users' table
-    cursor.execute("""
-        SELECT user_id AS id,
-               username AS first_name,
-               '' AS last_name,
-               role,
-               email,
-               '' AS phone,
-               'users_table' AS source
-        FROM users
-        WHERE role='staff'
-    """)
-    user_staff = list(cursor.fetchall())  # convert to list
-
-    # Merge both lists
-    combined_staffs = staff_table + user_staff
-
-    # Sort by last_name then first_name
-    combined_staffs.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
-
-    return render_template('staff.html', staffs=combined_staffs, selected_staff=selected_staff)
+    staffs = cursor.fetchall() #Fetch results
+    return render_template('staff.html', staffs=staffs) #pass the contents of staffs to staff.html
 
 #Called by STAFF Menu - check if staff exist in requests
 @app.route('/checkStaff/<int:staff_id>')
@@ -949,38 +866,6 @@ def show_requests():
 
     cursor.execute("SELECT DISTINCT category FROM hotel_services")
     service_category_list = cursor.fetchall()
-    
-    # Fetch staff from 'staff' table
-    cursor.execute("""
-        SELECT staff_id AS id,
-            first_name,
-            last_name,
-            role,
-            'staff_table' AS source
-        FROM staff
-    """)
-    staff_table = list(cursor.fetchall())
-
-
-    # Fetch users who are staff from 'users' table
-    cursor.execute("""
-        SELECT user_id AS id,
-            username AS first_name,
-            '' AS last_name,
-            role,
-            department,
-            'users_table' AS source
-        FROM users
-        WHERE role='staff'
-    """)
-    user_staff = list(cursor.fetchall())
-
-    # Merge both lists
-    staff_list = staff_table + user_staff
-
-    # Sort by last_name then first_name
-    staff_list.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
-
 
     cursor.close()
     return render_template(
@@ -1100,12 +985,12 @@ def add_rooms():
                 old_data=None,           # Record did not exist, so old_data is None
                 new_data=new_data_for_log 
             )
-        flash('Room added successfully', 'success')
           
     except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
         flash("Room number already exists. Please enter a unique room number.", "danger")
     finally:
         cursor.close() #Close db connection
+        flash('Room added successfully', 'success')
         return redirect('/rooms') 
 
 
@@ -2876,18 +2761,20 @@ def add_user():
     role = request.form['role']
     department = request.form.get('department')
     status = int(request.form.get('status', 1))  # Default Active
-    account_status = ""
+    account_status = "" 
     name = f"{first_name} {middle_name} {last_name}".strip()
     last_update = session['username']
     timestamp = datetime.now()
 
+    # Set department to None if user is admin/supervisor
     if role in ['admin', 'supervisor']:
         department = None
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    new_user_id = None
-
+    new_user_id = None #change room_id
+    
     try:
+        
         # Check if username already exists
         cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
         if cursor.fetchone():
@@ -2900,46 +2787,22 @@ def add_user():
             flash("Email already registered. Please log in.", "danger")
             return redirect('/users')
 
-        # Hash password
-        hashed_password = generate_password_hash(password)
-
         # Generate verification token
         verification_token = generate_verification_token()
         token_expires_at = datetime.now() + timedelta(hours=24)
-
-        # Insert into users table
+        
         cursor.execute("""
-            INSERT INTO users (
-                username, first_name, middle_name, last_name, name, email, password,
-                role, department, status, email_verified, verification_token,
-                token_expires_at, account_status, created_at, last_update, timestamp
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
-            )
-        """, (
-            username, first_name, middle_name, last_name, name, email, hashed_password,
-            role, department, status, False, verification_token,
-            token_expires_at, account_status, datetime.now(), last_update, timestamp
-        ))
-
-        new_user_id = cursor.lastrowid
+            INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at, last_update, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now(), last_update, timestamp))
+        new_user_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
         mysql.connection.commit()
-
-        # ✅ Add to staff table automatically if role matches
-        if role in ['staff', 'supervisor', 'manager']:
-            cursor.execute("""
-                INSERT INTO staff (user_id, first_name, middle_name, last_name, email, role, department, status, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            """, (new_user_id, first_name, middle_name, last_name, email, role, department, status))
-            mysql.connection.commit()
-
-        # Log to audit table
-        if new_user_id:
+        
+        #Get new data and save logs
+        if new_user_id:  #change room_id
             new_data_for_log = {
                 'user_id': new_user_id,
-                'username': username,
+                'username': username,  #change field names
                 'first_name': first_name,
                 'middle_name': middle_name,
                 'last_name': last_name,
@@ -2950,32 +2813,34 @@ def add_user():
                 'last_update': last_update,
                 'timestamp': timestamp
             }
+            
             log_audit_event(
-                actor_id=session['username'],
+                actor_id = session['username'],
                 timestamp=timestamp,
-                table_name='users',
-                action_type='INSERT',
-                record_id=str(new_user_id),
-                old_data=None,
-                new_data=new_data_for_log
+                table_name='users',  #change 
+                action_type='INSERT', 
+                record_id=str(new_user_id),  #change
+                old_data=None,           # Record did not exist, so old_data is None
+                new_data=new_data_for_log 
             )
+        
 
         flash("✅ User added successfully!", "success")
-
+        
         # Send verification email
         if send_verification_email(email, username, verification_token):
             flash("Check your email for a verification link.", "success")
             return redirect(url_for('verification_pending'))
         else:
-            flash("Could not send email. Contact support.", "danger")
-
+            flash("Could not send email. Contact support.", "danger")      
+        
     except Exception as e:
         mysql.connection.rollback()
         flash(f"❌ Failed to add user: {str(e)}", "danger")
     finally:
-        cursor.close()
+        cursor.close() #Close db connection
+        flash('User added successfully', 'success')
         return redirect('/users')
-
     
 #Called by USER Menu - check if user exist in requests
 @app.route('/checkUser/<username>')
@@ -2986,37 +2851,14 @@ def check_user(username):
     cursor.close()
     return jsonify({"in_use": result['count'] > 0}) #Return to users; set "in_use" to true if count> 0
 
-@app.route('/deleteUser/<int:user_id>', methods=['GET'])
+@app.route('/deleteUser/<int:user_id>', methods=['GET'], endpoint='delete_user_route')
 def delete_user(user_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-   #Get old data
-    cursor.execute("SELECT * FROM users WHERE user_id =%s", (user_id,)) #change table and field name
-    old_data = cursor.fetchone()
-    timestamp = datetime.now()
-    
-    if not old_data:
-        cursor.close()
-        #Handle case where the room ID doesn't exist
-        return "User not found or already deleted", 404 #change message
-    
-    cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
-    
-    #Save logs
-    log_audit_event(
-        actor_id = session['username'],
-        timestamp=timestamp,
-        table_name='users',  #change
-        action_type='DELETE', 
-        record_id=str(user_id), #change
-        old_data=old_data, 
-        new_data=None 
-    )
-    
+    cursor = mysql.connection.cursor()
+    cursor.execute("DELETE FROM users WHERE user_id=%s", (user_id,))
     mysql.connection.commit()
     cursor.close()
     flash('User deleted successfully', 'success')
-    return redirect('/users')
+    return redirect(url_for('users'))
 
 @app.route('/updateUser', methods=['POST'])
 def update_user():
@@ -3093,39 +2935,53 @@ def update_user():
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form['booking_id']
-    amount = int(request.form['amount'])  # in centavos
+    amount = int(request.form['amount'])
+    method = "card"  #Always use 'card' for PayMongo links
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
         "Content-Type": "application/json"
     }
 
-    payload = {
+    #Create payment intent
+    intent_payload = {
         "data": {
             "attributes": {
                 "amount": amount,
+                "currency": "PHP",
                 "description": f"Booking #{booking_id} Payment",
-                "remarks": "ezStay payment link",
+                "payment_method_allowed": ["card", "gcash", "grab_pay"],  #Show all options
+                "payment_method_options": {
+                    "card": {"request_three_d_secure": "any"}
+                }
+            }
+        }
+    }
+    intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
+    intent_data = intent_response.json()
+    if "data" not in intent_data:
+        return "<h3>❌ Error creating payment intent.</h3><pre>{}</pre>".format(json.dumps(intent_data, indent=2))
+    intent_id = intent_data["data"]["id"]
+
+    #Create checkout link
+    checkout_payload = {
+        "data": {
+            "attributes": {
+                "billing": {"name": "ezStay Guest"},
+                "payment_intent": intent_id,
+                "description": f"Booking #{booking_id} Payment",
+                "amount": amount,
                 "currency": "PHP",
                 "success_url": url_for('success', booking_id=booking_id, _external=True),
                 "cancel_url": url_for('failed', _external=True)
             }
         }
     }
-
-    try:
-        response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=payload)
-        data = response.json()
-
-        # If PayMongo returned an error
-        if "data" not in data:
-            return jsonify({"error": data}), 400
-
-        checkout_url = data["data"]["attributes"]["checkout_url"]
-        return jsonify({"checkout_url": checkout_url})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
+    checkout_data = checkout_response.json()
+    if "data" not in checkout_data:
+        return "<h3>❌ Error creating checkout link.</h3><pre>{}</pre>".format(json.dumps(checkout_data, indent=2))
+    return redirect(checkout_data["data"]["attributes"]["checkout_url"])
 
 @app.route('/success')
 def success():
@@ -3171,6 +3027,10 @@ def failed():
       </body>
     </html>
     """
+
+from flask import request, session, redirect, url_for, flash
+from datetime import datetime, timedelta
+import random
 
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
@@ -3288,145 +3148,142 @@ def resend_otp():
 
     return redirect(url_for('verify_otp'))
 
-@app.route('/assigntask', methods=['POST'])
-def assigntask():
+@app.route('/forceassigntask', methods=['POST'])
+def forceassigntask():
     request_id = request.form.get("assignTask_request_id")
-    staff_id = request.form.get("assignTask_staff_id")  # Optional, for forced assignment
+    staff_id = request.form.get("assignTask_staff_id")
 
-    if not request_id:
-        flash("Missing request ID", "danger")
+    if not request_id or not staff_id:
+        flash("Missing request or staff ID", "danger")
         return redirect(url_for("show_requests"))
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Check if request exists
-    cursor.execute("SELECT staff_id, status FROM requests WHERE request_id=%s", (request_id,))
-    req_row = cursor.fetchone()
-    if not req_row:
-        cursor.close()
-        flash("Request not found.", "danger")
-        return redirect(url_for("show_requests"))
-
-    # ---------- Forced Assignment ----------
-    if staff_id:
-        if not _ensure_staff_exists(cursor, staff_id):
-            cursor.close()
-            flash("Staff ID not found in staff or users table.", "danger")
-            return redirect(url_for("show_requests"))
-
-    # ---------- Automatic Assignment ----------
-    else:
-        if req_row['staff_id']:
-            cursor.close()
-            flash("Request already assigned.", "info")
-            return redirect(url_for("show_requests"))
-
-        target_role = _resolve_target_role(cursor, request_id)
-        if not target_role:
-            cursor.close()
-            flash("Could not resolve request category.", "danger")
-            return redirect(url_for("show_requests"))
-
-        staff = _pick_least_loaded_staff(cursor, target_role)
-
-        # Fallback to manager if no staff found
-        if not staff and " - Staff" in target_role:
-            mgr_role = target_role.replace(" - Staff", " - Manager")
-            staff = _pick_least_loaded_staff(cursor, mgr_role)
-
-        # Insert missing users into staff table if still none
-        if not staff:
-            cursor.execute("""
-                SELECT user_id, username, '' AS last_name, role, department
-                FROM users
-                WHERE role='staff'
-            """)
-            user_staff_list = cursor.fetchall()
-            for u in user_staff_list:
-                cursor.execute("SELECT 1 FROM staff WHERE staff_id=%s", (u['user_id'],))
-                if not cursor.fetchone():
-                    cursor.execute("""
-                        INSERT INTO staff (staff_id, first_name, last_name, role, department)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """, (u['user_id'], u['username'], u['last_name'], u['role'], u['department']))
-            mysql.connection.commit()
-            staff = _pick_least_loaded_staff(cursor, target_role)
-
-        if not staff:
-            cursor.close()
-            flash(f"No available staff for request.", "warning")
-            return redirect(url_for("show_requests"))
-
-        staff_id = staff['staff_id']
-
-    # ---------- Update Request ----------
     cursor.execute("""
         UPDATE requests
-        SET staff_id=%s,
-            status = CASE WHEN status='pending' THEN 'pending' ELSE status END
-        WHERE request_id=%s
+        SET staff_id = %s
+        WHERE request_id = %s
     """, (staff_id, request_id))
     mysql.connection.commit()
     cursor.close()
 
-    flash("Staff assigned successfully.", "success")
+    flash("Staff assigned successfully", "success")
     return redirect(url_for("show_requests"))
 
-# ------------------ Optional Audit Logging ------------------ #
+def _resolve_target_role(cursor, request_id):
+    
+    #Figure out which department this request belongs to and return the matching staff role.
+    #Rules:
+    #Service Request: Role = "<service.category> - Staff" (e.g., 'Housekeeping - Staff')
+    #Food Request: Role = "Food/Dining" - "Staff"
+    
+    cursor.execute("""
+        SELECT r.service_id, r.item_id,
+                hs.category AS service_category,
+                fi.category AS food_category
+        FROM requests r
+        LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
+        LEFT JOIN food_items fi     ON r.item_id = f.item_id
+        WHERE r.request_id = %s
+    """, (request_id,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    
+    if row['service_id']:
+        dept = row['service_category'] or ''
+        target_role = f"{dept} - Staff"
+    else:
+        #Any food item belongs to Food/Dining team
+        target_role = "Food/Dining - Staff"
+    return target_role
+
+def _pick_least_loaded_staff(cursor, target_role):
+    
+    #Choose the staff with the fewest *active* requests (status != 'completed') for the role.
+    #Ties are broken by lowest staff_id.
+    
+    cursor.execute("""
+        SELECT s.staff_id,
+                COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
+        FROM staff s
+        LEFT JOIN requests r ON r.staff_id = s.staff_id
+        WHERE s.role = %s
+        GROUP BY s.staff_id
+        ORDER BY load_now ASC, s.staff_id ASC
+        LIMIT 1
+    """, (target_role,))
+    return cursor.fetchone()
+
+    
+
+@app.route('/assigntask', methods=['POST'])
+def assigntask():
+    req_id = request.form.get('assignTask_request_id')
+    if not req_id:
+        flash("No request id.", "danger")
+        return redirect('/requests')
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    #If already assigned, keep current assignment (avoid accidental reassigns)
+    cur.execute("SELECT staff_id, status FROM requests WHERE request_id = %s", (req_id,))
+    req_row = cur.fetchone()
+    if not req_row:
+        cur.close()
+        flash("Request not found.", "danger")
+        return redirect('/requests')
+    if req_row['staff_id']:
+        cur.close()
+        flash("Request already assigned.", "info")
+        return redirect('/requests')
+    target_role = _resolve_target_role(cur, req_id)
+    if not target_role:
+        cur.close()
+        flash("Could not resolve request category.", "danger")
+        return redirect('/requests')
+    
+    staff = _pick_least_loaded_staff(cur, target_role)
+    
+    #Fallback: If no Staff found, try the Manager of the same department
+    if not staff and " - Staff" in target_role:
+        mgr_role = target_role.replace(" - Staff", " - Manager")
+        staff = _pick_least_loaded_staff(cur, mgr_role)
+        
+    if not staff:
+        cur.close()
+        flash(f"No available staff for role '{target_role}'.", "warning")
+        return redirect('/requests')
+    cur.execute("""
+        UPDATE requests
+        SET staff_id = %s,
+            -- Optionally auto-move from 'pending' to 'approved' when assigned:
+            status  = CASE WHEN status = 'pending' THEN 'pending' ELSE status END
+        WHERE request_id = %s
+    """, (staff['staff_id'], req_id))
+    mysql.connection.commit()
+    cur.close()
+    
+    flash("Request assigned successfully.", "success")
+    return redirect('/requests')
 
 def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old_data=None, new_data=None):
+    """Inserts a manual audit log entry into the MySQL audit_log table."""
     try:
         old_value_json = json.dumps(old_data, default=str) if old_data else None
         new_value_json = json.dumps(new_data, default=str) if new_data else None
+
         cursor = mysql.connection.cursor()
-        cursor.execute("""
-            INSERT INTO audit_log (username, timestamp, table_name, action_type, record_id, old_value, new_value)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json))
+        cursor.execute(
+            """INSERT INTO audit_log 
+               (username, timestamp, table_name, action_type, record_id, old_value, new_value)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json)
+        )
+
         mysql.connection.commit()
         cursor.close()
     except Exception as e:
+        # Log but do not crash the app
         print(f"FATAL AUDIT FAILURE: {e}")
-        
-@app.route('/show_requests', endpoint='show_requests_main')
-def show_requests():
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    # Fetch staff list without department
-    cursor.execute("SELECT id, first_name, last_name, role FROM staff")
-    staff_list = cursor.fetchall()
-
-    # Fetch other data for requests page...
-    cursor.execute("SELECT * FROM requests")  
-    requests = cursor.fetchall()
-    
-    return render_template("requests.html", requests=requests, staff_list=staff_list)
-        
-@app.route('/getBooking/<int:checkin_id>')
-def getBooking(checkin_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    cursor.execute("""
-        SELECT 
-            c.checkin_id,
-            c.booking_id,
-            c.room_number,
-            b.actual_check_in,
-            g.first_name,
-            g.last_name
-        FROM check_ins c
-        JOIN bookings b ON b.booking_id = c.booking_id
-        JOIN guest g ON g.guest_id = c.guest_id
-        WHERE c.checkin_id = %s
-    """, (checkin_id,))
-
-    booking = cursor.fetchone()
-    cursor.close()
-
-    if not booking:
-        return jsonify({"error": "Booking not found"}), 404
-
-    return jsonify(booking)        
             
 if __name__ == '__main__':
     app.run(debug=True)
