@@ -51,6 +51,13 @@
             </div>
 
             <form method="POST" action="{{ url_for('staff_signup') }}">
+
+              <!-- Staff Signup Code -->
+              <div class="mb-3">
+                <label class="form-label text-default">Staff Signup Code</label>
+                <input type="text" name="staff_code" class="form-control" placeholder="Enter the staff signup code" required>
+              </div>
+
               <!-- Username -->
               <div class="mb-3">
                 <label class="form-label text-default">Username</label>
@@ -88,7 +95,14 @@
               <!-- Department -->
               <div class="mb-3">
                 <label class="form-label text-default">Department</label>
-                <input type="text" name="department" class="form-control" placeholder="Department">
+                <select name="department" class="form-select">
+                  <option value="">None</option>
+                  <option value="Housekeeping">Housekeeping</option>
+                  <option value="Dining">Dining</option>
+                  <option value="Laundry">Laundry</option>
+                  <option value="Massage">Massage</option>
+                  <option value="All">All</option>
+                </select>
               </div>
 
               <!-- First Name -->
