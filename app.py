@@ -3206,7 +3206,7 @@ def _resolve_target_role(cursor, request_id):
                 fi.category AS food_category
         FROM requests r
         LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
-        LEFT JOIN food_items fi     ON r.item_id = f.item_id
+        LEFT JOIN food_items fi     ON r.item_id = fi.item_id
         WHERE r.request_id = %s
     """, (request_id,))
     row = cursor.fetchone()

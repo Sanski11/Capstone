@@ -134,8 +134,8 @@
                                     </td>
                                     <td>{{ request.notes }}</td>
                                     <td>
-                                        {% if request.first_name %}
-                                            <span class="badge bg-info-transparent">Assigned to: {{ request.first_name }} {{ request.last_name }}</span>
+                                        {% if request.staff_first_name %}
+                                            <span class="badge bg-info-transparent">Assigned to: {{ request.staff_first_name }} {{ request.staff_first_name }}</span>
                                         {% else %}
                                             <span class="text-muted">Unassigned</span>
                                         {% endif %}
