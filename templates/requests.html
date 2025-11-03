@@ -116,9 +116,11 @@
                                     </td>
                                     <td>
                                         {% if request.service_name %}
+                                            {{ request.service_category }}<br>
                                             {{ request.service_name }}<br>
                                             {{ request.request_time }}
                                         {% elif request.food_name %}
+                                            Food/Dining<br>
                                             {{ request.food_name }}<br>
                                             {{ request.request_time }}
                                         {% else %}
