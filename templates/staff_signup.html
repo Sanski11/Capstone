@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme-mode="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ezStay - Staff Signup</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap -->
+  <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
+
+  <!-- Main Styles -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+
+<body class="authentication-background">
+  <div class="authentication-basic-background">
+    <img src="{{ url_for('static', filename='images/media/backgrounds/9.png') }}" alt="">
+  </div>
+
+  <!-- Toast Notification -->
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+      <div id="customToast" class="toast show text-bg-primary border-0">
+        <div class="d-flex">
+          <div class="toast-body">
+            {{ messages[0] }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="closeToast()"></button>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Staff Signup Card -->
+  <div class="container">
+    <div class="row justify-content-center align-items-center authentication authentication-basic h-100">
+      <div class="col-xxl-4 col-xl-5 col-lg-6 col-md-6 col-sm-8 col-12">
+        <div class="card custom-card border-0 my-4 shadow">
+          <div class="card-body p-5">
+            <div class="text-center mb-4">
+              <h4 class="fw-semibold">Staff Account Signup</h4>
+              <p class="text-muted fw-normal">Fill in the details below to create a staff account</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('staff_signup') }}">
+              <!-- Username -->
+              <div class="mb-3">
+                <label class="form-label text-default">Username</label>
+                <input type="text" name="username" class="form-control" placeholder="Enter username" required>
+              </div>
+
+              <!-- Email -->
+              <div class="mb-3">
+                <label class="form-label text-default">Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="Enter email" required>
+              </div>
+
+              <!-- Password -->
+              <div class="mb-3">
+                <label class="form-label text-default d-block">Password</label>
+                <div class="position-relative">
+                  <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
+                  <a href="javascript:void(0);" class="show-password-button text-muted" onclick="togglePassword()">
+                    <i class="ri-eye-off-line align-middle"></i>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Role Selection -->
+              <div class="mb-3">
+                <label class="form-label text-default">Role</label>
+                <select name="role" class="form-select" required>
+                  <option value="" disabled selected>-- Select Role --</option>
+                  <option value="staff">Staff</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="manager">Manager</option>
+                </select>
+              </div>
+
+              <!-- Department -->
+              <div class="mb-3">
+                <label class="form-label text-default">Department</label>
+                <input type="text" name="department" class="form-control" placeholder="Department">
+              </div>
+
+              <!-- First Name -->
+              <div class="mb-3">
+                <label class="form-label text-default">First Name</label>
+                <input type="text" name="first_name" class="form-control" placeholder="First Name">
+              </div>
+
+              <!-- Middle Name -->
+              <div class="mb-3">
+                <label class="form-label text-default">Middle Name</label>
+                <input type="text" name="middle_name" class="form-control" placeholder="Middle Name">
+              </div>
+
+              <!-- Last Name -->
+              <div class="mb-3">
+                <label class="form-label text-default">Last Name</label>
+                <input type="text" name="last_name" class="form-control" placeholder="Last Name">
+              </div>
+
+              <!-- Phone -->
+              <div class="mb-3">
+                <label class="form-label text-default">Phone</label>
+                <input type="text" name="phone" class="form-control" placeholder="Phone Number">
+              </div>
+
+              <!-- Submit -->
+              <div class="d-grid mt-4">
+                <button type="submit" class="btn btn-primary">Create Staff Account</button>
+              </div>
+
+              <!-- Login Link -->
+              <div class="text-center mt-3 fw-medium">
+                Already have an account? 
+                <a href="{{ url_for('login') }}" class="text-primary">Login here</a>
+              </div>
+
+              <!-- Error Message -->
+              {% if error %}
+                <p class="text-danger text-center mt-3">{{ error }}</p>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    function togglePassword() {
+      const pw = document.getElementById("password");
+      pw.type = pw.type === "password" ? "text" : "password";
+    }
+
+    function closeToast() {
+      const toast = document.getElementById("customToast");
+      if (toast) toast.style.display = "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      const toast = document.getElementById("customToast");
+      if (toast) {
+        setTimeout(() => { toast.style.display = "none"; }, 3000);
+      }
+    });
+  </script>
+
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

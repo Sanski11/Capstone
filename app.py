@@ -313,29 +313,12 @@ def signup():
         email = request.form['email']
         username = request.form['username']
         password = request.form['password']
-        selected_role = request.form.get('role', 'user').lower()
 
-        # Define allowed roles
-        allowed_roles = ['admin', 'manager', 'supervisor', 'user']
-
-        # Security: Only admins can create privileged roles
-        if selected_role in ['admin', 'manager', 'supervisor']:
-            if 'role' not in session or session.get('role', '').lower() != 'admin':
-                flash("Only administrators can create admin, manager, or supervisor accounts.", "danger")
-                return redirect(url_for('signup'))
-        else:
-            selected_role = 'user'  # Force default for public signup
+        # Force role to 'user' for public signup
+        selected_role = 'user'
 
         status = 1  # Active by default
-        account_status = 'Pending'  # Account status starts as Pending
-
-        # Safe defaults for all user info fields
-        department = None
-        verified = False
-        email_verified = False
-        verification_token = generate_verification_token()
-        token_expires_at = datetime.now() + timedelta(hours=24)
-        created_at = datetime.now()
+        account_status = 'Pending'
 
         first_name = request.form.get('first_name', '')
         middle_name = request.form.get('middle_name', '')
@@ -343,8 +326,15 @@ def signup():
         name = f"{first_name} {middle_name} {last_name}".strip()
         phone = request.form.get('phone', '')
 
+        verified = False
+        email_verified = False
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        created_at = datetime.now()
+
         reset_token = None
         reset_token_expiry = None
+        department = None
 
         cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
@@ -359,7 +349,7 @@ def signup():
             flash("Email already registered. Please log in.", "danger")
             return redirect(url_for('signup'))
 
-        # Insert safely
+        # Insert user
         cursor.execute("""
             INSERT INTO users (
                 username, email, password, role, status, department,
@@ -388,6 +378,81 @@ def signup():
             flash("Could not send email. Please contact support.", "danger")
 
     return render_template('signup.html')
+
+@app.route('/staff_signup', methods=['GET', 'POST'])
+def staff_signup():
+    if request.method == 'POST':
+        email = request.form['email']
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form.get('role')  # supervisor, manager, staff
+
+        # Only allow specific roles
+        if role not in ['staff', 'supervisor', 'manager']:
+            flash("Invalid role selected.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        # Staff accounts start inactive until admin approval
+        status = 0
+        account_status = 'Pending Approval'
+
+        first_name = request.form.get('first_name', '')
+        middle_name = request.form.get('middle_name', '')
+        last_name = request.form.get('last_name', '')
+        name = f"{first_name} {middle_name} {last_name}".strip()
+        phone = request.form.get('phone', '')
+
+        verified = False
+        email_verified = False
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        created_at = datetime.now()
+        department = request.form.get('department', None)
+        reset_token = None
+        reset_token_expiry = None
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Check for duplicates
+        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
+        if cursor.fetchone():
+            flash("Username already taken.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        # Insert staff account
+        cursor.execute("""
+            INSERT INTO users (
+                username, email, password, role, status, department,
+                verified, email_verified, verification_token, token_expires_at,
+                account_status, created_at, first_name, last_name, middle_name,
+                name, phone, reset_token, reset_token_expiry
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            )
+        """, (
+            username, email, password, role, status, department,
+            verified, email_verified, verification_token, token_expires_at,
+            account_status, created_at, first_name, last_name, middle_name,
+            name, phone, reset_token, reset_token_expiry
+        ))
+        mysql.connection.commit()
+
+        # Send verification email (optional)
+        if send_verification_email(email, username, verification_token):
+            flash("Staff account created! Pending admin approval.", "success")
+            return redirect(url_for('staff_signup'))
+        else:
+            flash("Could not send email. Please contact support.", "danger")
+
+    return render_template('staff_signup.html')
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):
