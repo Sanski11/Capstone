@@ -50,7 +50,10 @@
     .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
     .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
     .text-fixed-white { color: white !important; }
-        </style>
+    #qr-log {
+        display: none;        
+    }
+    </style>
 </head>
 
 <body>
@@ -100,13 +103,20 @@
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Bookings List</h5>
-                        <!--
-                        {% if session['role'] != 'user' %}
-                        <button type="button" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addBookingModal">
-                            <i class="ri-add-line me-1"></i> Add Booking
-                        </button>
+                        {% if role in ['admin', 'manager', 'supervisor'] %}
+                            <div class="d-flex justify-content-end mb-2">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="startQRScan()">
+                                    <i class="ri-qr-code-line me-1"></i> Scan QR Code
+                                </button>
+                            </div>
+                            <div id="qr-reader-container" style="display:none;" class="w-100 d-flex">
+                                <div class="ms-auto text-end">
+                                    <div id="qr-reader" style="width:350px;"></div>
+                                    <div id="qr-log" class="mt-2 p-2 bg-light border" style="font-size:14px;"></div>
+                                </div>
+                            </div>
                         {% endif %}
-                        -->
+                        
                     </div>
                     <div class="card-body">
                         
@@ -219,6 +229,50 @@
       </form>
       </div>
   </div>
+
+    <!-- Booking Info Modal -->
+    <div class="modal fade" id="bookingInfoModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Booking Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <p><b>Detected QR:</b> <span id="modal_qr_text"></span></p>
+                    <hr>
+                    <p><b>Booking ID:</b> <span id="modal_booking_id"></span></p>
+                    <p><b>First Name:</b> <span id="modal_first_name"></span></p>
+                    <p><b>Last Name:</b> <span id="modal_last_name"></span></p>
+                    <p><b>Room Number:</b> <span id="modal_room_number"></span></p>
+                    <p><b>Actual Check In:</b> <span id="modal_actual_check_in"></span></p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+      <!-- Message Modal -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div id="messageModalHeader" class="modal-header bg-warning text-dark">
+            <h5 class="modal-title" id="messageModalLabel">Notice</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="messageModalBody">
+            Message goes here.
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Okay</button>
+        </div>
+        </div>
+    </div>
+</div>
+
+
 
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -410,5 +464,106 @@
     });
   });
     </script>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
+    <script>
+        let qrReader; // global so we can stop it
+    
+        function startQRScan() {
+            const qrContainer = document.getElementById("qr-reader-container");
+            qrContainer.style.display = "block";
+    
+            const logBox = document.getElementById("qr-log");
+    
+            qrReader = new Html5Qrcode("qr-reader");
+    
+            qrReader.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: 250 },
+    
+                qrText => {
+                    console.log("✅ QR detected:", qrText);
+                    document.getElementById("modal_qr_text").innerText = qrText;
+    
+                    // extract id
+                    let match = qrText.match(/scan\/(\d+)\/html/);
+                    if (!match) {
+                        logBox.innerHTML += "<br><span class='text-danger'>Invalid QR format</span>";
+                        return;
+                    }
+    
+                    let checkin_id = match[1];
+                    console.log("✅ Extracted ID:", checkin_id);
+    
+                    // stop camera
+                    qrReader.stop();
+                    qrContainer.style.display = "none";
+    
+                    // fetch booking info
+                    fetch(`/getBooking/${checkin_id}`)
+                        .then(res => res.json())
+                        .then(data => {
+                        if (data.error) {
+                            showModal(
+                                "Booking not found",
+                                `No check-in record found for QR: ${qrText}`,
+                                "warning"
+                            );
+                            return;
+                        }
+    
+                            // populate modal
+                            document.getElementById("modal_booking_id").innerText = data.booking_id;
+                            document.getElementById("modal_first_name").innerText = data.first_name;
+                            document.getElementById("modal_last_name").innerText = data.last_name;
+                            document.getElementById("modal_room_number").innerText = data.room_number;
+                            document.getElementById("modal_actual_check_in").innerText = data.actual_check_in;
+    
+                            // show modal
+                            new bootstrap.Modal(document.getElementById('bookingInfoModal')).show();
+                        });
+                },
+    
+                errorMsg => {
+                    // ignores scan errors — normal behavior
+                }
+            );
+        }
+    </script>
+    
+    <script>
+        function showModal(title, message, type = 'warning') {
+        // Set modal title and body
+        document.getElementById('messageModalLabel').textContent = title;
+        document.getElementById('messageModalBody').textContent = message;
+    
+        // Set color scheme depending on type
+        const header = document.getElementById('messageModalHeader');
+        header.className = 'modal-header text-white';
+        switch (type) {
+            case 'success':
+            header.classList.add('bg-success');
+            break;
+            case 'danger':
+            header.classList.add('bg-danger');
+            break;
+            case 'warning':
+            header.classList.add('bg-warning', 'text-dark');
+            break;
+            case 'info':
+            header.classList.add('bg-info', 'text-dark');
+            break;
+            default:
+            header.classList.add('bg-secondary');
+        }
+    
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('messageModal'));
+        modal.show();
+        }    
+    </script>
+    
+
 </body>
 </html>
