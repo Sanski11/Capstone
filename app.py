@@ -1051,12 +1051,12 @@ def add_rooms():
                 old_data=None,           # Record did not exist, so old_data is None
                 new_data=new_data_for_log 
             )
+        flash('Room added successfully', 'success')
           
     except MySQLdb.IntegrityError: #Trap error; display if room number is duplicate
         flash("Room number already exists. Please enter a unique room number.", "danger")
     finally:
         cursor.close() #Close db connection
-        flash('Room added successfully', 'success')
         return redirect('/rooms') 
 
 

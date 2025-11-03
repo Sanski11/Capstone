@@ -468,67 +468,61 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
-        let qrReader; // global so we can stop it
-    
+        let qrReader; // global
+        let qrActive = false; // track camera state
+        
         function startQRScan() {
             const qrContainer = document.getElementById("qr-reader-container");
+        
+            // If already active → stop it
+            if (qrActive && qrReader) {
+                qrReader.stop().then(() => {
+                    qrContainer.style.display = "none";
+                    qrActive = false;
+                    console.log("📷 QR camera stopped.");
+                }).catch(err => console.error("Error stopping QR:", err));
+                return;
+            }
+        
+            // Start the camera
             qrContainer.style.display = "block";
-    
-            const logBox = document.getElementById("qr-log");
-    
             qrReader = new Html5Qrcode("qr-reader");
-    
+            qrActive = true;
+        
             qrReader.start(
                 { facingMode: "environment" },
                 { fps: 10, qrbox: 250 },
-    
                 qrText => {
                     console.log("✅ QR detected:", qrText);
-                    document.getElementById("modal_qr_text").innerText = qrText;
-    
-                    // extract id
-                    let match = qrText.match(/scan\/(\d+)\/html/);
-                    if (!match) {
-                        logBox.innerHTML += "<br><span class='text-danger'>Invalid QR format</span>";
-                        return;
-                    }
-    
-                    let checkin_id = match[1];
-                    console.log("✅ Extracted ID:", checkin_id);
-    
-                    // stop camera
                     qrReader.stop();
                     qrContainer.style.display = "none";
-    
-                    // fetch booking info
+                    qrActive = false;
+        
+                    document.getElementById("modal_qr_text").innerText = qrText;
+                    let match = qrText.match(/scan\/(\d+)\/html/);
+                    if (!match) {
+                        showModal("Invalid QR", "Invalid QR format", "warning");
+                        return;
+                    }
+        
+                    let checkin_id = match[1];
                     fetch(`/getBooking/${checkin_id}`)
                         .then(res => res.json())
                         .then(data => {
-                        if (data.error) {
-                            showModal(
-                                "Booking not found",
-                                `No check-in record found for QR: ${qrText}`,
-                                "warning"
-                            );
-                            return;
-                        }
-    
-                            // populate modal
+                            if (data.error) {
+                                showModal("Booking not found", `No check-in record found for QR: ${qrText}`, "warning");
+                                return;
+                            }
                             document.getElementById("modal_booking_id").innerText = data.booking_id;
                             document.getElementById("modal_first_name").innerText = data.first_name;
                             document.getElementById("modal_last_name").innerText = data.last_name;
                             document.getElementById("modal_room_number").innerText = data.room_number;
                             document.getElementById("modal_actual_check_in").innerText = data.actual_check_in;
-    
-                            // show modal
                             new bootstrap.Modal(document.getElementById('bookingInfoModal')).show();
                         });
                 },
-    
-                errorMsg => {
-                    // ignores scan errors — normal behavior
-                }
-            );
+                err => {} // ignore scan errors
+            ).catch(err => console.error("Error starting QR:", err));
         }
     </script>
     
