@@ -430,16 +430,9 @@ def signup():
 
     return render_template('signup.html')
 
-STAFF_SIGNUP_CODE = "EzStayStaff2025"  # Change this to your secure code
-
 @app.route('/staff_signup', methods=['GET', 'POST'])
 def staff_signup():
     if request.method == 'POST':
-        code = request.form.get('staff_code', '').strip()  # Get code from form
-        if code != STAFF_SIGNUP_CODE:
-            flash("Invalid signup code. Access denied.", "danger")
-            return redirect(url_for('staff_signup'))
-
         email = request.form['email']
         username = request.form['username']
         password = request.form['password']
