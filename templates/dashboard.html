@@ -235,11 +235,19 @@
 
     // Animated counters
     document.querySelectorAll('.count-up').forEach(el=>{
-      const end=parseInt(el.dataset.value)||0;
-      let start=0, step=end/80;
-      function animate(){ start+=step; if(start<end){ el.textContent=Math.floor(start); requestAnimationFrame(animate); } else { el.textContent=end.toLocaleString(); } }
-      animate();
-    });
+  const end=parseInt(el.dataset.value)||0;
+  let start=0, step=end/30; // was /80, now /30 for faster counting
+  function animate(){ 
+    start+=step; 
+    if(start<end){ 
+      el.textContent=Math.floor(start); 
+      requestAnimationFrame(animate); 
+    } else { 
+      el.textContent=end.toLocaleString(); 
+    } 
+  }
+  animate();
+});
 
     // Auto dismiss alerts
     document.addEventListener("DOMContentLoaded", function() {

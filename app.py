@@ -592,29 +592,6 @@ def dashboard():
     cursor.close()
     return redirect(url_for('login'))
 
-@app.route('/request-service', methods=['GET', 'POST'])
-def request_service():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM services WHERE available = 1")
-    services = cursor.fetchall()
-
-    if request.method == 'POST':
-        service_id = request.form['service_id']
-        quantity = request.form.get('quantity', 1)
-        username = session['username']
-        cursor.execute("""
-            INSERT INTO requests (booking_id, service_id, quantity, status, request_time)
-            SELECT b.booking_id, %s, %s, 'Pending', NOW()
-            FROM bookings b WHERE b.username = %s ORDER BY b.checkin_date DESC LIMIT 1
-        """, (service_id, quantity, username))
-        mysql.connection.commit()
-        flash("Your service request has been submitted.", "success")
-        return redirect(url_for('my_requests'))
-
-    return render_template('request_service.html', services=services)
-
 from flask import render_template, session, redirect, url_for, flash
 # Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
 
@@ -827,9 +804,10 @@ def editGuest(guest_id):
 def show_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     selectedCategory = request.args.get('category', '') #Get selected category
-    
+
     cursor.execute("""
         SELECT r.*,
+               
                s.name AS service_name,
                f.name AS food_name,
                s.category AS service_category,
@@ -856,7 +834,7 @@ def show_requests():
     # Get requests for dropdowns
     cursor.execute("SELECT * FROM hotel_services")
     service_list = cursor.fetchall()
-    
+
     #Get names (with optional category filter)
     if selectedCategory:
         cursor.execute(
@@ -866,7 +844,7 @@ def show_requests():
     else:
         cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
     service_names = cursor.fetchall()
-    
+
     #Get food names (with optional category filter)
     if selectedCategory:
         cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category =%s ORDER BY name", (selectedCategory,))
@@ -876,19 +854,19 @@ def show_requests():
 
     cursor.execute("SELECT * FROM food_items")
     item_list = cursor.fetchall()
-    
+
     cursor.execute("SELECT b.*, r.room_number FROM bookings b LEFT JOIN room r ON b.room_id = r.room_id WHERE b.status='Checked-in'")
     booking_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM staff")
     staff_list = cursor.fetchall()
-    
+
     cursor.execute("SELECT DISTINCT category FROM food_items")
     food_category_list = cursor.fetchall()
 
     cursor.execute("SELECT DISTINCT category FROM hotel_services")
     service_category_list = cursor.fetchall()
-    
+
     cursor.close()
     return render_template(
         "requests.html",
@@ -902,7 +880,7 @@ def show_requests():
         service_names=service_names,
         food_names=food_names
     )
-    
+
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
 def view_rooms():
@@ -1467,8 +1445,6 @@ def completed_request():
     cursor.close()
 
     return redirect('/requests')
-
-
 
 #Called by HOUSEKEEPING Menu - display list of housekeeping
 @app.route('/housekeeping')
