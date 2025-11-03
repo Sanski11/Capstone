@@ -401,7 +401,7 @@
 <div class="modal fade" id="assignModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="POST" action="/assigntask">
+      <form method="POST" action="/forceassigntask">
         <div class="modal-header">
           <h5 class="modal-title">Assign Task Manually</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -411,11 +411,9 @@
           <div class="mb-3">
             <label>Assign to Staff</label>
             <select name="assignTask_staff_id" class="form-select" required>
-            {% for staff in staff_list %}
-              <option value="{{ staff.id }}">
-                {{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})
-              </option>
-            {% endfor %}
+              {% for staff in staff_list %}
+              <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
+              {% endfor %}
             </select>
           </div>
         </div>

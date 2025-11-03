@@ -543,134 +543,96 @@ def dashboard():
         return redirect(url_for('login'))
 
     username = session['username']
-    user_id = session.get('user_id')
     role = session['role']
-    department = session.get('department')
+    user_id = session.get('user_id')
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # ===========================
-    # CURRENT BOOKING (for users)
+    # SERVICE COUNTS
     # ===========================
-    current_booking_id = None
-    if role == 'user' and user_id:
-        cursor.execute("""
-            SELECT booking_id 
-            FROM bookings 
-            WHERE guest_id = %s 
-            ORDER BY booking_id DESC 
-            LIMIT 1
-        """, (user_id,))
-        current_booking = cursor.fetchone()
-        current_booking_id = current_booking['booking_id'] if current_booking else None
+    cursor.execute("""
+        SELECT s.category, COUNT(*) AS count
+        FROM hotel_services s
+        JOIN requests r ON s.service_id = r.service_id
+        JOIN bookings b ON r.booking_id = b.booking_id
+        WHERE b.status='Checked-in'
+        GROUP BY s.category
+    """)
+    service_data = cursor.fetchall()
 
     # ===========================
-    # FETCH USER DATA
+    # STAFF ACTIVITY
     # ===========================
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    user = cursor.fetchone()
-    if not user:
-        cursor.close()
-        return redirect(url_for('login'))
+    cursor.execute("""
+        SELECT s.first_name AS staff,
+               COUNT(r.request_id) AS requests,
+               SUM(CASE WHEN UPPER(r.status)='COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN staff s ON r.staff_id = s.staff_id
+        JOIN bookings b ON r.booking_id = b.booking_id
+        WHERE b.status='Checked-in'
+        GROUP BY s.first_name
+    """)
+    staff_data = cursor.fetchall()
 
     # ===========================
-    # FUNCTION: STATS & CHARTS
+    # GENERAL STATS
     # ===========================
-    def get_stats_and_charts():
-        stats = {}
-        service_data = []
-        staff_data = []
+    stats = {}
 
-        # Role-based query filter
-        staff_filter = ""
-        if role == 'staff' and user_id:
-            staff_filter = f" AND r.staff_id = {user_id}"
+    # Active users
+    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status=1")
+    stats['active_users'] = cursor.fetchone()['count']
 
-        # Service counts
-        cursor.execute(f"""
-            SELECT s.category, COUNT(*) AS count
-            FROM hotel_services s
-            JOIN requests r ON s.service_id = r.service_id
-            JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE b.status = 'Checked-in'{staff_filter}
-            GROUP BY s.category
-        """)
-        service_data = cursor.fetchall()
+    # Total users
+    cursor.execute("SELECT COUNT(*) AS count FROM users")
+    stats['total_users'] = cursor.fetchone()['count']
 
-        # Staff activity (bar chart)
-        if role in ['admin','manager','supervisor','staff']:
-            cursor.execute(f"""
-                SELECT s.first_name AS staff,
-                       COUNT(r.request_id) AS requests,
-                       SUM(CASE WHEN UPPER(r.status)='COMPLETED' THEN 1 ELSE 0 END) AS completed
+    # Active bookings
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status='Checked-in'")
+    stats['active_bookings'] = cursor.fetchone()['count']
+
+    # Current bookings
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
+    stats['current_bookings'] = cursor.fetchone()['count']
+
+    # Check-ins today
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in)=CURDATE()")
+    stats['checkins_today'] = cursor.fetchone()['count']
+
+    # Check-outs today
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out)=CURDATE()")
+    stats['checkouts_today'] = cursor.fetchone()['count']
+
+    # Service-specific stats
+    service_categories = ['Housekeeping','Laundry','Massage','Food']
+    for cat in service_categories:
+        if cat == 'Food':
+            cursor.execute("""
+                SELECT COUNT(*) AS count
                 FROM requests r
-                JOIN staff s ON r.staff_id = s.staff_id
-                JOIN bookings b ON r.booking_id = b.booking_id
-                WHERE b.status = 'Checked-in'{staff_filter}
-                GROUP BY s.first_name
+                JOIN food_items f ON r.item_id=f.item_id
+                JOIN bookings b ON r.booking_id=b.booking_id
+                WHERE b.status='Checked-in'
             """)
-            staff_data = cursor.fetchall()
+        else:
+            cursor.execute(f"""
+                SELECT COUNT(*) AS count
+                FROM requests r
+                JOIN hotel_services s ON r.service_id=s.service_id
+                JOIN bookings b ON r.booking_id=b.booking_id
+                WHERE s.category='{cat}' AND b.status='Checked-in'
+            """)
+        stats[cat.lower()] = cursor.fetchone()['count']
 
-            # If staff has no requests yet, show default row to prevent empty chart
-            if role == 'staff' and not staff_data:
-                staff_data = [{'staff': username, 'requests': 0, 'completed': 0}]
+    # Guests checked in
+    cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status='Checked-in'")
+    stats['guests_checked_in'] = cursor.fetchone()['count']
 
-        # General stats
-        cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
-        stats['active_users'] = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM users")
-        stats['total_users'] = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status = 'Checked-in'")
-        stats['active_bookings'] = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
-        stats['current_bookings'] = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in) = CURDATE()")
-        stats['checkins_today'] = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out) = CURDATE()")
-        stats['checkouts_today'] = cursor.fetchone()['count']
-
-        # Specific service stats (for cards)
-        service_categories = ['Housekeeping','Laundry','Massage','Food']
-        for cat in service_categories:
-            if cat == 'Food':
-                cursor.execute(f"""
-                    SELECT COUNT(*) AS count
-                    FROM requests r
-                    JOIN food_items f ON r.item_id = f.item_id
-                    JOIN bookings b ON r.booking_id = b.booking_id
-                    WHERE b.status = 'Checked-in'{staff_filter}
-                """)
-            else:
-                cursor.execute(f"""
-                    SELECT COUNT(*) AS count
-                    FROM requests r
-                    JOIN hotel_services s ON r.service_id = s.service_id
-                    JOIN bookings b ON r.booking_id = b.booking_id
-                    WHERE s.category = '{cat}' AND b.status = 'Checked-in'{staff_filter}
-                """)
-            stats[cat.lower()] = cursor.fetchone()['count']
-
-        # Guests
-        cursor.execute(f"SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status = 'Checked-in'{staff_filter}")
-        stats['guests_checked_in'] = cursor.fetchone()['count']
-
-        cursor.execute(f"""
-            SELECT COUNT(DISTINCT guest_id) AS count
-            FROM bookings
-            WHERE status = 'Checked-out' AND DATE(actual_check_out) = CURDATE(){staff_filter}
-        """)
-        stats['guests_checked_out'] = cursor.fetchone()['count']
-
-        return stats, service_data, staff_data
-
-    stats, service_data, staff_data = {}, [], []
-    if role in ['admin','manager','supervisor','staff']:
-        stats, service_data, staff_data = get_stats_and_charts()
+    # Guests checked out today
+    cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status='Checked-out' AND DATE(actual_check_out)=CURDATE()")
+    stats['guests_checked_out'] = cursor.fetchone()['count']
 
     cursor.close()
 
@@ -683,9 +645,9 @@ def dashboard():
         stats=stats,
         service_data=service_data,
         staff_data=staff_data,
-        current_booking_id=current_booking_id,
-        user=user
+        user={'username': username}
     )
+
 
 @app.route('/calendar')
 def calendar():
