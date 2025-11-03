@@ -503,7 +503,7 @@ def verification_pending():
 
 @app.route('/dashboard')
 def dashboard():
-    # 1. AUTHENTICATION & SESSION VALIDATION
+    # auth
     if 'username' not in session or 'role' not in session:
         return redirect(url_for('login'))
 
@@ -513,165 +513,234 @@ def dashboard():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # ===========================
-    # CURRENT BOOKING (for users)
-    # ===========================
-    current_booking_id = None
-    if role == 'user' and user_id:
-        cursor.execute("""
-            SELECT booking_id 
-            FROM bookings 
-            WHERE guest_id = %s 
-            ORDER BY booking_id DESC 
-            LIMIT 1
-        """, (user_id,))
-        current_booking = cursor.fetchone()
-        current_booking_id = current_booking['booking_id'] if current_booking else None
-
-    # ===========================
-    # FETCH USER DATA
-    # ===========================
+    # fetch user record, if missing redirect to login
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cursor.fetchone()
     if not user:
         cursor.close()
         return redirect(url_for('login'))
 
-    # ===========================
-    # FUNCTION: STATS & CHARTS
-    # ===========================
-    def get_stats_and_charts():
+    # helper to safely fetch count like SELECT ... AS count
+    def fetch_count(default=0):
+        row = cursor.fetchone()
+        if not row:
+            return default
+        # support both dict and tuple row shapes
+        if isinstance(row, dict):
+            return int(row.get('count', default) or default)
+        try:
+            return int(row[0] or default)
+        except Exception:
+            return default
+
+    # get current booking id for user (optional)
+    current_booking_id = None
+    if role == 'user' and user_id:
+        cursor.execute("""
+            SELECT booking_id
+            FROM bookings
+            WHERE guest_id = %s
+            ORDER BY booking_id DESC
+            LIMIT 1
+        """, (user_id,))
+        rb = cursor.fetchone()
+        current_booking_id = rb['booking_id'] if rb and 'booking_id' in rb else (rb[0] if rb and len(rb) > 0 else None)
+
+    # collect stats
+    stats = {}
+
+    # Housekeeping: totals, pending, completed, total services
+    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Housekeeping'")
+    stats['housekeeping_total_services'] = fetch_count(0)
+
+    cursor.execute("""
+        SELECT
+            COUNT(*) AS count,
+            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN hotel_services s ON r.service_id = s.service_id
+        WHERE s.category = 'Housekeeping'
+    """)
+    row = cursor.fetchone() or {}
+    stats['housekeeping_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
+    stats['housekeeping_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
+    stats['housekeeping_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+
+    # Dining: total menu items, requests, pending, completed
+    cursor.execute("SELECT COUNT(*) AS count FROM food_items WHERE type = 'food'")
+    stats['dining_total_items'] = fetch_count(0)
+
+    cursor.execute("""
+        SELECT
+            COUNT(*) AS count,
+            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN food_items f ON r.item_id = f.item_id
+        WHERE f.type = 'food'
+    """)
+    row = cursor.fetchone() or {}
+    stats['dining_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
+    stats['dining_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
+    stats['dining_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+
+    # Laundry
+    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Laundry'")
+    stats['laundry_total_services'] = fetch_count(0)
+
+    cursor.execute("""
+        SELECT
+            COUNT(*) AS count,
+            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN hotel_services s ON r.service_id = s.service_id
+        WHERE s.category = 'Laundry'
+    """)
+    row = cursor.fetchone() or {}
+    stats['laundry_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
+    stats['laundry_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
+    stats['laundry_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+
+    # Massage / Spa
+    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Massage'")
+    stats['spa_total_services'] = fetch_count(0)
+
+    cursor.execute("""
+        SELECT
+            COUNT(*) AS count,
+            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN hotel_services s ON r.service_id = s.service_id
+        WHERE s.category = 'Massage'
+    """)
+    row = cursor.fetchone() or {}
+    stats['spa_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
+    stats['spa_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
+    stats['spa_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+
+    # Global booking and user counts
+    cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
+    stats['active_users'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(*) AS count FROM users")
+    stats['total_users'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status = 'Checked-in'")
+    stats['active_bookings'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
+    stats['current_bookings'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in) = CURDATE()")
+    stats['checkins_today'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out) = CURDATE()")
+    stats['checkouts_today'] = fetch_count(0)
+
+    cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status = 'Checked-in'")
+    stats['guests_checked_in'] = fetch_count(0)
+
+    cursor.execute("""
+        SELECT COUNT(DISTINCT guest_id) AS count
+        FROM bookings
+        WHERE status = 'Checked-out' AND DATE(actual_check_out) = CURDATE()
+    """)
+    stats['guests_checked_out'] = fetch_count(0)
+
+    # Build service_data list for pie chart, grouping by hotel_services.category
+    cursor.execute("""
+        SELECT COALESCE(s.category, 'Other') AS service_type, COUNT(*) AS count
+        FROM hotel_services s
+        JOIN requests r ON r.service_id = s.service_id
+        GROUP BY s.category
+        ORDER BY count DESC
+    """)
+    service_data = cursor.fetchall() or []
+    # ensure it's a list of dicts (fetchall with DictCursor already returns list of dicts)
+    if not isinstance(service_data, list):
+        service_data = list(service_data)
+
+    # Add dining as a service_type if there are dining requests via food_items
+    cursor.execute("""
+        SELECT COUNT(*) AS count
+        FROM requests r
+        JOIN food_items f ON r.item_id = f.item_id
+        WHERE f.type = 'food'
+    """)
+    dining_row = cursor.fetchone()
+    dining_count = 0
+    if dining_row:
+        dining_count = int(dining_row.get('count', 0) if isinstance(dining_row, dict) else (dining_row[0] or 0))
+    # if there are dining requests, append or merge with service_data
+    if dining_count > 0:
+        # try to merge into existing service_data entry 'In-Room Dining' if present
+        merged = False
+        for sd in service_data:
+            if sd.get('service_type') in ('In-Room Dining', 'Dining', 'In Room Dining'):
+                sd['count'] = sd.get('count', 0) + dining_count
+                merged = True
+                break
+        if not merged:
+            service_data.append({'service_type': 'In-Room Dining', 'count': dining_count})
+
+    # Staff activity for bar chart
+    cursor.execute("""
+        SELECT
+            COALESCE(s.first_name, 'None') AS staff,
+            COUNT(r.request_id) AS requests,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        LEFT JOIN staff s ON r.staff_id = s.staff_id
+        LEFT JOIN bookings b ON r.booking_id = b.booking_id
+        WHERE b.status = 'Checked-in' OR b.status IS NULL
+        GROUP BY s.first_name
+        ORDER BY requests DESC
+        LIMIT 20
+    """)
+    staff_data = cursor.fetchall() or []
+    if not isinstance(staff_data, list):
+        staff_data = list(staff_data)
+
+    # Make high level fields that your template expects
+    # top cards use these keys: housekeeping, food, laundry, spa
+    stats['housekeeping'] = stats.get('housekeeping_total_requests', 0)
+    stats['food'] = stats.get('dining_total_requests', 0)
+    stats['laundry'] = stats.get('laundry_total_requests', 0)
+    stats['spa'] = stats.get('spa_total_requests', 0)
+
+    # user small dashboard keys if role == 'user'
+    # compute pending requests for that user
+    if role == 'user' and user_id:
         cursor.execute("""
             SELECT COUNT(*) AS count
             FROM requests r
-            JOIN hotel_services s ON r.service_id = s.service_id
             JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Housekeeping' AND b.status = 'Checked-in'
-        """)
-        housekeeping = cursor.fetchone()['count']
+            WHERE b.guest_id = %s AND UPPER(r.status) IN ('PENDING','PROCESSING')
+        """, (user_id,))
+        stats['pending_requests'] = fetch_count(0)
 
         cursor.execute("""
             SELECT COUNT(*) AS count
-            FROM requests r
-            JOIN food_items f ON r.item_id = f.item_id
-            JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE b.status = 'Checked-in'
-        """)
-        food = cursor.fetchone()['count']
-
-        cursor.execute("""
-            SELECT COUNT(*) AS count
-            FROM requests r
-            JOIN hotel_services s ON r.service_id = s.service_id
-            JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Laundry' AND b.status = 'Checked-in'
-        """)
-        laundry = cursor.fetchone()['count']
-
-        cursor.execute("""
-            SELECT COUNT(DISTINCT r.request_id) AS count
-            FROM requests r
-            LEFT JOIN hotel_services s ON r.service_id = s.service_id
-            LEFT JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE s.category = 'Massage' AND b.status = 'Checked-in'
-        """)
-        spa = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
-        active_users = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM users")
-        total_users = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status = 'Checked-in'")
-        active_bookings = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE status IN ('Active','Confirmed')")
-        current_bookings = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_in) = CURDATE()")
-        checkins_today = cursor.fetchone()['count']
-
-        cursor.execute("SELECT COUNT(*) AS count FROM bookings WHERE DATE(actual_check_out) = CURDATE()")
-        checkouts_today = cursor.fetchone()['count']
-
-        cursor.execute("""
-            SELECT s.category, COUNT(*) AS count
-            FROM hotel_services s
-            JOIN requests r ON s.service_id = r.service_id
-            JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE b.status = 'Checked-in'
-            GROUP BY s.category
-        """)
-        service_data = cursor.fetchall()
-
-        cursor.execute("""
-            SELECT s.first_name AS staff, 
-                   COUNT(r.request_id) AS requests,
-                   SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
-            FROM requests r
-            JOIN staff s ON r.staff_id = s.staff_id
-            JOIN bookings b ON r.booking_id = b.booking_id
-            WHERE b.status = 'Checked-in'
-            GROUP BY s.first_name
-        """)
-        staff_data = cursor.fetchall()
-
-        cursor.execute("SELECT COUNT(DISTINCT guest_id) AS count FROM bookings WHERE status = 'Checked-in'")
-        guests_checked_in = cursor.fetchone()['count']
-
-        cursor.execute("""
-            SELECT COUNT(DISTINCT guest_id) AS count 
-            FROM bookings 
-            WHERE status = 'Checked-out' AND DATE(actual_check_out) = CURDATE()
-        """)
-        guests_checked_out = cursor.fetchone()['count']
-
-        return {
-            "housekeeping": housekeeping,
-            "food": food,
-            "laundry": laundry,
-            "spa": spa,
-            "active_users": active_users,
-            "total_users": total_users,
-            "active_bookings": active_bookings,
-            "current_bookings": current_bookings,
-            "checkins_today": checkins_today,
-            "checkouts_today": checkouts_today,
-            "guests_checked_in": guests_checked_in,
-            "guests_checked_out": guests_checked_out
-        }, service_data, staff_data
-
-    # ===========================
-    # RENDER PER ROLE
-    # ===========================
-    if role in ['admin', 'manager', 'supervisor']:
-        stats, service_data, staff_data = get_stats_and_charts()
-        cursor.close()
-        return render_template(
-            'dashboard.html',
-            role=role,
-            stats=stats,
-            service_data=service_data,
-            staff_data=staff_data,
-            current_booking_id=current_booking_id,
-            user=user
-        )
-
-    elif role == 'user':
-        cursor.close()
-        return render_template(
-            'dashboard.html',
-            role=role,
-            stats={},
-            service_data=[],
-            staff_data=[],
-            user=user,
-            current_booking_id=current_booking_id
-        )
+            FROM bookings
+            WHERE guest_id = %s AND status IN ('Active','Confirmed','Checked-in')
+        """, (user_id,))
+        stats['active_bookings'] = fetch_count(0)
 
     cursor.close()
-    return redirect(url_for('login'))
+
+    # render
+    return render_template(
+        'dashboard.html',
+        role=role,
+        stats=stats,
+        service_data=service_data,
+        staff_data=staff_data,
+        current_booking_id=current_booking_id,
+        user=user
+    )
 
 from flask import render_template, session, redirect, url_for, flash
 # Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
