@@ -37,7 +37,8 @@
     .bg-purple-transparent { background-color: rgba(138, 43, 226, 0.12) !important; }
     .dashboard-banner-card { background-color: #d8bfd8 !important; }
     .text-fixed-white { color: white !important; }
-        </style>
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+   </style>
 </head>
 
 <body>
@@ -84,10 +85,11 @@
                 <div class="card custom-card">
                     <div class="card-header justify-content-between">
                         <h5 class="card-title mb-0">Bookings List</h5>
-                        {% if session['role'] != 'user' %}
-                        <button type="button" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addBookingModal">
-                            <i class="ri-add-line me-1"></i> Add Record
-                        </button>
+                        {# {% if session['role'] != 'user' %} #}
+                        {% if role in ['admin', 'manager'] %}
+                            <button type="button" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addBookingModal">
+                                <i class="ri-add-line me-1"></i> Add Record
+                            </button>
                         {% endif %}
                     </div>
                     <div class="card-body">
@@ -123,19 +125,21 @@
                                         <td>{{ booking.random_booking_ref }}</td>
                                         <td>{{ booking.last_update }} / {{ booking.timestamp }} </td>
                                         <td>
-                                            {% if session['role'] != 'user' and booking.status == "Confirmed" %}
-                                                <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                    onclick='openEditModal({{ booking | tojson | safe }})'
-                                                    data-bs-toggle="modal" data-bs-target="#editBookingModal">
-                                                    <i class="ri-pencil-line"></i>
-                                                </button>
-                                                <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                    onclick="confirmDelete('{{ booking.booking_id }}', '{{ booking.first_name }} {{ booking.last_name }}')">
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </button>
-                                            {% endif %}
-                                            {% if role in ['manager', 'user'] and booking.status == 'Checked-in' %}
-                                                <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill</a>
+                                            {% if role in ['admin', 'manager'] %}
+                                                {% if session['role'] != 'user' and booking.status == "Confirmed" %}
+                                                    <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
+                                                        onclick='openEditModal({{ booking | tojson | safe }})'
+                                                        data-bs-toggle="modal" data-bs-target="#editBookingModal">
+                                                        <i class="ri-pencil-line"></i>
+                                                    </button>
+                                                    <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
+                                                        onclick="confirmDelete('{{ booking.booking_id }}', '{{ booking.first_name }} {{ booking.last_name }}')">
+                                                        <i class="ri-delete-bin-line"></i>
+                                                    </button>
+                                                {% endif %}
+                                                {% if role in ['manager', 'user'] and booking.status == 'Checked-in' %}
+                                                    <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill</a>
+                                                {% endif %}
                                             {% endif %}
                                         </td>
                                     </tr>

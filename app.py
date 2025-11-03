@@ -429,6 +429,7 @@ def dashboard():
     username = session['username']
     user_id = session.get('user_id')
     role = session['role']
+    department = session['department']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 

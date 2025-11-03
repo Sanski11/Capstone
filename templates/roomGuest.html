@@ -143,7 +143,7 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if role in ['manager', 'user', 'admin'] and booking.actual_check_in and not booking.actual_check_out %}
+                                            {% if role in ['manager', 'user', 'admin', 'supervisor'] and booking.actual_check_in and not booking.actual_check_out %}
                                                 <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill</a>
                                             {% endif %}
                                         </td>
