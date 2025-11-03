@@ -42,6 +42,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 serializer = URLSafeTimedSerializer(app.secret_key)
+STAFF_SIGNUP_CODE = "EzStayStaff2025"  # Change this to your secure code
  
 app.config['EMAIL_HOST'] = os.getenv('EMAIL_HOST')
 app.config['EMAIL_PORT'] = int(os.getenv('EMAIL_PORT', 587))
@@ -388,6 +389,86 @@ def signup():
             flash("Could not send email. Please contact support.", "danger")
 
     return render_template('signup.html')
+
+@app.route('/staff_signup', methods=['GET', 'POST'])
+def staff_signup():
+    if request.method == 'POST':
+        code = request.form.get('staff_code', '').strip()  # Get code from form
+        if code != STAFF_SIGNUP_CODE:
+            flash("Invalid signup code. Access denied.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        email = request.form['email']
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form.get('role')  # supervisor, manager, staff
+
+        # Only allow specific roles
+        if role not in ['staff', 'supervisor', 'manager']:
+            flash("Invalid role selected.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        # Staff accounts start inactive until admin approval
+        status = 0
+        account_status = 'Pending Approval'
+
+        first_name = request.form.get('first_name', '')
+        middle_name = request.form.get('middle_name', '')
+        last_name = request.form.get('last_name', '')
+        name = f"{first_name} {middle_name} {last_name}".strip()
+        phone = request.form.get('phone', '')
+
+        verified = False
+        email_verified = False
+        verification_token = generate_verification_token()
+        token_expires_at = datetime.now() + timedelta(hours=24)
+        created_at = datetime.now()
+        department = request.form.get('department', None)
+        reset_token = None
+        reset_token_expiry = None
+
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Check for duplicates
+        cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
+        if cursor.fetchone():
+            flash("Username already taken.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        cursor.execute("SELECT email FROM users WHERE email=%s", (email,))
+        if cursor.fetchone():
+            flash("Email already registered. Please log in.", "danger")
+            return redirect(url_for('staff_signup'))
+
+        # Insert staff account
+        cursor.execute("""
+            INSERT INTO users (
+                username, email, password, role, status, department,
+                verified, email_verified, verification_token, token_expires_at,
+                account_status, created_at, first_name, last_name, middle_name,
+                name, phone, reset_token, reset_token_expiry
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            )
+        """, (
+            username, email, password, role, status, department,
+            verified, email_verified, verification_token, token_expires_at,
+            account_status, created_at, first_name, last_name, middle_name,
+            name, phone, reset_token, reset_token_expiry
+        ))
+        mysql.connection.commit()
+
+        # Send verification email (optional)
+        if send_verification_email(email, username, verification_token):
+            flash("Staff account created! Pending admin approval.", "success")
+            return redirect(url_for('staff_signup'))
+        else:
+            flash("Could not send email. Please contact support.", "danger")
+
+    return render_template('staff_signup.html')
 
 @app.route('/verify_email/<verification_token>')
 def verify_email_token(verification_token):
