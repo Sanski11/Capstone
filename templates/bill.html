@@ -164,9 +164,8 @@
       if (result.checkout_url) {
         payTab.location.href = result.checkout_url;
       } else {
-        payTab.document.write("<h1>❌ Payment initiation failed.</h1>");
-      }
-    } catch (err) {
+        payTab.document.write("<h1>❌ Payment initiation failed.</h1>");}
+      } catch (err) {
       payTab.document.write("<h1>❌ Something went wrong with the payment server.</h1>");
     }
   });

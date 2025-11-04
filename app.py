@@ -3124,54 +3124,56 @@ def update_user():
 
 @app.route('/pay', methods=['POST'])
 def pay():
-    booking_id = request.form['booking_id']
-    amount = int(request.form['amount'])
-    method = "card"  #Always use 'card' for PayMongo links
+    booking_id = request.form.get('booking_id')
+    amount = int(request.form.get('amount', 0))  # in centavos
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
         "Content-Type": "application/json"
     }
 
-    #Create payment intent
+    # Step 1: Create a payment intent
     intent_payload = {
         "data": {
             "attributes": {
                 "amount": amount,
                 "currency": "PHP",
                 "description": f"Booking #{booking_id} Payment",
-                "payment_method_allowed": ["card", "gcash", "grab_pay"],  #Show all options
-                "payment_method_options": {
-                    "card": {"request_three_d_secure": "any"}
-                }
+                "payment_method_allowed": ["card", "gcash", "grab_pay"],
+                "payment_method_options": {"card": {"request_three_d_secure": "any"}}
             }
         }
     }
-    intent_response = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
-    intent_data = intent_response.json()
+    intent_resp = requests.post("https://api.paymongo.com/v1/payment_intents", headers=HEADERS, json=intent_payload)
+    intent_data = intent_resp.json()
     if "data" not in intent_data:
-        return "<h3>❌ Error creating payment intent.</h3><pre>{}</pre>".format(json.dumps(intent_data, indent=2))
+        return f"<h3>❌ Error creating payment intent.</h3><pre>{json.dumps(intent_data, indent=2)}</pre>"
+
     intent_id = intent_data["data"]["id"]
 
-    #Create checkout link
+    # Step 2: Create a checkout link
     checkout_payload = {
         "data": {
             "attributes": {
-                "billing": {"name": "ezStay Guest"},
                 "payment_intent": intent_id,
+                "billing": {"name": "ezStay Guest"},
                 "description": f"Booking #{booking_id} Payment",
                 "amount": amount,
                 "currency": "PHP",
                 "success_url": url_for('success', booking_id=booking_id, _external=True),
-                "cancel_url": url_for('failed', _external=True)
+                "cancel_url": url_for('failed', _external=True),
+                "remarks": "ezStay payment link"
             }
         }
     }
-    checkout_response = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
-    checkout_data = checkout_response.json()
+
+    checkout_resp = requests.post("https://api.paymongo.com/v1/links", headers=HEADERS, json=checkout_payload)
+    checkout_data = checkout_resp.json()
     if "data" not in checkout_data:
-        return "<h3>❌ Error creating checkout link.</h3><pre>{}</pre>".format(json.dumps(checkout_data, indent=2))
-    return redirect(checkout_data["data"]["attributes"]["checkout_url"])
+        return f"<h3>❌ Error creating checkout link.</h3><pre>{json.dumps(checkout_data, indent=2)}</pre>"
+
+    checkout_url = checkout_data["data"]["attributes"]["checkout_url"]
+    return jsonify({"checkout_url": checkout_url})
 
 @app.route('/success')
 def success():
@@ -3403,8 +3405,6 @@ def _pick_least_loaded_staff(cursor, target_role):
         LIMIT 1
     """, (target_role,))
     return cursor.fetchone()
-
-    
 
 @app.route('/assigntask', methods=['POST'])
 def assigntask():
