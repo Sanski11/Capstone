@@ -173,17 +173,29 @@
           </div>
         </div>
 
-        <!-- Charts -->
+        <div class="card custom-card dashboard-banner-card overflow-hidden">
+          <div class="card-body text-fixed-white text-center">
+            <h5 class="fw-semibold mb-1">Welcome, {{ session['username'] }} 👋</h5>
+            <span class="d-block fs-14 mb-3">You can track your assigned service requests and mark them as completed.</span>
+          </div>
+        </div>
+
         <div class="row g-3 mt-3">
           <div class="col-xl-8">
             <div class="card custom-card">
-              <div class="card-header justify-content-between"><div class="card-title">Daily Task Summary</div></div>
-              <div class="card-body pb-0 pt-3" style="height:300px"><canvas id="staffBarChart"></canvas></div>
+              <div class="card-header justify-content-between">
+                <div class="card-title">Daily Task Summary</div>
+              </div>
+              <div class="card-body pb-0 pt-3" style="height:300px">
+                <canvas id="staffBarChart"></canvas>
+              </div>
             </div>
           </div>
           <div class="col-xl-4">
             <div class="card custom-card">
-              <div class="card-header justify-content-between"><div class="card-title">Requests by Status</div></div>
+              <div class="card-header justify-content-between">
+                <div class="card-title">Requests by Status</div>
+              </div>
               <div class="card-body d-flex justify-content-center align-items-center">
                 <div style="max-width:300px;max-height:300px;"><canvas id="staffPieChart"></canvas></div>
               </div>
@@ -191,6 +203,7 @@
           </div>
         </div>
         {% endif %}
+
 
         {% if role in ['admin','manager','supervisor'] %}
         <!-- Service Summary Cards -->
@@ -387,54 +400,6 @@
       labels:[{% for s in service_data %}"{{ s.service_type }}",{% endfor %}],
       datasets:[{ data:[{% for s in service_data %}{{ s.count }},{% endfor %}], backgroundColor:['#8A2BE2','#FF69B4','#DA70D6','#9370DB','#BA55D3'] }]
     }, options:{ plugins:{ legend:{ position:'bottom' } } } }); }
-
-if ({{ 'true' if role == 'staff' else 'false' }}) {
-  const staffBar = document.getElementById('staffBarChart');
-  if (staffBar) {
-    new Chart(staffBar, {
-      type: 'bar',
-      data: {
-        labels: [{% for s in staff_data %}"{{ s.staff }}",{% endfor %}],
-        datasets: [
-          {
-            label: 'Pending',
-            data: [{% for s in staff_data %}{{ s.requests }},{% endfor %}],
-            backgroundColor: '#8a2be2',
-            borderRadius: 6
-          },
-          {
-            label: 'Completed',
-            data: [{% for s in staff_data %}{{ s.completed }},{% endfor %}],
-            backgroundColor: '#28a745',
-            borderRadius: 6
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: { beginAtZero: true, ticks: { precision: 0 } }
-        }
-      }
-    });
-  }
-
-  const staffPie = document.getElementById('staffPieChart');
-  if (staffPie) {
-    new Chart(staffPie, {
-      type: 'pie',
-      data: {
-        labels: ['Completed', 'Pending'],
-        datasets: [{
-          data: [{{ stats.completed_tasks or 0 }}, {{ stats.pending_tasks or 0 }}],
-          backgroundColor: ['#28a745', '#dc3545']
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-  }
-}
   </script>
 </body>
 </html>
