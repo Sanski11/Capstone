@@ -124,12 +124,13 @@
                             <table id="bookingsTable" class="table text-nowrap table-hover table-bordered">
                                 <thead class="table-primary">
                                     <tr>
-                                        <th>Room Number</th>
+                                        <th>Room <br>Number</th>
                                         <th>Guest</th>
-                                        <th>Expected Check-in</th>
-                                        <th>Expected Check-out</th>
-                                        <th>Actual Check-in</th>
-                                        <th>Actual Check-out</th>
+                                        <th>Expected<br>Check-in/Check-out</th>
+                                        <th>Actual<br>Check-in/Check-out</th>
+                                        <th>Total Bill</th>
+                                        <th>Total Payment</th>
+                                        <th>Balance</th>
                                         <th>Last Update</th>
                                         <th colspan="3" class="text-center align-middle">Action</th>
                                     </tr>
@@ -139,10 +140,13 @@
                                     <tr>
                                         <td>{{ booking.room_number }}</td>
                                         <td>{{ booking.last_name }}, {{booking.first_name}}</td>
-                                        <td>{{ booking.exp_check_in }}</td>
-                                        <td>{{ booking.exp_check_out }}</td>
-                                        <td>{{ booking.actual_check_in }}</td>
-                                        <td>{{ booking.actual_check_out }}</td>
+                                        <td>{{ booking.exp_check_in }}<br>{{ booking.exp_check_out }}</td>
+                                        <td>{{ booking.actual_check_in }}<br>{{ booking.actual_check_out }}</td>
+                                        <td class="text-end">₱{{ "{:,.2f}".format(booking.total_bill | float) }}</td>
+                                        <td class="text-end">₱{{ "{:,.2f}".format(booking.total_payment | float) }}</td>
+                                        <td class="text-end">
+                                            ₱{{ "{:,.2f}".format((booking.total_payment or 0) - (booking.total_bill or 0)) }}
+                                        </td>                                        
                                         <td>{{ booking.last_update }} / {{ booking.timestamp }} </td>
                                         <td>
                                             {% if not booking.actual_check_in %}
@@ -434,7 +438,7 @@
                     searchPlaceholder: "Search bookings...",
                 },
                 columnDefs: [
-                    { targets: [9], orderable: false, searchable: false }
+                    { targets: [10], orderable: false, searchable: false }
                 ],
                 // Dom structure for Bootstrap 5 integration
                 dom: '<"top"lf>rt<"bottom"ip><"clear">'

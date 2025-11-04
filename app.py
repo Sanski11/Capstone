@@ -1175,7 +1175,17 @@ def show_roomGuest():
                 b.*, 
                 g.first_name,
                 g.last_name,
-                r.room_number
+                r.room_number,
+                COALESCE((
+                        SELECT SUM(req.total_cost)
+                        FROM requests req
+                        WHERE req.booking_id = b.booking_id
+                    ), 0) AS total_bill,
+                    COALESCE((
+                        SELECT SUM(p.amount)
+                        FROM payment p
+                        WHERE p.booking_id = b.booking_id
+                    ), 0) AS total_payment                
             FROM bookings b
             JOIN guest g ON b.guest_id = g.guest_id
             JOIN room r ON b.room_id = r.room_id
