@@ -936,9 +936,41 @@ def view_staffs():
     selected_staff = request.args.get('staff_id', '') #Get the id of the selected staff
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    # Fetch staff from 'staff' table
     cursor.execute("""
+        SELECT staff_id AS id,
+               first_name,
+               last_name,
+               role,
+               email,
+               COALESCE(phone, '') AS phone,
+               'staff_table' AS source
+        FROM staff
         SELECT * FROM staff ORDER BY last_name, first_name
     """)
+    staff_table = list(cursor.fetchall())  # convert to list
+
+    # Fetch users who are staff from 'users' table
+    cursor.execute("""
+        SELECT user_id AS id,
+               username AS first_name,
+               '' AS last_name,
+               role,
+               email,
+               '' AS phone,
+               'users_table' AS source
+        FROM users
+        WHERE role='staff'
+    """)
+    user_staff = list(cursor.fetchall())  # convert to list
+
+    # Merge both lists
+    combined_staffs = staff_table + user_staff
+
+    # Sort by last_name then first_name
+    combined_staffs.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
+
+    return render_template('staff.html', staffs=combined_staffs, selected_staff=selected_staff)
     staffs = cursor.fetchall() #Fetch results
     return render_template('staff.html', staffs=staffs) #pass the contents of staffs to staff.html
 
@@ -1055,6 +1087,37 @@ def show_requests():
 
     cursor.execute("SELECT DISTINCT category FROM hotel_services")
     service_category_list = cursor.fetchall()
+    
+    # Fetch staff from 'staff' table
+    cursor.execute("""
+        SELECT staff_id AS id,
+            first_name,
+            last_name,
+            role,
+            'staff_table' AS source
+        FROM staff
+    """)
+    staff_table = list(cursor.fetchall())
+
+
+    # Fetch users who are staff from 'users' table
+    cursor.execute("""
+        SELECT user_id AS id,
+            username AS first_name,
+            '' AS last_name,
+            role,
+            department,
+            'users_table' AS source
+        FROM users
+        WHERE role='staff'
+    """)
+    user_staff = list(cursor.fetchall())
+
+    # Merge both lists
+    staff_list = staff_table + user_staff
+
+    # Sort by last_name then first_name
+    staff_list.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
 
     cursor.close()
     return render_template(
@@ -3043,10 +3106,33 @@ def check_user(username):
 
 @app.route('/deleteUser/<int:user_id>', methods=['GET'], endpoint='delete_user_route')
 def delete_user(user_id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("DELETE FROM users WHERE user_id=%s", (user_id,))
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    # Get old data for logging
+    cursor.execute("SELECT * FROM users WHERE user_id = %s", (user_id,))
+    old_data = cursor.fetchone()
+    timestamp = datetime.now()
+    
+    if not old_data:
+        cursor.close()
+        return "User not found or already deleted", 404
+    
+    # Log before deletion
+    log_audit_event(
+        actor_id=session.get('username'),
+        timestamp=timestamp,
+        table_name='users',
+        action_type='DELETE',
+        record_id=str(user_id),
+        old_data=old_data,
+        new_data=None
+    )
+    
+    # Perform deletion
+    cursor.execute("DELETE FROM users WHERE user_id = %s", (user_id,))
     mysql.connection.commit()
     cursor.close()
+    
     flash('User deleted successfully', 'success')
     return redirect(url_for('users'))
 
