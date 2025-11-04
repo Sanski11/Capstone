@@ -704,6 +704,9 @@ def dashboard():
     if not isinstance(staff_data, list):
         staff_data = list(staff_data)
 
+    # Remove unassigned (None) staff entries so they don't appear in the chart
+    staff_data = [s for s in staff_data if s.get('staff') not in (None, 'None', '', 'null')]
+
     # Make high level fields that your template expects
     # top cards use these keys: housekeeping, food, laundry, spa
     stats['housekeeping'] = stats.get('housekeeping_total_requests', 0)
@@ -729,9 +732,48 @@ def dashboard():
         """, (user_id,))
         stats['active_bookings'] = fetch_count(0)
 
+    # --- Staff-specific dashboard ---
+    if role == 'staff' and user_id:
+    # Assigned requests: pending + processing
+        cursor.execute("""
+            SELECT COUNT(*) AS count
+            FROM requests
+            WHERE staff_id = %s AND UPPER(status) IN ('PENDING','PROCESSING')
+        """, (user_id,))
+        stats['assigned_requests'] = fetch_count(0)
+
+        # Completed tasks
+        cursor.execute("""
+            SELECT COUNT(*) AS count
+            FROM requests
+            WHERE staff_id = %s AND UPPER(status) = 'COMPLETED'
+        """, (user_id,))
+        stats['completed_tasks'] = fetch_count(0)
+
+        # Pending tasks (same as assigned_requests, could adjust if you want separate logic)
+        stats['pending_tasks'] = stats['assigned_requests']
+
+        # Optional: fetch breakdown for daily staff activity chart
+        cursor.execute("""
+            SELECT
+                COALESCE(b.first_name, 'None') AS staff_name,
+                COUNT(r.request_id) AS total_requests,
+                SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+            FROM requests r
+            LEFT JOIN staff b ON r.staff_id = b.staff_id
+            WHERE r.staff_id = %s
+            GROUP BY b.first_name
+            ORDER BY total_requests DESC
+            LIMIT 20
+        """, (user_id,))
+        staff_chart_data = cursor.fetchall() or []
+        # Filter out unassigned
+        staff_chart_data = [s for s in staff_chart_data if s.get('staff_name') not in (None, 'None', '', 'null')]
+
+    # Close cursor
     cursor.close()
 
-    # render
+    # Render dashboard template
     return render_template(
         'dashboard.html',
         role=role,
@@ -741,9 +783,6 @@ def dashboard():
         current_booking_id=current_booking_id,
         user=user
     )
-
-from flask import render_template, session, redirect, url_for, flash
-# Assuming 'mysql' and 'MySQLdb.cursors.DictCursor' are imported globally
 
 @app.route('/calendar')
 def calendar():

@@ -167,7 +167,58 @@
     </div>
 
     <!-- ========== MODALS ========== -->
-    <!-- (Edit Username, Change Password, Delete Account modals remain unchanged) -->
+    <!-- Edit Username Modal -->
+  <div class="modal fade" id="editUsernameModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('edit_profile') }}">
+          <div class="modal-header"><h5>Edit Username</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{{ url_for('reset_password') }}">
+          <div class="modal-header"><h5>Change Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <div class="mb-3"><label>Current Password</label><input type="password" name="current_password" class="form-control" required></div>
+            <div class="mb-3"><label>New Password</label><input type="password" name="new_password" class="form-control" required></div>
+            <div class="mb-3"><label>Confirm Password</label><input type="password" name="confirm_password" class="form-control" required></div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Account Modal -->
+  <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content text-center">
+        <div class="modal-body">
+          <i class="ri-error-warning-line text-danger fs-1 mb-3"></i>
+          <h5>Are you sure you want to delete your account?</h5>
+          <p class="text-muted small">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer justify-content-center">
+          <a href="{{ url_for('delete_guest', guest_id=user['user_id']) }}" class="btn btn-danger">Delete</a>
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
   <script>
