@@ -131,13 +131,12 @@
         <h3 class="grand-total">Total: ₱{{ "{:,.2f}".format(total_bill | float) }}</h3>
       </div>
 
-      <!-- Total Payment Section -->
+      <!-- Payment Section -->
       <div class="d-flex align-items-center mt-5">
         <i class="ri-wallet-line fs-3 header-icon"></i>
         <h2 class="mb-0">Total Payment</h2>
       </div>
 
-      <!-- Payment History Table -->
       <table class="table align-middle table-striped mt-3">
         <thead>
           <tr>
@@ -148,20 +147,14 @@
           </tr>
         </thead>
         <tbody>
-          {% if payments %}
-            {% for payment in payments %}
-            <tr>
-              <td>{{ payment.payment_id }}</td>
-              <td>{{ payment.payment_date }}</td>
-              <td>{{ payment.method }}</td>
-              <td class="text-end">₱{{ "{:,.2f}".format((payment.amount or 0) | float) }}</td>
-            </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td colspan="4" class="text-center text-muted">No payments recorded yet</td>
-            </tr>
-          {% endif %}
+          {% for payment in payments %}
+          <tr>
+            <td>{{ payment.payment_id }}</td>
+            <td>{{ payment.payment_date }}</td>
+            <td>{{ payment.method }}</td>
+            <td class="text-end">₱{{ "{:,.2f}".format((payment.amount or 0) | float) }}</td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
 

@@ -2946,36 +2946,6 @@ def checkout():
     flash('Check-out successful.', 'success')
     return redirect('/roomGuest')
 
-@app.route('/bill/<int:booking_id>')
-def view_bill(booking_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    #Get all requests for this booking
-    cursor.execute("""
-        SELECT 
-            r.*, 
-            s.name AS service_name,
-            f.name AS item_name
-        FROM requests r
-        LEFT JOIN hotel_services s ON r.service_id = s.service_id
-        LEFT JOIN food_items f ON r.item_id = f.item_id
-        WHERE r.booking_id = %s
-    """, (booking_id,))
-  
-    requests = cursor.fetchall()
-    total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
-    
-    # Fetch payment services
-    cursor.execute("""
-        SELECT *
-        FROM payment p
-        WHERE booking_id = %s
-    """, (booking_id,))
-    payments = cursor.fetchall()
-    total_payment= sum(p.get('amount', p.get('amount', 0)) for p in payments)
-    
-    cursor.close()
-    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id, payments=payments, total_payment=total_payment)
-
 @app.route('/users')
 def users_page():
     if 'username' not in session or 'role' not in session:
@@ -3226,6 +3196,36 @@ def update_user():
 
     return redirect('/users')
 
+@app.route('/bill/<int:booking_id>')
+def view_bill(booking_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    #Get all requests for this booking
+    cursor.execute("""
+        SELECT 
+            r.*, 
+            s.name AS service_name,
+            f.name AS item_name
+        FROM requests r
+        LEFT JOIN hotel_services s ON r.service_id = s.service_id
+        LEFT JOIN food_items f ON r.item_id = f.item_id
+        WHERE r.booking_id = %s
+    """, (booking_id,))
+  
+    requests = cursor.fetchall()
+    total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
+    
+    # Fetch payment services
+    cursor.execute("""
+        SELECT *
+        FROM payment p
+        WHERE booking_id = %s
+    """, (booking_id,))
+    payments = cursor.fetchall()
+    total_payment= sum(p.get('amount', p.get('amount', 0)) for p in payments)
+    
+    cursor.close()
+    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id, payments=payments, total_payment=total_payment)
+
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form.get('booking_id')
@@ -3323,10 +3323,6 @@ def failed():
       </body>
     </html>
     """
-
-from flask import request, session, redirect, url_for, flash
-from datetime import datetime, timedelta
-import random
 
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
