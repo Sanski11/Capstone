@@ -1118,6 +1118,7 @@ def show_roomGuest():
             FROM bookings b
             JOIN guest g ON b.guest_id = g.guest_id
             JOIN room r ON b.room_id = r.room_id
+            WHERE upper(b.status) != 'CHECKED-OUT'
         """)
     bookings = cursor.fetchall() #After executing sql; fetch results
     cursor.close() #Close db connection
