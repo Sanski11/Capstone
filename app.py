@@ -3281,20 +3281,50 @@ def pay():
 
 @app.route('/success')
 def success():
-    # Get booking ID from query parameters if you passed it earlier (optional)
     booking_id = request.args.get('booking_id')
 
-    if booking_id:
-        try:
-            cur = mysql.connection.cursor()
-            cur.execute("UPDATE bookings SET status = %s WHERE booking_id = %s", ('Paid', booking_id))
-            mysql.connection.commit()
-            cur.close()
-            message = f"✅ Payment successful for Booking #{booking_id}. Status updated to 'Paid'."
-        except Exception as e:
-            message = f"❌ Payment succeeded, but database update failed: {e}"
-    else:
-        message = "✅ Payment successful! Booking status will be updated shortly."
+    if not booking_id:
+        return """
+        <html>
+          <head>
+            <title>Payment Success</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+          </head>
+          <body class='text-center p-5'>
+            <h2>✅ Payment successful! Booking status will be updated shortly.</h2>
+            <a href='/bookings' class='btn btn-primary mt-3'>Back to Bookings</a>
+          </body>
+        </html>
+        """
+
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        # Step 1: Fetch total bill to know the paid amount
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(totalCost), 0) AS total_bill
+            FROM requests
+            WHERE booking_id = %s
+        """, (booking_id,))
+        total_bill = cursor.fetchone()['total_bill']
+
+        # Step 2: Insert payment record into `payment` table
+        cursor.execute("""
+            INSERT INTO payment (booking_id, payment_date, method, amount)
+            VALUES (%s, NOW(), %s, %s)
+        """, (booking_id, 'Online (PayMongo)', total_bill))
+
+        # Step 3: Update booking status to 'Paid'
+        cursor.execute("UPDATE bookings SET status = %s WHERE booking_id = %s", ('Paid', booking_id))
+        mysql.connection.commit()
+        cursor.close()
+
+        message = f"✅ Payment successful for Booking #{booking_id}. Saved in payment table and marked as Paid."
+
+    except Exception as e:
+        mysql.connection.rollback()
+        message = f"❌ Payment succeeded, but database update failed: {e}"
 
     return f"""
     <html>
