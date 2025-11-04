@@ -122,8 +122,42 @@
       </table>
 
       <div class="d-flex justify-content-end align-items-center mt-4">
-        <h3 class="grand-total">Grand Total: ₱{{ "{:,.2f}".format(total_bill | float) }}</h3>
+        <h3 class="grand-total">Total: ₱{{ "{:,.2f}".format(total_bill | float) }}</h3>
       </div>
+
+      <div class="d-flex align-items-center">
+        <i class="ri-receipt-line fs-3 header-icon"></i>
+        <h2 class="mb-0">Total Payment</h2>
+      </div>
+    </div>
+
+    <table class="table align-middle table-striped">
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>Date</th>
+          <th>Method</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for payment in payments %}
+        <tr>
+          <td>{{ payment.payment_id }}</td>
+          <td>{{ payment.payment_date }}</td>
+          <td>{{ payment.method }}</td>
+          <td class="text-end">₱{{ "{:,.2f}".format((payment.amount or 0) | float) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="d-flex justify-content-end align-items-center mt-4">
+      <h3 class="grand-total">Total Payment: ₱{{ "{:,.2f}".format(total_payment | float) }}
+      <hr>
+      Balance: ₱{{ "{:,.2f}".format((total_bill or 0) - (total_payment or 0)) }}
+    </div>
+
 
       <div class="d-flex gap-3 mt-4">
   <!-- Pay Now (Visible to all roles) -->

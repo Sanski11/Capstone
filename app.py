@@ -2963,8 +2963,18 @@ def view_bill(booking_id):
   
     requests = cursor.fetchall()
     total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
+    
+    # Fetch payment services
+    cursor.execute("""
+        SELECT *
+        FROM payment p
+        WHERE booking_id = %s
+    """, (booking_id,))
+    payments = cursor.fetchall()
+    total_payment= sum(p.get('amount', p.get('amount', 0)) for p in payments)
+    
     cursor.close()
-    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id)
+    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id, payments=payments, total_payment=total_payment)
 
 @app.route('/users')
 def users_page():
