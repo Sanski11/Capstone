@@ -933,7 +933,7 @@ def logout():
 #Called by STAFF Menu - display staff
 @app.route('/staff')
 def view_staffs():
-    selected_staff = request.args.get('staff_id', '') #Get the id of the selected staff
+    selected_staff = request.args.get('staff_id', '')  # Get the id of the selected staff
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     # Fetch staff from 'staff' table
@@ -946,9 +946,9 @@ def view_staffs():
                COALESCE(phone, '') AS phone,
                'staff_table' AS source
         FROM staff
-        SELECT * FROM staff ORDER BY last_name, first_name
+        ORDER BY last_name, first_name
     """)
-    staff_table = list(cursor.fetchall())  # convert to list
+    staff_table = list(cursor.fetchall())
 
     # Fetch users who are staff from 'users' table
     cursor.execute("""
@@ -962,17 +962,15 @@ def view_staffs():
         FROM users
         WHERE role='staff'
     """)
-    user_staff = list(cursor.fetchall())  # convert to list
+    user_staff = list(cursor.fetchall())
 
     # Merge both lists
     combined_staffs = staff_table + user_staff
 
-    # Sort by last_name then first_name
+    # Sort by last_name then first_name (optional since staff_table is already ordered)
     combined_staffs.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
 
     return render_template('staff.html', staffs=combined_staffs, selected_staff=selected_staff)
-    staffs = cursor.fetchall() #Fetch results
-    return render_template('staff.html', staffs=staffs) #pass the contents of staffs to staff.html
 
 #Called by STAFF Menu - check if staff exist in requests
 @app.route('/checkStaff/<int:staff_id>')
