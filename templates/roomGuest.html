@@ -136,42 +136,44 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for booking in bookings %}
-                                    <tr>
-                                        <td>{{ booking.room_number }}</td>
-                                        <td>{{ booking.last_name }}, {{booking.first_name}}</td>
-                                        <td>{{ booking.exp_check_in }}<br>{{ booking.exp_check_out }}</td>
-                                        <td>{{ booking.actual_check_in }}<br>{{ booking.actual_check_out }}</td>
-                                        <td class="text-end">₱{{ "{:,.2f}".format(booking.total_bill | float) }}</td>
-                                        <td class="text-end">₱{{ "{:,.2f}".format(booking.total_payment | float) }}</td>
-                                        <td class="text-end">
-                                            ₱{{ "{:,.2f}".format((booking.total_bill or 0) - (booking.total_payment or 0)) }}
-                                        </td>                                        
-                                        <td>{{ booking.last_update }} / {{ booking.timestamp }} </td>
-                                        <td>
-                                            {% if not booking.actual_check_in %}
-                                                <!-- Show Check-In button if no check-in date yet -->
-                                                <button class="btn btn-success btn-sm" onclick="openCheckInModal('{{ booking.booking_id }}')">
-                                                    <i class="ri-login-circle-line"></i> Check-In
-                                                </button>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if role in ['manager', 'user', 'admin', 'supervisor'] and booking.actual_check_in and not booking.actual_check_out %}
-                                                <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill/<br>Payment<a>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if booking.actual_check_in and not booking.actual_check_out %}
-                                                <!-- Show Check-Out button if checked-in but not yet checked-out -->
-                                                <button class="btn btn-danger btn-sm" onclick="openCheckOutModal('{{ booking.booking_id }}')">
-                                                    <i class="ri-logout-circle-line"></i> Check-Out
-                                                </button>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
+                            {% for booking in bookings %}
+                            <tr>
+                                <td>{{ booking.room_number }}</td>
+                                <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
+                                <td>{{ booking.exp_check_in }}<br>{{ booking.exp_check_out }}</td>
+                                <td>{{ booking.actual_check_in }}<br>{{ booking.actual_check_out }}</td>
+                                <td class="text-end">₱{{ "{:,.2f}".format(booking.total_bill | float) }}</td>
+                                <td class="text-end">₱{{ "{:,.2f}".format(booking.total_payment | float) }}</td>
+                                <td class="text-end">
+                                    {% set balance = (booking.total_bill or 0) - (booking.total_payment or 0) %}
+                                    ₱{{ "{:,.2f}".format(balance if balance > 0 else 0) }}
+                                </td>
+                                <td>{{ booking.last_update }} / {{ booking.timestamp }}</td>
+                                <td>
+                                    {% if not booking.actual_check_in %}
+                                    <button class="btn btn-success btn-sm" onclick="openCheckInModal('{{ booking.booking_id }}')">
+                                        <i class="ri-login-circle-line"></i> Check-In
+                                    </button>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if role in ['manager', 'user', 'admin', 'supervisor'] and booking.actual_check_in and not booking.actual_check_out %}
+                                    <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">
+                                        View Bill/<br>Payment
+                                    </a>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if booking.actual_check_in and not booking.actual_check_out %}
+                                    <button class="btn btn-danger btn-sm" onclick="openCheckOutModal('{{ booking.booking_id }}')">
+                                        <i class="ri-logout-circle-line"></i> Check-Out
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+
                             </table>
                         </div>
                     </div>

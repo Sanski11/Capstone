@@ -3199,7 +3199,8 @@ def update_user():
 @app.route('/bill/<int:booking_id>')
 def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    #Get all requests for this booking
+
+    # Get all requests for this booking
     cursor.execute("""
         SELECT 
             r.*, 
@@ -3210,21 +3211,33 @@ def view_bill(booking_id):
         LEFT JOIN food_items f ON r.item_id = f.item_id
         WHERE r.booking_id = %s
     """, (booking_id,))
-  
     requests = cursor.fetchall()
-    total_bill = sum(r.get('totalCost', r.get('total_cost', 0)) for r in requests)
     
-    # Fetch payment services
+    total_bill = sum(float(r.get('totalCost', r.get('total_cost', 0))) for r in requests)
+    
+    # Fetch payment records
     cursor.execute("""
         SELECT *
         FROM payment p
         WHERE booking_id = %s
     """, (booking_id,))
     payments = cursor.fetchall()
-    total_payment= sum(p.get('amount', p.get('amount', 0)) for p in payments)
+    total_payment = sum(float(p.get('amount', 0)) for p in payments)
+    
+    # Compute remaining balance safely
+    balance = round(max(total_bill - total_payment, 0), 2)
     
     cursor.close()
-    return render_template('bill.html', requests=requests, total_bill=total_bill, booking_id=booking_id, payments=payments, total_payment=total_payment)
+    
+    return render_template(
+        'bill.html',
+        requests=requests,
+        total_bill=total_bill,
+        booking_id=booking_id,
+        payments=payments,
+        total_payment=total_payment,
+        balance=balance  # <-- pass balance to template
+    )
 
 @app.route('/pay', methods=['POST'])
 def pay():
@@ -3302,21 +3315,21 @@ def success():
 
         # Step 1: Fetch total bill to know the paid amount
         cursor.execute("""
-            SELECT 
-                COALESCE(SUM(totalCost), 0) AS total_bill
+            SELECT COALESCE(SUM(totalCost), 0) AS total_bill
             FROM requests
             WHERE booking_id = %s
         """, (booking_id,))
         total_bill = cursor.fetchone()['total_bill']
 
-        # Step 2: Insert payment record into `payment` table
+        # Step 2: Insert payment record with status = 'Paid'
         cursor.execute("""
-            INSERT INTO payment (booking_id, payment_date, method, amount)
-            VALUES (%s, NOW(), %s, %s)
-        """, (booking_id, 'Online (PayMongo)', total_bill))
+            INSERT INTO payment (booking_id, amount, payment_date, payment_method, status)
+            VALUES (%s, %s, NOW(), %s, %s)
+        """, (booking_id, total_bill, 'Online (PayMongo)', 'Paid'))
 
         # Step 3: Update booking status to 'Paid'
         cursor.execute("UPDATE bookings SET status = %s WHERE booking_id = %s", ('Paid', booking_id))
+
         mysql.connection.commit()
         cursor.close()
 

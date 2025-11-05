@@ -14,23 +14,25 @@
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
 
   <style>
-    :root { --ez-primary: #8a2be2; }
-    .app-sidebar { background-color: var(--ez-primary) !important; }
-    .btn-primary { background-color: var(--ez-primary) !important; border-color: var(--ez-primary) !important; }
-    .btn-primary:hover { background-color: #6a1aae !important; border-color: #6a1aae !important; }
-    .summary-card {
-      background: #fff; border-radius: 10px; text-align: center; padding: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
     }
-    .summary-card h6 { color: #6c757d; font-weight: 600; margin-bottom: 6px; }
-    .summary-card h3 { font-weight: 700; color: #343a40; }
-    .profile-pic {
-      width: 130px; height: 130px; border-radius: 50%; object-fit: cover;
-      border: 3px solid var(--ez-primary);
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
     }
-    .upload-btn { cursor: pointer; color: var(--ez-primary); text-decoration: underline; font-size: 13px; }
-    .modal-header { border-bottom: none; }
-    .modal-footer { border-top: none; }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
   </style>
 </head>
 

@@ -134,7 +134,7 @@
       <!-- Payment Section -->
       <div class="d-flex align-items-center mt-5">
         <i class="ri-wallet-line fs-3 header-icon"></i>
-        <h2 class="mb-0">Total Payment</h2>
+        <h2 class="mb-0">Payments</h2>
       </div>
 
       <table class="table align-middle table-striped mt-3">
@@ -143,6 +143,7 @@
             <th>Payment ID</th>
             <th>Date</th>
             <th>Method</th>
+            <th>Status</th>
             <th>Amount</th>
           </tr>
         </thead>
@@ -151,7 +152,16 @@
           <tr>
             <td>{{ payment.payment_id }}</td>
             <td>{{ payment.payment_date }}</td>
-            <td>{{ payment.method }}</td>
+            <td>{{ payment.payment_method or payment.method }}</td>
+            <td>
+              {% if payment.status %}
+                <span class="{{ 'text-success' if payment.status.lower() == 'paid' else 'text-danger' }}">
+                  {{ payment.status }}
+                </span>
+              {% else %}
+                Pending
+              {% endif %}
+            </td>
             <td class="text-end">₱{{ "{:,.2f}".format((payment.amount or 0) | float) }}</td>
           </tr>
           {% endfor %}
@@ -162,9 +172,13 @@
       <div class="d-flex justify-content-end align-items-center mt-4">
         <div class="text-end">
           <h4 class="grand-total">Total Payment: ₱{{ "{:,.2f}".format(total_payment | float) }}</h4>
-          <h4 class="grand-total mt-2" 
-              style="color: {{ 'green' if (total_bill - total_payment) <= 0 else 'red' }};">
-              Balance: ₱{{ "{:,.2f}".format((total_bill or 0) - (total_payment or 0)) }}
+          <h4 class="grand-total mt-2"
+              style="color: {{ 'green' if balance == 0 else 'red' }};">
+              {% if balance == 0 %}
+                Balance: ₱0.00 (Fully Paid)
+              {% else %}
+                Balance: ₱{{ "{:,.2f}".format(balance) }}
+              {% endif %}
           </h4>
         </div>
       </div>
