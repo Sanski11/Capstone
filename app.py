@@ -3461,7 +3461,7 @@ def paymongo_webhook():
         cursor.execute("""
             UPDATE payment 
             SET status = 'Failed' 
-            WHERE booking_id = %s AND status = 'Pending'
+            WHERE booking_id = %s AND status = 'Paid'
             ORDER BY payment_id DESC LIMIT 1
         """, (booking_id,))
         mysql.connection.commit()
