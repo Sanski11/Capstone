@@ -3219,33 +3219,30 @@ def view_bill(booking_id):
     """, (booking_id,))
     requests = cursor.fetchall()
     
-    # Total Bill is sum of request totalCost
     total_bill = sum(float(r.get('totalCost', r.get('total_cost', 0))) for r in requests)
     
-    # Fetch payment records directly from DB (do not sum or override)
+    # Fetch payment records
     cursor.execute("""
         SELECT *
-        FROM payment
+        FROM payment p
         WHERE booking_id = %s
     """, (booking_id,))
     payments = cursor.fetchall()
+    total_payment = sum(float(p.get('amount', 0)) for p in payments)
     
-    # Use the total from DB if you need to display it
     cursor.execute("""
         SELECT COALESCE(SUM(amount), 0) AS total_payment,
-               IFNULL(MAX(status), 'Paid') AS payment_status
+            IFNULL(MAX(status), 'Pending') AS payment_status
         FROM payment
         WHERE booking_id = %s
     """, (booking_id,))
     payment_summary = cursor.fetchone()
     total_payment = float(payment_summary['total_payment'])
     payment_status = payment_summary['payment_status']
-
-    # Compute balance relative to total bill
     balance = round(max(total_bill - total_payment, 0), 2)
-
+    
     cursor.close()
-
+    
     return render_template(
         'bill.html',
         requests=requests,
@@ -3253,41 +3250,14 @@ def view_bill(booking_id):
         booking_id=booking_id,
         payments=payments,
         total_payment=total_payment,
-        balance=balance,
+        balance=balance,  # <-- pass balance to template
         payment_status=payment_status
     )
 
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form.get('booking_id')
-
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Get Total Bill
-    cursor.execute("""
-        SELECT COALESCE(SUM(total_cost), 0) AS total_bill
-        FROM requests
-        WHERE booking_id = %s
-    """, (booking_id,))
-    total_bill = float(cursor.fetchone()['total_bill'])
-
-    # Get total paid so far
-    cursor.execute("""
-        SELECT COALESCE(SUM(amount), 0) AS total_paid
-        FROM payment
-        WHERE booking_id = %s AND status = 'Paid'
-    """, (booking_id,))
-    total_paid = float(cursor.fetchone()['total_paid'])
-
-    # Remaining balance
-    balance = round(max(total_bill - total_paid, 0), 2)
-    cursor.close()
-
-    if balance <= 0:
-        return jsonify({"error": "✅ This booking is already fully paid!"})
-
-    # Convert to centavos
-    amount_in_centavos = int(balance * 100)
+    amount = int(request.form.get('amount', 0))  # in centavos
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
@@ -3298,7 +3268,7 @@ def pay():
     intent_payload = {
         "data": {
             "attributes": {
-                "amount": amount_in_centavos,
+                "amount": amount,
                 "currency": "PHP",
                 "description": f"Booking #{booking_id} Payment",
                 "payment_method_allowed": ["card", "gcash", "grab_pay"],
@@ -3311,16 +3281,16 @@ def pay():
     if "data" not in intent_data:
         return f"<h3>❌ Error creating payment intent.</h3><pre>{json.dumps(intent_data, indent=2)}</pre>"
 
-    # Save pending payment
+    # Save a pending payment WITHOUT paymongo_intent_id
     cursor = mysql.connection.cursor()
     cursor.execute("""
         INSERT INTO payment (booking_id, amount, payment_date, payment_method, status) 
         VALUES (%s, %s, NOW(), %s, %s)
-    """, (booking_id, balance, 'PayMongo', 'Paid'))
+    """, (booking_id, amount, 'PayMongo', 'Paid'))
     mysql.connection.commit()
     cursor.close()
 
-    # Step 2: Create checkout link
+    # Step 2: Create a checkout link
     intent_id = intent_data["data"]["id"]
     checkout_payload = {
         "data": {
@@ -3328,7 +3298,7 @@ def pay():
                 "payment_intent": intent_id,
                 "billing": {"name": "ezStay Guest"},
                 "description": f"Booking #{booking_id} Payment",
-                "amount": amount_in_centavos,
+                "amount": amount,
                 "currency": "PHP",
                 "success_url": url_for('success', booking_id=booking_id, _external=True),
                 "cancel_url": url_for('failed', _external=True),
@@ -3461,7 +3431,7 @@ def paymongo_webhook():
         cursor.execute("""
             UPDATE payment 
             SET status = 'Failed' 
-            WHERE booking_id = %s AND status = 'Paid'
+            WHERE booking_id = %s AND status = 'Pending'
             ORDER BY payment_id DESC LIMIT 1
         """, (booking_id,))
         mysql.connection.commit()
