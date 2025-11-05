@@ -3218,39 +3218,66 @@ def view_bill(booking_id):
         WHERE r.booking_id = %s
     """, (booking_id,))
     requests = cursor.fetchall()
-    
-    total_bill = sum(float(r.get('totalCost', r.get('total_cost', 0))) for r in requests)
-    
-    # Fetch payment records
+
+    # Aggregate requests by service/item
+    grouped_requests = {}
+    for r in requests:
+        name = r.get('service_name') or r.get('item_name') or 'N/A'
+        if name not in grouped_requests:
+            grouped_requests[name] = {
+                'quantity': 0,
+                'unit_cost': float(r.get('unitCost', r.get('unit_cost', 0))),
+                'total_cost': 0
+            }
+        grouped_requests[name]['quantity'] += int(r.get('quantity', 1))
+        grouped_requests[name]['total_cost'] += float(r.get('totalCost', r.get('total_cost', 0)))
+
+    # Convert dict to list for template
+    requests_grouped_list = [
+        {
+            'service_name': name,
+            'quantity': data['quantity'],
+            'unit_cost': data['unit_cost'],
+            'total_cost': data['total_cost']
+        } 
+        for name, data in grouped_requests.items()
+    ]
+
+    # Total bill
+    total_bill = sum(r['total_cost'] for r in requests_grouped_list)
+
+    # Fetch payments
     cursor.execute("""
         SELECT *
-        FROM payment p
+        FROM payment
         WHERE booking_id = %s
     """, (booking_id,))
     payments = cursor.fetchall()
     total_payment = sum(float(p.get('amount', 0)) for p in payments)
-    
+
+    # Payment summary
     cursor.execute("""
         SELECT COALESCE(SUM(amount), 0) AS total_payment,
-            IFNULL(MAX(status), 'Pending') AS payment_status
+               IFNULL(MAX(status), 'Pending') AS payment_status
         FROM payment
         WHERE booking_id = %s
     """, (booking_id,))
     payment_summary = cursor.fetchone()
     total_payment = float(payment_summary['total_payment'])
     payment_status = payment_summary['payment_status']
+
     balance = round(max(total_bill - total_payment, 0), 2)
-    
+
     cursor.close()
-    
+
     return render_template(
         'bill.html',
-        requests=requests,
+        requests=requests_grouped_list,  # grouped list
         total_bill=total_bill,
         booking_id=booking_id,
         payments=payments,
         total_payment=total_payment,
-        balance=balance,  # <-- pass balance to template
+        balance=balance,
         payment_status=payment_status
     )
 
