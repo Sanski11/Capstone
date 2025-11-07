@@ -3585,67 +3585,123 @@ def resend_otp():
 @app.route('/forceassigntask', methods=['POST'])
 def forceassigntask():
     request_id = request.form.get("assignTask_request_id")
-    staff_id = request.form.get("assignTask_staff_id")
+    staff_id_value = request.form.get("assignTask_staff_id")
 
-    if not request_id or not staff_id:
+    # debug log incoming form
+    print("DEBUG /forceassigntask form:", dict(request.form))
+
+    if not request_id or not staff_id_value:
         flash("Missing request or staff ID", "danger")
         return redirect(url_for("show_requests"))
 
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("""
-        UPDATE requests
-        SET staff_id = %s
-        WHERE request_id = %s
-    """, (staff_id, request_id))
-    mysql.connection.commit()
-    cursor.close()
+    # try to cast to int, if fails show message and return
+    try:
+        staff_candidate_id = int(staff_id_value)
+    except (ValueError, TypeError):
+        flash("Invalid staff id selected.", "danger")
+        return redirect(url_for("show_requests"))
 
-    flash("Staff assigned successfully", "success")
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    try:
+        # 1) Check if that id exists in staff table
+        cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_candidate_id,))
+        staff_row = cursor.fetchone()
+
+        # 2) If not in staff, check users table (user-as-staff)
+        if not staff_row:
+            cursor.execute("SELECT * FROM users WHERE user_id = %s", (staff_candidate_id,))
+            user_row = cursor.fetchone()
+
+            if user_row:
+                # create a staff row from user row (adapt fields as needed)
+                # keep phone empty if not available
+                first_name = user_row.get('first_name') or user_row.get('username') or ''
+                last_name = user_row.get('last_name') or ''
+                role = user_row.get('role') or 'staff'
+                email = user_row.get('email') or ''
+                phone = user_row.get('phone') or ''
+
+                cursor.execute("""
+                    INSERT INTO staff (first_name, last_name, role, email, phone, last_update, timestamp)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (first_name, last_name, role, email, phone, session.get('username'), datetime.now()))
+                mysql.connection.commit()
+
+                # get the newly created staff_id
+                cursor.execute("SELECT LAST_INSERT_ID() AS staff_id")
+                new_row = cursor.fetchone()
+                if not new_row:
+                    flash("Failed to create staff record from user.", "danger")
+                    cursor.close()
+                    return redirect(url_for("show_requests"))
+
+                staff_candidate_id = new_row['staff_id']
+            else:
+                flash("Selected person not found in staff or users table.", "danger")
+                cursor.close()
+                return redirect(url_for("show_requests"))
+
+        # 3) Update request with valid staff_id
+        cursor.execute("""
+            UPDATE requests
+            SET staff_id = %s
+            WHERE request_id = %s
+        """, (staff_candidate_id, request_id))
+        mysql.connection.commit()
+
+        flash("Staff assigned successfully", "success")
+    except Exception as e:
+        mysql.connection.rollback()
+        print("ERROR /forceassigntask:", e)
+        flash("Failed to assign staff, see server logs.", "danger")
+    finally:
+        cursor.close()
+
     return redirect(url_for("show_requests"))
 
 def _resolve_target_role(cursor, request_id):
-    
-    #Figure out which department this request belongs to and return the matching staff role.
-    #Rules:
-    #Service Request: Role = "<service.category> - Staff" (e.g., 'Housekeeping - Staff')
-    #Food Request: Role = "Food/Dining" - "Staff"
-    
+    """
+    Determine which department this request belongs to and return the corresponding staff role.
+    Rules:
+      - Service Request: Role = "<service.category> - Staff"
+      - Food Request: Role = "Food/Dining - Staff"
+    """
     cursor.execute("""
         SELECT r.service_id, r.item_id,
-                hs.category AS service_category,
-                fi.category AS food_category
+               hs.category AS service_category,
+               fi.category AS food_category
         FROM requests r
         LEFT JOIN hotel_services hs ON r.service_id = hs.service_id
-        LEFT JOIN food_items fi     ON r.item_id = f.item_id
+        LEFT JOIN food_items fi ON r.item_id = fi.item_id
         WHERE r.request_id = %s
     """, (request_id,))
+    
     row = cursor.fetchone()
     if not row:
         return None
-    
+
     if row['service_id']:
         dept = row['service_category'] or ''
         target_role = f"{dept} - Staff"
     else:
-        #Any food item belongs to Food/Dining team
         target_role = "Food/Dining - Staff"
+
     return target_role
 
 def _pick_least_loaded_staff(cursor, target_role):
-    """
-    Choose the user/staff with the fewest active requests (status != 'completed') 
-    for the given role. Ties are broken by lowest user_id.
-    Works with combined users + staff model.
-    """
+    
+    #Choose the staff with the fewest *active* requests (status != 'completed') for the role.
+    #Ties are broken by lowest staff_id.
+    
     cursor.execute("""
-        SELECT u.id AS staff_id,
-               u.name,
-               COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
-        FROM users u
-        LEFT JOIN requests r ON r.staff_id = u.id
-        WHERE u.role = %s
-        GROUP BY u.id
-        ORDER BY load_now ASC, u.id ASC
+        SELECT s.staff_id,
+                COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
+        FROM staff s
+        LEFT JOIN requests r ON r.staff_id = s.staff_id
+        WHERE s.role = %s
+        GROUP BY s.staff_id
+        ORDER BY load_now ASC, s.staff_id ASC
         LIMIT 1
     """, (target_role,))
     return cursor.fetchone()
@@ -3718,6 +3774,29 @@ def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old
     except Exception as e:
         # Log but do not crash the app
         print(f"FATAL AUDIT FAILURE: {e}")
+        
+@app.route('/completedRequest', methods=['POST'])
+def completedRequest():
+    request_id = request.form.get('completed_request_id')
+    completion_time = request.form.get('completion_time')
+
+    if not request_id or not completion_time:
+        flash("Missing request ID or completion time", "danger")
+        return redirect(url_for('show_requests'))
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        UPDATE requests
+        SET status = 'completed',
+            completion_time = %s
+        WHERE request_id = %s
+    """, (completion_time, request_id))
+    mysql.connection.commit()
+    cursor.close()
+
+    flash("Request marked as completed successfully", "success")
+    return redirect(url_for('show_requests'))
+
             
 if __name__ == '__main__':
     app.run(debug=True)

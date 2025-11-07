@@ -410,10 +410,13 @@
           <input type="hidden" id="assignTask_request_id" name="assignTask_request_id">
           <div class="mb-3">
             <label>Assign to Staff</label>
-            <select name="assignTask_staff_id" class="form-select" required>
-              {% for staff in staff_list %}
-              <option value="{{ staff.staff_id }}">{{ staff.first_name }} {{ staff.last_name }} ({{ staff.role }})</option>
-              {% endfor %}
+            <select name="assignTask_staff_id" id="assignTask_staff_id" class="form-select" required>
+            {% for staff in staff_list %}
+            <option value="{{ staff.id }}"
+                    data-source="{{ staff.source or '' }}">
+                {{ staff.first_name }}{% if staff.last_name %} {{ staff.last_name }}{% endif %} ({{ staff.role }})
+            </option>
+            {% endfor %}
             </select>
           </div>
         </div>
@@ -629,8 +632,11 @@
 
     // ---------- assign ----------
     function openAssignModal(requestId) {
-        document.getElementById('assignTask_request_id').value = requestId;
-        new bootstrap.Modal(document.getElementById('assignModal')).show();
+    document.getElementById('assignTask_request_id').value = requestId;
+    // optional: reset select to first option
+    const sel = document.getElementById('assignTask_staff_id');
+    if (sel) sel.selectedIndex = 0;
+    new bootstrap.Modal(document.getElementById('assignModal')).show();
     }
 
     // ---------- completed ----------
