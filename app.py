@@ -3632,18 +3632,20 @@ def _resolve_target_role(cursor, request_id):
     return target_role
 
 def _pick_least_loaded_staff(cursor, target_role):
-    
-    #Choose the staff with the fewest *active* requests (status != 'completed') for the role.
-    #Ties are broken by lowest staff_id.
-    
+    """
+    Choose the user/staff with the fewest active requests (status != 'completed') 
+    for the given role. Ties are broken by lowest user_id.
+    Works with combined users + staff model.
+    """
     cursor.execute("""
-        SELECT s.staff_id,
-                COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
-        FROM staff s
-        LEFT JOIN requests r ON r.staff_id = s.staff_id
-        WHERE s.role = %s
-        GROUP BY s.staff_id
-        ORDER BY load_now ASC, s.staff_id ASC
+        SELECT u.id AS staff_id,
+               u.name,
+               COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
+        FROM users u
+        LEFT JOIN requests r ON r.staff_id = u.id
+        WHERE u.role = %s
+        GROUP BY u.id
+        ORDER BY load_now ASC, u.id ASC
         LIMIT 1
     """, (target_role,))
     return cursor.fetchone()
