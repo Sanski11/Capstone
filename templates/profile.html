@@ -43,12 +43,6 @@
 
     <!-- Main Content -->
     <div class="main-content app-content">
-      <div class="container-fluid page-container main-body-container">
-        <div class="d-flex align-items-center justify-content-between mb-4 mt-3">
-          <h1 class="page-title fw-medium fs-20 mb-0">User Profile</h1>
-          <a href="{{ url_for('dashboard') }}" class="btn btn-dark btn-sm">← Back to Dashboard</a>
-        </div>
-
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
