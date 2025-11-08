@@ -383,21 +383,6 @@
         window.openEditModal = openEditModal;
         window.confirmDelete = confirmDelete;
 
-        // Sidebar Toggle Logic
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggle = document.querySelector('.sidemenu-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', function() {
-                    const html = document.querySelector('html');
-                    if (html.getAttribute('data-toggled') === 'close') {
-                        html.setAttribute('data-toggled', 'open');
-                    } else {
-                        html.setAttribute('data-toggled', 'close');
-                    }
-                });
-            }
-        });
-        
         document.addEventListener("DOMContentLoaded", function() {
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {

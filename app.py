@@ -886,7 +886,8 @@ def profile():
         role=user['role'],
         completed_tasks=completed_tasks,
         total_bookings=total_bookings,
-        activities=activities
+        activities=activities,
+        active_page='profile'
     )
 
 
