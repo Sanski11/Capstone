@@ -3195,7 +3195,7 @@ def update_user():
 def view_bill(booking_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Get all requests for this booking
+    # Fetch requests
     cursor.execute("""
         SELECT 
             r.*, 
@@ -3208,7 +3208,7 @@ def view_bill(booking_id):
     """, (booking_id,))
     requests = cursor.fetchall()
 
-    # Aggregate requests by service/item
+    # Aggregate by service/item
     grouped_requests = {}
     for r in requests:
         name = r.get('service_name') or r.get('item_name') or 'N/A'
@@ -3221,7 +3221,6 @@ def view_bill(booking_id):
         grouped_requests[name]['quantity'] += int(r.get('quantity', 1))
         grouped_requests[name]['total_cost'] += float(r.get('totalCost', r.get('total_cost', 0)))
 
-    # Convert dict to list for template
     requests_grouped_list = [
         {
             'service_name': name,
@@ -3242,7 +3241,6 @@ def view_bill(booking_id):
         WHERE booking_id = %s
     """, (booking_id,))
     payments = cursor.fetchall()
-    total_payment = sum(float(p.get('amount', 0)) for p in payments)
 
     # Payment summary
     cursor.execute("""
@@ -3252,7 +3250,7 @@ def view_bill(booking_id):
         WHERE booking_id = %s
     """, (booking_id,))
     payment_summary = cursor.fetchone()
-    total_payment = float(payment_summary['total_payment'])
+    total_payment = float(payment_summary['total_payment'])  # now in pesos
     payment_status = payment_summary['payment_status']
 
     balance = round(max(total_bill - total_payment, 0), 2)
@@ -3261,7 +3259,7 @@ def view_bill(booking_id):
 
     return render_template(
         'bill.html',
-        requests=requests_grouped_list,  # grouped list
+        requests=requests_grouped_list,
         total_bill=total_bill,
         booking_id=booking_id,
         payments=payments,
@@ -3273,7 +3271,8 @@ def view_bill(booking_id):
 @app.route('/pay', methods=['POST'])
 def pay():
     booking_id = request.form.get('booking_id')
-    amount = int(request.form.get('amount', 0))  # in centavos
+    amount = int(request.form.get('amount', 0))  # sent in centavos
+    amount_pesos = amount / 100  # convert to pesos
 
     HEADERS = {
         "Authorization": "Basic " + base64.b64encode(f"{PAYMONGO_SECRET_KEY}:".encode()).decode(),
@@ -3297,16 +3296,16 @@ def pay():
     if "data" not in intent_data:
         return f"<h3>❌ Error creating payment intent.</h3><pre>{json.dumps(intent_data, indent=2)}</pre>"
 
-    # Save a pending payment WITHOUT paymongo_intent_id
+    # Save a pending payment in pesos
     cursor = mysql.connection.cursor()
     cursor.execute("""
         INSERT INTO payment (booking_id, amount, payment_date, payment_method, status) 
         VALUES (%s, %s, NOW(), %s, %s)
-    """, (booking_id, amount, 'PayMongo', 'Paid'))
+    """, (booking_id, amount_pesos, 'PayMongo', 'Paid'))  # amount now in pesos
     mysql.connection.commit()
     cursor.close()
 
-    # Step 2: Create a checkout link
+    # Step 2: Create checkout link
     intent_id = intent_data["data"]["id"]
     checkout_payload = {
         "data": {
