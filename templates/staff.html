@@ -119,7 +119,7 @@
                                                 <i class="ri-pencil-line"></i>
                                             </button>
                                             <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                onclick="confirmDelete('{{ staff.get('staff_id', staff.get('user_id', '')) }}', '{{ staff.last_name | escape }}', '{{ staff.source if staff.source is defined else 'staff_table' }}')">
+                                                onclick="confirmDelete('{{ staff.id }}', '{{ staff.last_name | escape }}', '{{ staff.source }}')">
                                                 <i class="ri-delete-bin-line"></i>
                                             </button>
                                         </td>
@@ -244,22 +244,25 @@
 
     <!-- Delete Modal -->
     <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white" style="background-color: #dc3545 !important;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteForm" method="POST">
+                <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="deleteModalLabel">Confirm Delete</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     Are you sure you want to delete Staff <span id="modalStaffLastName" class="fw-semibold"></span>?
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <a id="confirmDeleteBtn" class="btn btn-danger">Delete</a>
+                    <button type="submit" class="btn btn-danger">Delete</button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
+</div>
+
 
     <!-- In Use Modal -->
     <div class="modal fade" id="inUseModal" tabindex="-1" aria-labelledby="inUseModalLabel" aria-hidden="true">
@@ -318,15 +321,22 @@
             document.getElementById("edit_phone").value = staff.phone || '';
         }
 
+        // Delete Confirmation Logic
         function confirmDelete(record_id, last_name, type) {
-        fetch(`/checkStaff/${record_id}?type=${type}`)
+    fetch(`/checkStaff/${record_id}?type=${type}`)
         .then(response => response.json())
         .then(data => {
             if (data.in_use) {
                 new bootstrap.Modal(document.getElementById('inUseModal')).show();
             } else {
+                // Set staff name in modal
                 document.getElementById("modalStaffLastName").innerText = last_name;
-                document.getElementById("confirmDeleteBtn").href = `/deleteStaff/${record_id}?type=${type}`;
+
+                // Set form action dynamically
+                const deleteForm = document.getElementById("deleteForm");
+                deleteForm.action = `/deleteStaff/${record_id}?type=${type}`;
+
+                // Show modal
                 new bootstrap.Modal(document.getElementById('deleteModal')).show();
             }
         })

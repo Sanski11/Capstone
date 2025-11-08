@@ -886,8 +886,7 @@ def profile():
         role=user['role'],
         completed_tasks=completed_tasks,
         total_bookings=total_bookings,
-        activities=activities,
-        active_page='profile'
+        activities=activities
     )
 
 
@@ -2537,37 +2536,26 @@ def updateStaff():
     return redirect('/staff')
 
 #Called by STAFF Menu - delete a staff
-@app.route('/deleteStaff/<int:staff_id>', methods=['GET'])
-def deleteStaff(staff_id):
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    
-    #Get old data
-    cursor.execute("SELECT * FROM staff WHERE staff_id =%s", (staff_id,)) #change table and field name
-    old_data = cursor.fetchone()
-    timestamp = datetime.now()
-    
-    if not old_data:
+@app.route('/deleteStaff/<int:staff_id>', methods=['POST'])
+def delete_staff(staff_id):
+    staff_type = request.args.get('type', 'staff_table')
+    cursor = mysql.connection.cursor()
+
+    try:
+        if staff_type == 'users_table':
+            cursor.execute("DELETE FROM users WHERE user_id=%s AND role='staff'", (staff_id,))
+        else:
+            cursor.execute("DELETE FROM staff WHERE staff_id=%s", (staff_id,))
+        
+        mysql.connection.commit()
+        flash("Staff deleted successfully.", "success")
+    except Exception as e:
+        mysql.connection.rollback()
+        flash(f"Error deleting staff: {str(e)}", "danger")
+    finally:
         cursor.close()
-        #Handle case where the room ID doesn't exist
-        return "Staff not found or already deleted", 404 #change message
-    
-    cursor.execute("DELETE FROM staff WHERE staff_id = %s", (staff_id,))
-    mysql.connection.commit()
-    
-    #Save logs
-    log_audit_event(
-        actor_id = session['username'],
-        timestamp=timestamp,
-        table_name='staff',  #change
-        action_type='DELETE', 
-        record_id=str(staff_id), #change
-        old_data=old_data, 
-        new_data=None 
-    )
-    
-    cursor.close()
-    flash('Staff deleted successfully', 'success')
-    return redirect('/staff')
+
+    return redirect(url_for('view_staffs'))
 
 #Called by SERVICES Menu - check if service exist in requests
 @app.route('/checkServices/<int:service_id>')
