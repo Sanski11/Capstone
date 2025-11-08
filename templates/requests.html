@@ -136,7 +136,7 @@
                                     <td>{{ request.notes }}</td>
                                     <td>
                                         {% if request.staff_first_name %}
-                                            <span class="badge bg-info-transparent">Assigned to: {{ request.staff_first_name }} {{ request.staff_first_name }} </span>
+                                            <span class="badge bg-info-transparent">Assigned to: {{ request.staff_first_name }} {{ request.staff_last_name }} </span>
                                         {% else %}
                                             <span class="text-muted">Unassigned</span>
                                         {% endif %}
@@ -630,13 +630,23 @@
     }
 
     // ---------- assign ----------
-    function openAssignModal(requestId) {
-    document.getElementById('assignTask_request_id').value = requestId;
-    // optional: reset select to first option
-    const sel = document.getElementById('assignTask_staff_id');
-    if (sel) sel.selectedIndex = 0;
-    new bootstrap.Modal(document.getElementById('assignModal')).show();
+    function openAssignModal(requestId, currentStaffId = null) {
+    const requestInput = document.getElementById('assignTask_request_id');
+    requestInput.value = requestId;
+
+    const staffSelect = document.getElementById('assignTask_staff_id');
+    
+    // Preselect the current staff if any
+    if (currentStaffId) {
+        [...staffSelect.options].forEach(option => {
+            option.selected = option.value == currentStaffId;
+        });
+    } else {
+        staffSelect.selectedIndex = 0; // default to first option
     }
+
+    new bootstrap.Modal(document.getElementById('assignModal')).show();
+}
 
     // ---------- completed ----------
     function openCompletedModal(requestId) {

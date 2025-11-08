@@ -3701,19 +3701,19 @@ def assigntask():
     if not req_id:
         flash("No request id.", "danger")
         return redirect('/requests')
+    
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     
-    #If already assigned, keep current assignment (avoid accidental reassigns)
     cur.execute("SELECT staff_id, status FROM requests WHERE request_id = %s", (req_id,))
     req_row = cur.fetchone()
     if not req_row:
         cur.close()
         flash("Request not found.", "danger")
         return redirect('/requests')
-    if req_row['staff_id']:
-        cur.close()
-        flash("Request already assigned.", "info")
-        return redirect('/requests')
+    
+    # Optional: store old staff for audit
+    old_staff_id = req_row['staff_id']
+
     target_role = _resolve_target_role(cur, req_id)
     if not target_role:
         cur.close()
@@ -3722,7 +3722,7 @@ def assigntask():
     
     staff = _pick_least_loaded_staff(cur, target_role)
     
-    #Fallback: If no Staff found, try the Manager of the same department
+    # Fallback: If no Staff found, try the Manager of the same department
     if not staff and " - Staff" in target_role:
         mgr_role = target_role.replace(" - Staff", " - Manager")
         staff = _pick_least_loaded_staff(cur, mgr_role)
@@ -3731,17 +3731,28 @@ def assigntask():
         cur.close()
         flash(f"No available staff for role '{target_role}'.", "warning")
         return redirect('/requests')
+    
     cur.execute("""
         UPDATE requests
         SET staff_id = %s,
-            -- Optionally auto-move from 'pending' to 'approved' when assigned:
-            status  = CASE WHEN status = 'pending' THEN 'pending' ELSE status END
+            status = CASE WHEN status = 'pending' THEN 'pending' ELSE status END
         WHERE request_id = %s
     """, (staff['staff_id'], req_id))
     mysql.connection.commit()
-    cur.close()
     
-    flash("Request assigned successfully.", "success")
+    # Optional: log audit for reassignment
+    log_audit_event(
+        actor_id=session.get('username'),
+        timestamp=datetime.now(),
+        table_name='requests',
+        action_type='update',
+        record_id=req_id,
+        old_data={'staff_id': old_staff_id},
+        new_data={'staff_id': staff['staff_id']}
+    )
+    
+    cur.close()
+    flash(f"Request assigned successfully.", "success")
     return redirect('/requests')
 
 def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old_data=None, new_data=None):
