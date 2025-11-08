@@ -3254,6 +3254,8 @@ def view_bill(booking_id):
     payment_status = payment_summary['payment_status']
 
     balance = round(max(total_bill - total_payment, 0), 2)
+    has_requests = total_bill > 0
+
 
     cursor.close()
 
@@ -3265,7 +3267,8 @@ def view_bill(booking_id):
         payments=payments,
         total_payment=total_payment,
         balance=balance,
-        payment_status=payment_status
+        payment_status=payment_status,
+        has_requests=has_requests
     )
 
 @app.route('/pay', methods=['POST'])

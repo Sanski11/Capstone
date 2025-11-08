@@ -164,26 +164,35 @@
       <div class="text-end">
         <h4 class="grand-total">Total Payment: ₱{{ "%.2f"|format(total_payment or 0) }}</h4>
         <h4 class="grand-total mt-2" style="color: {{ 'green' if balance == 0 else 'red' }};">
-          {% if balance == 0 %}
-            Balance: ₱0.00 (Fully Paid)
+          {% if balance == 0 and has_requests %}
+            Balance: {{ "%.2f"|format(balance or 0) }} (Fully Paid)
           {% else %}
-            Balance: ₱{{ "%.2f"|format(balance or 0) }}
+            Balance: {{ "%.2f"|format(balance or 0) }}
           {% endif %}
         </h4>
       </div>
     </div>
 
       <!-- Buttons -->
-      <div class="d-flex gap-3 mt-4">
+      <div class="d-flex flex-wrap gap-3 mt-4">
+        <!-- Pay Form -->
         <form id="payForm" action="/pay" method="POST" target="_blank">
           <input type="hidden" name="booking_id" value="{{ booking_id }}">
           <input type="hidden" name="amount" value="{{ (balance * 100) | int }}">
-          <button type="submit" class="btn btn-pay px-4 py-2" {% if balance == 0 %}disabled{% endif %}>
+          <button type="submit" class="btn btn-pay px-4 py-2"
+                  {% if balance == 0 or not has_requests %}disabled{% endif %}>
             <i class="ri-wallet-line me-2"></i>
-            {% if balance == 0 %}Fully Paid{% else %}Pay Now{% endif %}
+            {% if balance == 0 and has_requests %}
+              Fully Paid
+            {% elif not has_requests %}
+              No Payment
+            {% else %}
+              Pay Now
+            {% endif %}
           </button>
         </form>
 
+        <!-- Back Button -->
         {% if session.get('role') in ['admin', 'manager', 'supervisor', 'staff'] %}
           <a href="{{ url_for('show_roomGuest') }}" class="btn btn-back px-4 py-2">
             <i class="ri-arrow-left-line me-2"></i>Back to Check-in/Checkout
