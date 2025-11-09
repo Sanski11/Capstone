@@ -1034,6 +1034,8 @@ def show_requests():
     selectedCategory = request.args.get('category', '')
     show_completed = request.args.get('show_completed', 'false').lower() == 'true'
 
+    department = session.get('department') or ''
+    
     query = """
         SELECT r.*,
                s.name AS service_name,
@@ -1054,7 +1056,16 @@ def show_requests():
         LEFT JOIN bookings b ON b.booking_id = r.booking_id
         WHERE b.status = 'Checked-in'
     """
+    if department == 'Dining':
+        query += " AND r.item_id IS NOT NULL "
+    elif department == 'Housekeeping':
+        query += " AND s.category LIKE '%Housekeeping%' "
+    elif department == 'Massage':
+        query += " AND s.category LIKE '%Massage%' "
+    elif department == 'Laundry':
+        query += " AND s.category LIKE '%Laundry%' "
 
+    
     if not show_completed:
         query += " AND (r.status != 'Completed' OR r.status IS NULL)"
     query += " ORDER BY r.request_time DESC"
