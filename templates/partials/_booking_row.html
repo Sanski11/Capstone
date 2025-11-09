@@ -1,0 +1,29 @@
+<tr>
+  <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
+  <td>{{ booking.room_type }}</td>
+  <td>{{ booking.room_number }}</td>
+  <td>{{ booking.exp_check_in }}</td>
+  <td>{{ booking.exp_check_out }}</td>
+  <td>
+    <span class="badge bg-{{ 'success' if booking.status == 'Checked-in' else 'danger' if booking.status == 'Checked-out' else 'warning' if booking.status == 'Pending' else 'primary' }}">
+      {{ booking.status }}
+    </span>
+  </td>
+  <td>{{ booking.random_booking_ref }}</td>
+  <td>{{ booking.last_update }} / {{ booking.timestamp }}</td>
+  <td>
+    {% if role in ['admin', 'manager'] %}
+      {% if booking.status == "Confirmed" %}
+        <button class="btn btn-icon btn-sm btn-warning-transparent me-1"
+                onclick='openEditModal({{ booking | tojson | safe }})'
+                data-bs-toggle="modal" data-bs-target="#editBookingModal">
+          <i class="ri-pencil-line"></i>
+        </button>
+        <button class="btn btn-icon btn-sm btn-danger-transparent"
+                onclick="confirmDelete('{{ booking.booking_id }}', '{{ booking.first_name }} {{ booking.last_name }}')">
+          <i class="ri-delete-bin-line"></i>
+        </button>
+      {% endif %}
+    {% endif %}
+  </td>
+</tr>

@@ -82,75 +82,116 @@
                 {% endwith %}
 
                 <div class="card custom-card">
-                    <div class="card-header justify-content-between">
-                        <h5 class="card-title mb-0">Bookings List</h5>
-                        {# {% if session['role'] != 'user' %} #}
-                        {% if role in ['admin', 'manager'] %}
-                            <button type="button" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addBookingModal">
-                                <i class="ri-add-line me-1"></i> Add Record
-                            </button>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        
-                        <div class="table-responsive">
-                            <table id="bookingsTable" class="table text-nowrap table-hover table-bordered">
-                                <thead class="table-primary">
-                                    <tr>
-                                        <th>Guest Name</th>
-                                        <th>Room Type</th>
-                                        <th>Room Number</th>
-                                        <th>Expected Check-in</th>
-                                        <th>Expected Check-out</th>
-                                        <th>Status</th>
-                                        <th>Reference No.</th>
-                                        <th>Last Update / On</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for booking in bookings %}
-                                    <tr>
-                                        <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
-                                        <td>{{ booking.room_type }}</td>
-                                        <td>{{ booking.room_number }}</td>
-                                        <td>{{ booking.exp_check_in }}</td>
-                                        <td>{{ booking.exp_check_out }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ 'success' if booking.status == 'Checked-in' else 'primary' if booking.status == 'Confirmed' else 'warning' if booking.status == 'Pending' else 'danger' }}">
-                                                {{ booking.status }}
-                                            </span>
-                                        </td>
-                                        <td>{{ booking.random_booking_ref }}</td>
-                                        <td>{{ booking.last_update }} / {{ booking.timestamp }} </td>
-                                        <td>
-                                            {% if role in ['admin', 'manager'] %}
-                                                {% if session['role'] != 'user' and booking.status == "Confirmed" %}
-                                                    <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
-                                                        onclick='openEditModal({{ booking | tojson | safe }})'
-                                                        data-bs-toggle="modal" data-bs-target="#editBookingModal">
-                                                        <i class="ri-pencil-line"></i>
-                                                    </button>
-                                                    <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
-                                                        onclick="confirmDelete('{{ booking.booking_id }}', '{{ booking.first_name }} {{ booking.last_name }}')">
-                                                        <i class="ri-delete-bin-line"></i>
-                                                    </button>
-                                                {% endif %}
-                                                {% if role in ['manager', 'user'] and booking.status == 'Checked-in' %}
-                                                    <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">View Bill</a>
-                                                {% endif %}
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div class="card-header justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Bookings</h5>
+                    {% if role in ['admin', 'manager'] %}
+                    <button type="button" class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addBookingModal">
+                        <i class="ri-add-line me-1"></i> Add Record
+                    </button>
+                    {% endif %}
                 </div>
 
-            </div>
-        </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="bookingTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="checkin-tab" data-bs-toggle="tab" data-bs-target="#checkin" type="button" role="tab">
+                        <i class="ri-login-box-line me-1"></i> Checked-in
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="checkout-tab" data-bs-toggle="tab" data-bs-target="#checkout" type="button" role="tab">
+                        <i class="ri-logout-box-line me-1"></i> Checked-out
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="others-tab" data-bs-toggle="tab" data-bs-target="#others" type="button" role="tab">
+                        <i class="ri-time-line me-1"></i> Others
+                        </button>
+                    </li>
+                    </ul>
+
+                    <div class="tab-content" id="bookingTabsContent">
+                    <!-- CHECKED-IN -->
+                    <div class="tab-pane fade show active" id="checkin" role="tabpanel">
+                        <div class="table-responsive">
+                        <table id="checkinTable" class="table table-hover table-bordered">
+                            <thead class="table-primary">
+                            <tr>
+                                <th>Guest Name</th>
+                                <th>Room Type</th>
+                                <th>Room Number</th>
+                                <th>Expected Check-in</th>
+                                <th>Expected Check-out</th>
+                                <th>Status</th>
+                                <th>Reference</th>
+                                <th>Last Update</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for booking in bookings if booking.status == 'Checked-in' %}
+                                {% include 'partials/_booking_row.html' %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                    <!-- CHECKED-OUT -->
+                    <div class="tab-pane fade" id="checkout" role="tabpanel">
+                        <div class="table-responsive">
+                        <table id="checkoutTable" class="table table-hover table-bordered">
+                            <thead class="table-primary">
+                            <tr>
+                                <th>Guest Name</th>
+                                <th>Room Type</th>
+                                <th>Room Number</th>
+                                <th>Check-in</th>
+                                <th>Check-out</th>
+                                <th>Status</th>
+                                <th>Reference</th>
+                                <th>Last Update</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for booking in bookings if booking.status == 'Checked-out' %}
+                                {% include 'partials/_booking_row.html' %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+
+                    <!-- OTHERS (Pending, Confirmed, etc.) -->
+                    <div class="tab-pane fade" id="others" role="tabpanel">
+                        <div class="table-responsive">
+                        <table id="othersTable" class="table table-hover table-bordered">
+                            <thead class="table-primary">
+                            <tr>
+                                <th>Guest Name</th>
+                                <th>Room Type</th>
+                                <th>Room Number</th>
+                                <th>Expected Check-in</th>
+                                <th>Expected Check-out</th>
+                                <th>Status</th>
+                                <th>Reference</th>
+                                <th>Last Update</th>
+                                <th>Action</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for booking in bookings if booking.status not in ['Checked-in', 'Checked-out'] %}
+                                {% include 'partials/_booking_row.html' %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+
 
         <footer class="footer mt-auto py-3 text-center">
             <div class="container-fluid">
@@ -453,35 +494,17 @@
             document.getElementById('year').textContent = new Date().getFullYear();
             
             // Initialize DataTables
-            $('#bookingsTable').DataTable({
+            $(document).ready(function () {
+            ['#checkinTable', '#checkoutTable', '#othersTable'].forEach(id => {
+                $(id).DataTable({
                 pageLength: 10,
-                order: [[0, 'desc']],
-                lengthChange: true,
                 responsive: true,
-                language: {
-                    search: "_INPUT_", 
-                    searchPlaceholder: "Search bookings...",
-                },
-                columnDefs: [
-                    // Target the 'Action' column
-                    { targets: [8], orderable: false, searchable: false }
-                ],
-                // Use custom DOM structure to position controls neatly in the Bootstrap 5 environment
-                dom: '<"top"lf>rt<"bottom"ip><"clear">'
-            });
-            
-            // Vyzor theme sidebar toggle JS logic (must be defined inside $(function))
-            const toggle = document.querySelector('.sidemenu-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', function() {
-                    const html = document.querySelector('html');
-                    if (html.getAttribute('data-toggled') === 'close') {
-                        html.setAttribute('data-toggled', 'open');
-                    } else {
-                        html.setAttribute('data-toggled', 'close');
-                    }
+                order: [[0, 'asc']],
+                columnDefs: [{ targets: [8], orderable: false }],
+                language: { search: "_INPUT_", searchPlaceholder: "Search..." }
                 });
-            }
+            });
+            });
         });
 
         document.addEventListener("DOMContentLoaded", function() {

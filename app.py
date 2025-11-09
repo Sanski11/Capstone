@@ -1027,13 +1027,13 @@ def editGuest(guest_id):
         return render_template('editGuest.html', guest=None, error="Guest not found")
     return render_template('editGuest.html', guest=guest)
 
+# Flask route: app.py
 @app.route("/requests")
 def show_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     selectedCategory = request.args.get('category', '')
     show_completed = request.args.get('show_completed', 'false').lower() == 'true'
 
-    # Main query
     query = """
         SELECT r.*,
                s.name AS service_name,
@@ -1044,9 +1044,8 @@ def show_requests():
                f.type AS food_type,
                st.first_name AS staff_first_name,
                st.last_name  AS staff_last_name,
-               r.service_id, r.item_id,
-               r.completion_time, r.notes, r.room_number, r.guest_id,
-               g.last_name AS guest_last_name, g.first_name AS guest_first_name
+               g.last_name AS guest_last_name,
+               g.first_name AS guest_first_name
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
@@ -1055,7 +1054,7 @@ def show_requests():
         LEFT JOIN bookings b ON b.booking_id = r.booking_id
         WHERE b.status = 'Checked-in'
     """
-    # Hide completed unless ?show_completed=true
+
     if not show_completed:
         query += " AND (r.status != 'Completed' OR r.status IS NULL)"
     query += " ORDER BY r.request_time DESC"
@@ -1063,7 +1062,6 @@ def show_requests():
     cursor.execute(query)
     requests = cursor.fetchall()
 
-    # Service dropdowns
     cursor.execute("SELECT * FROM hotel_services")
     service_list = cursor.fetchall()
 
@@ -1076,7 +1074,6 @@ def show_requests():
         cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
     service_names = cursor.fetchall()
 
-    # Food dropdowns
     if selectedCategory:
         cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category = %s ORDER BY name", (selectedCategory,))
     else:
@@ -1095,23 +1092,6 @@ def show_requests():
     booking_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM staff")
-    staff_list = cursor.fetchall()
-
-    cursor.execute("SELECT DISTINCT category FROM food_items")
-    food_category_list = cursor.fetchall()
-
-    cursor.execute("SELECT DISTINCT category FROM hotel_services")
-    service_category_list = cursor.fetchall()
-
-    # Combine staff from both tables
-    cursor.execute("""
-        SELECT staff_id AS id,
-               first_name,
-               last_name,
-               role,
-               'staff_table' AS source
-        FROM staff
-    """)
     staff_table = list(cursor.fetchall())
 
     cursor.execute("""
@@ -1128,6 +1108,12 @@ def show_requests():
 
     staff_list = staff_table + user_staff
     staff_list.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
+
+    cursor.execute("SELECT DISTINCT category FROM food_items")
+    food_category_list = cursor.fetchall()
+
+    cursor.execute("SELECT DISTINCT category FROM hotel_services")
+    service_category_list = cursor.fetchall()
 
     cursor.close()
 
@@ -2639,22 +2625,18 @@ def deleteGuest(guest_id):
 #Called by BOOKINGS Menu - display bookings
 @app.route('/bookings')
 def view_bookings():
-    selected_type = request.args.get('room_type', '')  # Get id of the selected room
-
+    selected_type = request.args.get('room_type', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # Get all guests
     cursor.execute("SELECT * FROM guest")
     guests = cursor.fetchall()
 
-    # Get rooms (with optional room type filter)
     if selected_type:
         cursor.execute("SELECT * FROM room WHERE room_type = %s", (selected_type,))
     else:
         cursor.execute("SELECT * FROM room")
     rooms = cursor.fetchall()
 
-    # Get bookings with guest name, room number, total payment, and payment status
     cursor.execute("""
         SELECT 
             b.*, 
