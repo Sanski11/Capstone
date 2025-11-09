@@ -32,6 +32,10 @@
       color: #fff !important;
       background-color: rgba(255,255,255,0.15);
     }
+    .completed-row {
+    background-color: #f6f6f6;
+    color: #888;
+    }
     table.dataTable thead th { background-color: var(--ez-primary); color: white; }
     .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
     .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
@@ -92,6 +96,19 @@
 
                 <div class="card-body">
                     <div class="table-responsive">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="fw-semibold text-primary mb-0">Service Requests</h4>
+                        
+                        <a href="{{ url_for('show_requests', show_completed=('false' if show_completed else 'true')) }}" 
+                            class="btn btn-sm btn-outline-primary">
+                            {% if show_completed %}
+                            <i class="ri-eye-off-line me-1"></i> Hide Completed
+                            {% else %}
+                            <i class="ri-eye-line me-1"></i> Show Completed
+                            {% endif %}
+                        </a>
+                        </div>
+
                         <table id="requestsTable" class="table text-nowrap table-hover table-bordered">
                             <thead class="table-primary">
                                 <tr>

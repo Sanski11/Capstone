@@ -1030,11 +1030,12 @@ def editGuest(guest_id):
 @app.route("/requests")
 def show_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    selectedCategory = request.args.get('category', '') #Get selected category
+    selectedCategory = request.args.get('category', '')
+    show_completed = request.args.get('show_completed', 'false').lower() == 'true'
 
-    cursor.execute("""
+    # Main query
+    query = """
         SELECT r.*,
-               
                s.name AS service_name,
                f.name AS food_name,
                s.category AS service_category,
@@ -1049,32 +1050,35 @@ def show_requests():
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        -- correct staff join: reference staff table column, not service alias
         LEFT JOIN staff st ON st.staff_id = r.staff_id
         LEFT JOIN guest g ON g.guest_id = r.guest_id
         LEFT JOIN bookings b ON b.booking_id = r.booking_id
         WHERE b.status = 'Checked-in'
-        ORDER BY r.request_time DESC
-    """)
+    """
+    # Hide completed unless ?show_completed=true
+    if not show_completed:
+        query += " AND (r.status != 'Completed' OR r.status IS NULL)"
+    query += " ORDER BY r.request_time DESC"
+
+    cursor.execute(query)
     requests = cursor.fetchall()
 
-    # Get requests for dropdowns
+    # Service dropdowns
     cursor.execute("SELECT * FROM hotel_services")
     service_list = cursor.fetchall()
 
-    #Get names (with optional category filter)
     if selectedCategory:
         cursor.execute(
-    "SELECT service_id, price, name, category FROM hotel_services WHERE category = %s ORDER BY name",
-    (selectedCategory,)
-)
+            "SELECT service_id, price, name, category FROM hotel_services WHERE category = %s ORDER BY name",
+            (selectedCategory,)
+        )
     else:
         cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
     service_names = cursor.fetchall()
 
-    #Get food names (with optional category filter)
+    # Food dropdowns
     if selectedCategory:
-        cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category =%s ORDER BY name", (selectedCategory,))
+        cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category = %s ORDER BY name", (selectedCategory,))
     else:
         cursor.execute("SELECT item_id, price, name, category FROM food_items ORDER BY name")
     food_names = cursor.fetchall()
@@ -1082,7 +1086,12 @@ def show_requests():
     cursor.execute("SELECT * FROM food_items")
     item_list = cursor.fetchall()
 
-    cursor.execute("SELECT b.*, r.room_number FROM bookings b LEFT JOIN room r ON b.room_id = r.room_id WHERE b.status='Checked-in'")
+    cursor.execute("""
+        SELECT b.*, r.room_number 
+        FROM bookings b 
+        LEFT JOIN room r ON b.room_id = r.room_id 
+        WHERE b.status='Checked-in'
+    """)
     booking_list = cursor.fetchall()
 
     cursor.execute("SELECT * FROM staff")
@@ -1093,39 +1102,35 @@ def show_requests():
 
     cursor.execute("SELECT DISTINCT category FROM hotel_services")
     service_category_list = cursor.fetchall()
-    
-    # Fetch staff from 'staff' table
+
+    # Combine staff from both tables
     cursor.execute("""
         SELECT staff_id AS id,
-            first_name,
-            last_name,
-            role,
-            'staff_table' AS source
+               first_name,
+               last_name,
+               role,
+               'staff_table' AS source
         FROM staff
     """)
     staff_table = list(cursor.fetchall())
 
-
-    # Fetch users who are staff from 'users' table
     cursor.execute("""
         SELECT user_id AS id,
-            username AS first_name,
-            '' AS last_name,
-            role,
-            department,
-            'users_table' AS source
+               username AS first_name,
+               '' AS last_name,
+               role,
+               department,
+               'users_table' AS source
         FROM users
         WHERE role='staff'
     """)
     user_staff = list(cursor.fetchall())
 
-    # Merge both lists
     staff_list = staff_table + user_staff
-
-    # Sort by last_name then first_name
     staff_list.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
 
     cursor.close()
+
     return render_template(
         "requests.html",
         requests=requests,
@@ -1136,7 +1141,8 @@ def show_requests():
         food_category_list=food_category_list,
         service_category_list=service_category_list,
         service_names=service_names,
-        food_names=food_names
+        food_names=food_names,
+        show_completed=show_completed
     )
 
 #Called by ROOMS Menu - display list of rooms
