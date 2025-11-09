@@ -1076,20 +1076,36 @@ def show_requests():
     cursor.execute("SELECT * FROM hotel_services")
     service_list = cursor.fetchall()
 
-    if selectedCategory:
-        cursor.execute(
-            "SELECT service_id, price, name, category FROM hotel_services WHERE category = %s ORDER BY name",
-            (selectedCategory,)
-        )
-    else:
-        cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
-    service_names = cursor.fetchall()
+  # Get names (service or food) based on request_type or selectedCategory
+    request_type = request.args.get('request_type', '').lower()
+    service_names = []
+    food_names = []
 
-    if selectedCategory:
-        cursor.execute("SELECT item_id, price, name, category FROM food_items WHERE category = %s ORDER BY name", (selectedCategory,))
+    if request_type == 'food':
+        cursor.execute("""
+            SELECT item_id, price, name, category
+            FROM food_items
+            WHERE (%s = '' OR category = %s)
+            ORDER BY name
+        """, (selectedCategory, selectedCategory))
+        food_names = cursor.fetchall()
+
+    elif request_type == 'service':
+        cursor.execute("""
+            SELECT service_id, price, name, category
+            FROM hotel_services
+            WHERE (%s = '' OR category = %s)
+            ORDER BY name
+        """, (selectedCategory, selectedCategory))
+        service_names = cursor.fetchall()
+
     else:
+        # Default: load all for admins or when request_type not specified
+        cursor.execute("SELECT service_id, price, name, category FROM hotel_services ORDER BY name")
+        service_names = cursor.fetchall()
+
         cursor.execute("SELECT item_id, price, name, category FROM food_items ORDER BY name")
-    food_names = cursor.fetchall()
+        food_names = cursor.fetchall()    
 
     cursor.execute("SELECT * FROM food_items")
     item_list = cursor.fetchall()
@@ -1120,10 +1136,39 @@ def show_requests():
     staff_list = staff_table + user_staff
     staff_list.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
 
-    cursor.execute("SELECT DISTINCT category FROM food_items")
+ #cursor.execute("SELECT DISTINCT category FROM food_items")
+    #food_category_list = cursor.fetchall()
+
+    #cursor.execute("SELECT DISTINCT category FROM hotel_services")
+    #service_category_list = cursor.fetchall()
+
+    # --- FOOD CATEGORIES ---
+    # Show if: department == 'Dining' OR role is admin/supervisor
+    #if department == 'Dining' or role in ['admin', 'manager']:
+    cursor.execute("""
+        SELECT DISTINCT category
+        FROM food_items
+        ORDER BY category
+    """)
     food_category_list = cursor.fetchall()
 
-    cursor.execute("SELECT DISTINCT category FROM hotel_services")
+    # --- SERVICE CATEGORIES ---
+    # Show if: department is NOT dining, NOT empty, OR role is admin/supervisor
+    if (department and department != 'Dining'):
+        # Limit by department
+        cursor.execute("""
+            SELECT DISTINCT category
+            FROM hotel_services
+            WHERE category LIKE %s
+            ORDER BY category
+        """, ('%' + department + '%',))
+    else:
+        # Admin/supervisor or no department → show all
+        cursor.execute("""
+            SELECT DISTINCT category
+            FROM hotel_services
+            ORDER BY category
+        """)
     service_category_list = cursor.fetchall()
 
     cursor.close()

@@ -170,7 +170,7 @@
                                                     data-status="{{ request.status }}"
                                                     data-request_time="{{ request.request_time }}"
                                                     data-category="{{ request.service_category or request.food_category }}"
-                                                    data-request_type="{{ 'service' if request.service_name else 'food' }}"
+                                                    data-request_type="{% if request.service_id %}service{% elif request.item_id %}food{% endif %}"
                                                     data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-pencil-line"></i>
@@ -246,8 +246,12 @@
             <div class="mb-3">
                 <label class="form-label">Request Type:</label>
                 <select class="form-control" id="request_type" required>
-                    <option value="service">Service</option>
-                    <option value="food">Food</option>
+                    {% if department in ['Housekeeping', 'Laundry', 'Massage', ''] or role in ['admin', 'manager'] %}
+                        <option value="service">Service</option>
+                    {% endif %}
+                    {% if department in ['Dining', ''] or role in ['admin', 'manager'] %}
+                       <option value="food">Food</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -260,11 +264,13 @@
                         {% endfor %}
                     </optgroup>
 
-                    <optgroup id="food_categories" label="Food Categories" style="display:none;">
-                        {% for food_category in food_category_list %}
-                        <option value="{{ food_category.category }}">{{ food_category.category }}</option>
-                        {% endfor %}
-                    </optgroup>
+                    {% if department == 'Dining' or role in ['admin', 'supervisor', 'manager'] %}
+                        <optgroup id="food_categories" label="Food Categories">
+                            {% for food_category in food_category_list %}
+                                <option value="{{ food_category.category }}">{{ food_category.category }}</option>
+                            {% endfor %}
+                        </optgroup>
+                    {% endif %}
                 </select>
             </div>
 
@@ -332,8 +338,12 @@
             <div class="mb-3">
                 <label class="form-label">Request Type:</label>
                 <select class="form-control" id="edit_request_type" required>
-                    <option value="service">Service</option>
-                    <option value="food">Food</option>
+                    {% if department in ['Housekeeping', 'Laundry', 'Massage', ''] or role in ['admin', 'manager'] %}
+                        <option value="service">Service</option>
+                    {% endif %}
+                    {% if department in ['Dining', ''] or role in ['admin', 'manager'] %}
+                       <option value="food">Food</option>
+                    {% endif %}
                 </select>
             </div>
 
@@ -504,20 +514,21 @@
     }
 });
 
-    // ---------- Add / Edit form behavior ----------
-    function showServiceOrFoodFor(type, prefix = '') {
-        // prefix is '' for add form, 'edit_' for edit form
-        const serviceOptgroup = document.getElementById(prefix + 'service_categories');
-        const foodOptgroup = document.getElementById(prefix + 'food_categories');
+  // ---------- Add / Edit form behavior ----------
+  function showServiceOrFoodFor(type, prefix = '') {
+    const serviceOptgroup = document.getElementById(prefix + 'service_categories');
+    const foodOptgroup = document.getElementById(prefix + 'food_categories');
 
-        if (type === 'service') {
-            serviceOptgroup.style.display = '';
-            foodOptgroup.style.display = 'none';
-        } else {
-            serviceOptgroup.style.display = 'none';
-            foodOptgroup.style.display = '';
-        }
+    if (!serviceOptgroup || !foodOptgroup) return;
+
+    if (type === 'service') {
+        serviceOptgroup.style.display = '';
+        foodOptgroup.style.display = 'none';
+    } else {
+        serviceOptgroup.style.display = 'none';
+        foodOptgroup.style.display = '';
     }
+}
 
     function filterNamesFor(prefix = '') {
         const category = document.getElementById(prefix + 'category').value;
@@ -555,7 +566,10 @@
             document.getElementById('request_time').value = now.toISOString().slice(0,16);
 
             // ensure add modal shows service by default and filters names
-            showServiceOrFoodFor('service', '');
+
+            // Set default based on department
+            const defaultType = "{{ 'food' if department == 'Dining' else 'service' }}";
+            showServiceOrFoodFor(defaultType, '');
             filterNamesFor('');
             updateUnitCost('');
         });
