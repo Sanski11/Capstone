@@ -947,6 +947,8 @@ def view_staffs():
                last_name,
                role,
                email,
+               last_update,
+               timestamp,
                COALESCE(phone, '') AS phone,
                'staff_table' AS source
         FROM staff
@@ -964,6 +966,8 @@ def view_staffs():
                '' AS last_name,
                role,
                email,
+               last_update,
+               timestamp,
                '' AS phone,
                'users_table' AS source
         FROM users
