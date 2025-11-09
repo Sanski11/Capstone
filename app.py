@@ -938,6 +938,8 @@ def view_staffs():
     selected_staff = request.args.get('staff_id', '')  # Get the id of the selected staff
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    department = session.get('department') or ''
+    
     # Fetch staff from 'staff' table
     cursor.execute("""
         SELECT staff_id AS id,
@@ -948,8 +950,11 @@ def view_staffs():
                COALESCE(phone, '') AS phone,
                'staff_table' AS source
         FROM staff
+        WHERE role LIKE %s
+            OR role IS NULL
+            OR role = ''
         ORDER BY last_name, first_name
-    """)
+    """, ('%' + department + '%',))
     staff_table = list(cursor.fetchall())
 
     # Fetch users who are staff from 'users' table
@@ -962,8 +967,9 @@ def view_staffs():
                '' AS phone,
                'users_table' AS source
         FROM users
-        WHERE role='staff'
-    """)
+        WHERE (role LIKE %s OR role IS NULL OR role = '')
+            AND role NOT IN ('admin', 'guest', 'manager', 'user', 'supervisor')
+        """, ('%' + department + '%',))
     user_staff = list(cursor.fetchall())
 
     # Merge both lists

@@ -164,14 +164,25 @@
                         <div class="mb-3">
                             <label for="role" class="form-label">Role:</label>
                             <select class="form-select" id="role" name="role" required>
-                                <option value="Housekeeping - Manager">Housekeeping - Manager</option>
-                                <option value="Housekeeping - Staff">Housekeeping - Staff</option>
-                                <option value="Food/Dining - Manager">Food/Dining - Manager</option>
-                                <option value="Food/Dining - Staff">Food/Dining - Staff</option>
-                                <option value="Laundry - Manager">Laundry - Manager</option>
-                                <option value="Laundry - Staff">Laundry - Staff</option>
-                                <option value="Massage - Manager">Massage - Manager</option>
-                                <option value="Massage - Staff">Massage - Staff</option>
+                                {% set department = session.get('department', '') %}
+                                {% set roles = [
+                                    'Housekeeping - Manager', 'Housekeeping - Staff',
+                                    'Food/Dining - Manager', 'Food/Dining - Staff',
+                                    'Laundry - Manager', 'Laundry - Staff',
+                                    'Massage - Manager', 'Massage - Staff'
+                                ] %}
+                            
+                                {% if department %}
+                                    {% for r in roles %}
+                                        {% if department in r %}
+                                            <option value="{{ r }}">{{ r }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {% for r in roles %}
+                                        <option value="{{ r }}">{{ r }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
                         <div class="mb-3">
@@ -214,14 +225,25 @@
                         <div class="mb-3">
                             <label for="edit_role" class="form-label">Role:</label>
                             <select class="form-select" id="edit_role" name="edit_role" required>
-                                <option value="Housekeeping - Manager">Housekeeping - Manager</option>
-                                <option value="Housekeeping - Staff">Housekeeping - Staff</option>
-                                <option value="Food/Dining - Manager">Food/Dining - Manager</option>
-                                <option value="Food/Dining - Staff">Food/Dining - Staff</option>
-                                <option value="Laundry - Manager">Laundry - Manager</option>
-                                <option value="Laundry - Staff">Laundry - Staff</option>
-                                <option value="Massage - Manager">Massage - Manager</option>
-                                <option value="Massage - Staff">Massage - Staff</option>
+                                {% set department = session.get('department', '') %}
+                                {% set roles = [
+                                    'Housekeeping - Manager', 'Housekeeping - Staff',
+                                    'Food/Dining - Manager', 'Food/Dining - Staff',
+                                    'Laundry - Manager', 'Laundry - Staff',
+                                    'Massage - Manager', 'Massage - Staff'
+                                ] %}
+                            
+                                {% if department %}
+                                    {% for r in roles %}
+                                        {% if department in r %}
+                                            <option value="{{ r }}">{{ r }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    {% for r in roles %}
+                                        <option value="{{ r }}">{{ r }}</option>
+                                    {% endfor %}
+                                {% endif %}
                             </select>
                         </div>
                         <div class="mb-3">
