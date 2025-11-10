@@ -179,15 +179,14 @@
         <form id="payForm" action="/pay" method="POST" target="_blank">
           <input type="hidden" name="booking_id" value="{{ booking_id }}">
           <input type="hidden" name="amount" value="{{ (balance * 100) | int }}">
-          <button type="submit" class="btn btn-pay px-4 py-2"
-                  {% if balance == 0 or not has_requests %}disabled{% endif %}>
+          <button type="submit" class="btn btn-pay px-4 py-2" disabled>
             <i class="ri-wallet-line me-2"></i>
             {% if balance == 0 and has_requests %}
               Fully Paid
             {% elif not has_requests %}
               No Payment
             {% else %}
-              Pay Now
+              Settle Balance
             {% endif %}
           </button>
         </form>
