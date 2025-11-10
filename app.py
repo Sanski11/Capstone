@@ -1036,22 +1036,23 @@ def editGuest(guest_id):
 def show_requests():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     selectedCategory = request.args.get('category', '')
-    show_completed = request.args.get('show_completed', 'false').lower() == 'true'
+    status_filter = request.args.get('status', 'all').lower()  # 'pending', 'completed', 'all'
 
     department = session.get('department') or ''
     
+    # Base query
     query = """
         SELECT r.*,
-               s.name AS service_name,
-               f.name AS food_name,
-               s.category AS service_category,
-               f.category AS food_category,
-               s.type AS service_type,
-               f.type AS food_type,
-               st.first_name AS staff_first_name,
-               st.last_name  AS staff_last_name,
-               g.last_name AS guest_last_name,
-               g.first_name AS guest_first_name
+            s.name AS service_name,
+            f.name AS food_name,
+            s.category AS service_category,
+            f.category AS food_category,
+            s.type AS service_type,
+            f.type AS food_type,
+            st.first_name AS staff_first_name,
+            st.last_name  AS staff_last_name,
+            g.last_name AS guest_last_name,
+            g.first_name AS guest_first_name
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
@@ -1060,21 +1061,25 @@ def show_requests():
         LEFT JOIN bookings b ON b.booking_id = r.booking_id
         WHERE b.status = 'Checked-in'
     """
+
+    # Department-specific filtering
     if department == 'Dining':
-        query += " AND r.item_id IS NOT NULL "
-    elif department == 'Housekeeping':
-        query += " AND s.category LIKE '%Housekeeping%' "
-    elif department == 'Massage':
-        query += " AND s.category LIKE '%Massage%' "
-    elif department == 'Laundry':
-        query += " AND s.category LIKE '%Laundry%' "
+        query += " AND r.item_id IS NOT NULL"
+    elif department in ['Housekeeping', 'Massage', 'Laundry']:
+        query += " AND s.category LIKE %s"
 
-    
-    if not show_completed:
-        query += " AND (r.status != 'Completed' OR r.status IS NULL)"
-    query += " ORDER BY r.request_time DESC"
+    if status_filter == 'pending':
+        query += " AND r.status = 'pending'"
+    elif status_filter == 'completed':
+        query += " AND r.status = 'completed'"
+    # 'all' → no filter needed
 
-    cursor.execute(query)
+    # Execute the query
+    if department in ['Housekeeping', 'Massage', 'Laundry']:
+        cursor.execute(query, ('%' + department + '%',))
+    else:
+        cursor.execute(query)
+
     requests = cursor.fetchall()
 
     cursor.execute("SELECT * FROM hotel_services")
@@ -1188,7 +1193,7 @@ def show_requests():
         service_category_list=service_category_list,
         service_names=service_names,
         food_names=food_names,
-        show_completed=show_completed
+        status_filter=status_filter
     )
 
 #Called by ROOMS Menu - display list of rooms

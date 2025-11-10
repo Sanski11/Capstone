@@ -32,10 +32,6 @@
       color: #fff !important;
       background-color: rgba(255,255,255,0.15);
     }
-    .completed-row {
-    background-color: #f6f6f6;
-    color: #888;
-    }
     table.dataTable thead th { background-color: var(--ez-primary); color: white; }
     .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
     .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
@@ -87,15 +83,6 @@
             <div class="card custom-card">
                 <div class="card-header justify-content-between">
                     <h5 class="card-title mb-0">Service Requests</h5>
-                    <div class="d-flex align-items-center gap-2">
-                    <a href="{{ url_for('show_requests', show_completed=('false' if show_completed else 'true')) }}" 
-                    class="btn btn-sm btn-outline-primary">
-                    {% if show_completed %}
-                    <i class="ri-eye-off-line me-1"></i> Hide Completed
-                    {% else %}
-                    <i class="ri-eye-line me-1"></i> Show Completed
-                    {% endif %}
-                    </a>
                     {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                     <button class="btn btn-primary btn-sm btn-wave" data-bs-toggle="modal" data-bs-target="#addModal">
                         <i class="ri-add-line me-1"></i> Add Request
@@ -104,7 +91,18 @@
                 </div>
 
                 <div class="card-body">
-                    <div class="table-responsive">  
+                    <div class="table-responsive">
+                        <ul class="nav nav-tabs mb-3" id="requestTabs">
+                            <li class="nav-item">
+                                <a class="nav-link {% if status_filter == 'pending' %}active{% elif status_filter == 'completed' %}active{% elif status_filter == 'all' %}active{% endif %}" href="{{ url_for('show_requests', status='pending') }}">Pending</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if status_filter == 'completed' %}active{% endif %}" href="{{ url_for('show_requests', status='completed') }}">Completed</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if status_filter == 'all' %}active{% endif %}" href="{{ url_for('show_requests', status='all') }}">All</a>
+                            </li>
+                        </ul>
                         <table id="requestsTable" class="table text-nowrap table-hover table-bordered">
                             <thead class="table-primary">
                                 <tr>
@@ -170,7 +168,7 @@
                                                     data-status="{{ request.status }}"
                                                     data-request_time="{{ request.request_time }}"
                                                     data-category="{{ request.service_category or request.food_category }}"
-                                                    data-request_type="{% if request.service_id %}service{% elif request.item_id %}food{% endif %}"
+                                                    data-request_type="{{ 'service' if request.service_name else 'food' }}"
                                                     data-name="{% if request.service_id %}service_{{ request.service_id }}{% elif request.item_id %}food_{{ request.item_id }}{% endif %}"
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-pencil-line"></i>
@@ -191,8 +189,8 @@
 
                                             <div class="d-flex gap-1 mt-1">
                                                 <button class="btn btn-sm btn-primary-light btn-wave"
-                                                    onclick="openAssignModal('{{ request.request_id }}')"
-                                                    {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
+                                                        onclick="openAssignModal('{{ request.request_id }}', '{{ request.staff_id or '' }}')"
+                                                        {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-user-line me-1"></i> Manual
                                                 </button>
 
@@ -246,12 +244,8 @@
             <div class="mb-3">
                 <label class="form-label">Request Type:</label>
                 <select class="form-control" id="request_type" required>
-                    {% if department in ['Housekeeping', 'Laundry', 'Massage', ''] or role in ['admin', 'manager'] %}
-                        <option value="service">Service</option>
-                    {% endif %}
-                    {% if department in ['Dining', ''] or role in ['admin', 'manager'] %}
-                       <option value="food">Food</option>
-                    {% endif %}
+                    <option value="service">Service</option>
+                    <option value="food">Food</option>
                 </select>
             </div>
 
@@ -264,13 +258,11 @@
                         {% endfor %}
                     </optgroup>
 
-                    {% if department == 'Dining' or role in ['admin', 'supervisor', 'manager'] %}
-                        <optgroup id="food_categories" label="Food Categories">
-                            {% for food_category in food_category_list %}
-                                <option value="{{ food_category.category }}">{{ food_category.category }}</option>
-                            {% endfor %}
-                        </optgroup>
-                    {% endif %}
+                    <optgroup id="food_categories" label="Food Categories" style="display:none;">
+                        {% for food_category in food_category_list %}
+                        <option value="{{ food_category.category }}">{{ food_category.category }}</option>
+                        {% endfor %}
+                    </optgroup>
                 </select>
             </div>
 
@@ -320,7 +312,8 @@
       <div class="modal-dialog">
         <div class="modal-content">
           <form method="POST" action="{{ url_for('update_request') }}">
-            <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">          <h5 class="modal-title" id="checkOutModalLabel">Check-In</h5>
+            <div class="modal-header bg-warning text-dark" style="background-color: #ffc107 !important;">
+              <h5 class="modal-title" id="checkOutModalLabel">Check-In</h5>
               <h5 class="modal-title">Edit Request</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -338,12 +331,8 @@
             <div class="mb-3">
                 <label class="form-label">Request Type:</label>
                 <select class="form-control" id="edit_request_type" required>
-                    {% if department in ['Housekeeping', 'Laundry', 'Massage', ''] or role in ['admin', 'manager'] %}
-                        <option value="service">Service</option>
-                    {% endif %}
-                    {% if department in ['Dining', ''] or role in ['admin', 'manager'] %}
-                       <option value="food">Food</option>
-                    {% endif %}
+                    <option value="service">Service</option>
+                    <option value="food">Food</option>
                 </select>
             </div>
 
@@ -434,7 +423,7 @@
             <label>Assign to Staff</label>
             <select name="assignTask_staff_id" id="assignTask_staff_id" class="form-select" required>
             {% for staff in staff_list %}
-            <option value="{{ staff.id }}"
+            <option value="{{ staff.staff_id }}"
                     data-source="{{ staff.source or '' }}">
                 {{ staff.first_name }}{% if staff.last_name %} {{ staff.last_name }}{% endif %} ({{ staff.role }})
             </option>
@@ -514,21 +503,20 @@
     }
 });
 
-  // ---------- Add / Edit form behavior ----------
-  function showServiceOrFoodFor(type, prefix = '') {
-    const serviceOptgroup = document.getElementById(prefix + 'service_categories');
-    const foodOptgroup = document.getElementById(prefix + 'food_categories');
+    // ---------- Add / Edit form behavior ----------
+    function showServiceOrFoodFor(type, prefix = '') {
+        // prefix is '' for add form, 'edit_' for edit form
+        const serviceOptgroup = document.getElementById(prefix + 'service_categories');
+        const foodOptgroup = document.getElementById(prefix + 'food_categories');
 
-    if (!serviceOptgroup || !foodOptgroup) return;
-
-    if (type === 'service') {
-        serviceOptgroup.style.display = '';
-        foodOptgroup.style.display = 'none';
-    } else {
-        serviceOptgroup.style.display = 'none';
-        foodOptgroup.style.display = '';
+        if (type === 'service') {
+            serviceOptgroup.style.display = '';
+            foodOptgroup.style.display = 'none';
+        } else {
+            serviceOptgroup.style.display = 'none';
+            foodOptgroup.style.display = '';
+        }
     }
-}
 
     function filterNamesFor(prefix = '') {
         const category = document.getElementById(prefix + 'category').value;
@@ -566,10 +554,7 @@
             document.getElementById('request_time').value = now.toISOString().slice(0,16);
 
             // ensure add modal shows service by default and filters names
-
-            // Set default based on department
-            const defaultType = "{{ 'food' if department == 'Dining' else 'service' }}";
-            showServiceOrFoodFor(defaultType, '');
+            showServiceOrFoodFor('service', '');
             filterNamesFor('');
             updateUnitCost('');
         });
@@ -673,7 +658,7 @@
     }
 
     new bootstrap.Modal(document.getElementById('assignModal')).show();
-}
+    }  
 
     // ---------- completed ----------
     function openCompletedModal(requestId) {
@@ -739,6 +724,29 @@
     });
   });
 
+var table = $('#requestsTable').DataTable();
+
+tabLinks.forEach(tab => {
+    tab.addEventListener('click', e => {
+        e.preventDefault();
+        const status = tab.getAttribute('href').split('=')[1] || 'all';
+
+        // custom search function
+        $.fn.dataTable.ext.search = []; // clear previous filters
+        if(status !== 'all') {
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                // column 3 = Status column (0-based index, fourth column = 3)
+                const rowStatus = $(table.row(dataIndex).node()).find('td:nth-child(4) .badge').text().trim().toLowerCase();
+                return rowStatus === status;
+            });
+        }
+
+        table.draw(); // redraw with new filter
+
+        tabLinks.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+    });
+});
 
 </script>
 </body>
