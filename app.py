@@ -260,11 +260,11 @@ def forgot_password():
         otp = str(random.randint(100000, 999999))
         session['reset_email'] = email
         session['otp'] = otp
-        session['otp_expiry'] = (datetime.now() + timedelta(minutes=10)).strftime("%Y-%m-%d %H:%M:%S")
+        session['otp_expiry'] = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
 
         # send OTP (best-effort)
         try:
-            send_email(email, "ezStay Password Reset OTP", f"Your OTP is {otp}. It expires in 10 minutes.")
+            send_email(email, "ezStay Password Reset OTP", f"Your OTP is {otp}. It expires in 5 minutes.")
         except Exception as e:
             app.logger.warning("Failed to send reset OTP: %s", e)
             # still proceed so admin/dev can see OTP in logs during dev
@@ -2547,60 +2547,135 @@ def add_staff():
 @app.route('/updateStaff', methods=['POST'])
 def updateStaff():
     staff_id = int(request.form['edit_staff_id'])
-    first_name = request.form['edit_first_name']
-    last_name = request.form['edit_last_name']
-    role = request.form['edit_role']
-    email = request.form['edit_email']
-    phone = request.form['edit_phone']
+    first_name = request.form['edit_first_name'].strip()
+    last_name = request.form['edit_last_name'].strip()
+    role = request.form['edit_role'].strip()
+    email = request.form['edit_email'].strip()
+    phone = request.form['edit_phone'].strip()
     last_update = session['username']
     timestamp = datetime.now()
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    # --- 1. Try to find in staff table ---
+    # --- 1. Fetch staff record ---
     cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_id,))
-    old_data = cursor.fetchone()
+    staff_data = cursor.fetchone()
 
-    # --- 2. If not found, check users table ---
-    if not old_data:
+    # --- 1a. If staff record doesn't exist, create it ---
+    if not staff_data:
+        # Try to fetch from users table first
         cursor.execute("SELECT * FROM users WHERE user_id = %s", (staff_id,))
         user_data = cursor.fetchone()
 
-        if not user_data:
-            cursor.close()
-            flash("Staff not found in users table.", "danger")
-            return redirect('/staff')
+        staff_insert_first_name = first_name or (user_data['first_name'] if user_data else '')
+        staff_insert_last_name = last_name or (user_data['last_name'] if user_data else '')
+        staff_insert_role = role or (user_data['role'] if user_data else 'staff')
+        staff_insert_email = email or (user_data['email'] if user_data else '')
+        staff_insert_phone = phone or ''
 
-        # --- Create staff from user data ---
         cursor.execute("""
-            INSERT INTO staff (first_name, last_name, role, email, phone, last_update, timestamp)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO staff (staff_id, first_name, last_name, role, email, phone, last_update, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
-            first_name or user_data['username'],
-            last_name or '',
-            role or user_data.get('role', 'staff'),
-            email or user_data.get('email', ''),
-            phone or '',
-            last_update,
-            timestamp
+            staff_id, staff_insert_first_name, staff_insert_last_name, staff_insert_role,
+            staff_insert_email, staff_insert_phone, last_update, timestamp
         ))
         mysql.connection.commit()
 
-        # Get the newly created staff_id
-        cursor.execute("SELECT LAST_INSERT_ID() AS new_staff_id")
-        staff_id = cursor.fetchone()['new_staff_id']
+        cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_id,))
+        staff_data = cursor.fetchone()
 
-        # --- Remove old staff from users table ---
-        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_data['user_id'],))
-        mysql.connection.commit()
+    old_staff_data = staff_data.copy()
 
-        flash("Staff updated and moved from users to staff successfully.", "success")
-        cursor.close()
-        return redirect('/staff')
+    # --- 2. Update staff table ---
+    cursor.execute("""
+        UPDATE staff
+        SET first_name=%s, last_name=%s, role=%s, email=%s, phone=%s, last_update=%s, timestamp=%s
+        WHERE staff_id=%s
+    """, (first_name, last_name, role, email, phone, last_update, timestamp, staff_id))
 
-    # --- 3. If found in staff table, update normally ---
-    new_data = old_data.copy()
-    new_data.update({
+    # --- 3. Sync with users table ---
+    cursor.execute("SELECT * FROM users WHERE user_id = %s", (staff_id,))
+    user_data = cursor.fetchone()
+
+    middle_name = ''  # default
+    account_status = 'active'  # default
+    new_name = f"{first_name} {middle_name} {last_name}".strip()
+    username = first_name.lower()
+
+    # Ensure unique username
+    cursor.execute("SELECT * FROM users WHERE username = %s AND user_id != %s", (username, staff_id))
+    if cursor.fetchone():
+        username = f"{username}{staff_id}"
+
+    if user_data:
+        old_user_data = user_data.copy()
+        # Update existing user
+        cursor.execute("""
+            UPDATE users
+            SET username=%s, first_name=%s, middle_name=%s, last_name=%s, name=%s,
+                email=%s, role=%s, last_update=%s, timestamp=%s, account_status=%s
+            WHERE user_id=%s
+        """, (username, first_name, middle_name, last_name, new_name, email, role, last_update, timestamp, account_status, staff_id))
+
+        # Audit log for users table
+        log_audit_event(
+            actor_id=session['username'],
+            timestamp=timestamp,
+            table_name='users',
+            action_type='UPDATE',
+            record_id=str(staff_id),
+            old_data=old_user_data,
+            new_data={
+                **old_user_data,
+                'username': username,
+                'first_name': first_name,
+                'middle_name': middle_name,
+                'last_name': last_name,
+                'name': new_name,
+                'email': email,
+                'role': role,
+                'last_update': last_update,
+                'timestamp': timestamp,
+                'account_status': account_status
+            }
+        )
+    else:
+        # Insert new user if missing
+        cursor.execute("""
+            INSERT INTO users (user_id, username, first_name, middle_name, last_name, name, email, role, status, account_status, last_update, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (staff_id, username, first_name, middle_name, last_name, new_name, email, role, 1, account_status, last_update, timestamp))
+
+        log_audit_event(
+            actor_id=session['username'],
+            timestamp=timestamp,
+            table_name='users',
+            action_type='INSERT',
+            record_id=str(staff_id),
+            old_data=None,
+            new_data={
+                'user_id': staff_id,
+                'username': username,
+                'first_name': first_name,
+                'middle_name': middle_name,
+                'last_name': last_name,
+                'name': new_name,
+                'email': email,
+                'role': role,
+                'status': 1,
+                'account_status': account_status,
+                'last_update': last_update,
+                'timestamp': timestamp
+            }
+        )
+
+    # --- 4. Commit all changes ---
+    mysql.connection.commit()
+
+    # --- 5. Audit log for staff ---
+    new_staff_data = {
+        **old_staff_data,
         'first_name': first_name,
         'last_name': last_name,
         'role': role,
@@ -2608,29 +2683,19 @@ def updateStaff():
         'phone': phone,
         'last_update': last_update,
         'timestamp': timestamp
-    })
-
-    cursor.execute("""
-        UPDATE staff 
-        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s,
-            last_update = %s, timestamp = %s
-        WHERE staff_id = %s
-    """, (first_name, last_name, role, email, phone, last_update, timestamp, staff_id))
-    mysql.connection.commit()
-
-    # Log the update
+    }
     log_audit_event(
         actor_id=session['username'],
         timestamp=timestamp,
         table_name='staff',
         action_type='UPDATE',
         record_id=str(staff_id),
-        old_data=old_data,
-        new_data=new_data
+        old_data=old_staff_data,
+        new_data=new_staff_data
     )
 
     cursor.close()
-    flash("Staff updated successfully.", "success")
+    flash("✅ Staff updated successfully and synced with user record.", "success")
     return redirect('/staff')
 
 #Called by STAFF Menu - delete a staff
