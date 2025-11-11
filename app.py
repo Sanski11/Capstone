@@ -28,7 +28,7 @@ from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 
 # Security
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 from werkzeug.utils import secure_filename
 
@@ -3097,11 +3097,13 @@ def add_user():
     if role in ['admin', 'supervisor']:
         department = None
 
+    # ✅ Hash the password before saving
+    hashed_password = generate_password_hash(password, method='pbkdf2:sha256', salt_length=16)
+
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    new_user_id = None #change room_id
+    new_user_id = None 
     
     try:
-        
         # Check if username already exists
         cursor.execute("SELECT username FROM users WHERE username=%s", (username,))
         if cursor.fetchone():
@@ -3118,18 +3120,19 @@ def add_user():
         verification_token = generate_verification_token()
         token_expires_at = datetime.now() + timedelta(hours=24)
         
+        # ✅ Use the hashed password instead of plain text
         cursor.execute("""
             INSERT INTO users (username, first_name, middle_name, last_name, name, email, password, role, department, status, email_verified, verification_token, token_expires_at, account_status, created_at, last_update, timestamp)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (username, first_name, middle_name, last_name, name, email, password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now(), last_update, timestamp))
-        new_user_id = cursor.lastrowid #Get the ID of the newly inserted record; change room_id
+        """, (username, first_name, middle_name, last_name, name, email, hashed_password, role, department, status, False, verification_token, token_expires_at, account_status, datetime.now(), last_update, timestamp))
+        new_user_id = cursor.lastrowid 
         mysql.connection.commit()
         
-        #Get new data and save logs
-        if new_user_id:  #change room_id
+        # Log new user creation
+        if new_user_id:
             new_data_for_log = {
                 'user_id': new_user_id,
-                'username': username,  #change field names
+                'username': username,
                 'first_name': first_name,
                 'middle_name': middle_name,
                 'last_name': last_name,
@@ -3142,15 +3145,14 @@ def add_user():
             }
             
             log_audit_event(
-                actor_id = session['username'],
+                actor_id=session['username'],
                 timestamp=timestamp,
-                table_name='users',  #change 
-                action_type='INSERT', 
-                record_id=str(new_user_id),  #change
-                old_data=None,           # Record did not exist, so old_data is None
-                new_data=new_data_for_log 
+                table_name='users',
+                action_type='INSERT',
+                record_id=str(new_user_id),
+                old_data=None,
+                new_data=new_data_for_log
             )
-        
 
         flash("✅ User added successfully!", "success")
         
@@ -3165,8 +3167,7 @@ def add_user():
         mysql.connection.rollback()
         flash(f"❌ Failed to add user: {str(e)}", "danger")
     finally:
-        cursor.close() #Close db connection
-        flash('User added successfully', 'success')
+        cursor.close()
         return redirect('/users')
     
 #Called by USER Menu - check if user exist in requests
