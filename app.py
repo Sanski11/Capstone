@@ -715,7 +715,7 @@ def dashboard():
     stats['laundry'] = stats.get('laundry_total_requests', 0)
     stats['spa'] = stats.get('spa_total_requests', 0)
 
-    # user small dashboard keys if role == 'user'
+    # user small dashboard keys if role == 'user'    # user small dashboard keys if role == 'user'
     # compute pending requests for that user
     if role == 'user' and user_id:
         cursor.execute("""
@@ -733,7 +733,7 @@ def dashboard():
         """, (user_id,))
         stats['active_bookings'] = fetch_count(0)
 
-    # --- Staff-specific dashboard ---
+    # --- Staff-specific dashboard ---    # --- Staff-specific dashboard ---
     if role == 'staff' and user_id:
     # Assigned requests: pending + processing
         cursor.execute("""
@@ -774,9 +774,9 @@ def dashboard():
     # Close cursor
     cursor.close()
 
-    # Render dashboard template
+    # Render dashboard template    
     return render_template(
-        'dashboard.html',
+        'dashboard.html',       
         role=role,
         stats=stats,
         service_data=service_data,

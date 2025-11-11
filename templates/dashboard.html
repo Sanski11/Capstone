@@ -150,7 +150,7 @@
         </div>
         {% endif %}
 
-        {% if role == 'Staff' %}
+        {% if 'staff' in role|lower %}
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <div class="card custom-card text-center">
@@ -189,33 +189,7 @@
             <span class="d-block fs-14 mb-3">You can track your assigned service requests and mark them as completed.</span>
           </div>
         </div>
-
-        {% if role in ['admin','manager', 'supervisor'] %}
-        <div class="row g-3 mt-3">
-          <div class="col-xl-8">
-            <div class="card custom-card">
-              <div class="card-header justify-content-between">
-                <div class="card-title">Daily Task Summary</div>
-              </div>
-              <div class="card-body pb-0 pt-3" style="height:300px">
-                <canvas id="staffBarChart"></canvas>
-              </div>
-            </div>
-          </div>
-          <div class="col-xl-4">
-            <div class="card custom-card">
-              <div class="card-header justify-content-between">
-                <div class="card-title">Requests by Status</div>
-              </div>
-              <div class="card-body d-flex justify-content-center align-items-center">
-                <div style="max-width:300px;max-height:300px;"><canvas id="staffPieChart"></canvas></div>
-              </div>
-            </div>
-          </div>
-        </div>
         {% endif %}
-        {% endif %}
-
 
         {% if role in ['admin','manager','supervisor',] %}
         <!-- Service Summary Cards -->
