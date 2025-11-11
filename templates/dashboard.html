@@ -190,6 +190,7 @@
           </div>
         </div>
 
+        {% if role in ['admin','manager', 'supervisor'] %}
         <div class="row g-3 mt-3">
           <div class="col-xl-8">
             <div class="card custom-card">
@@ -212,6 +213,7 @@
             </div>
           </div>
         </div>
+        {% endif %}
         {% endif %}
 
 
