@@ -240,7 +240,6 @@ def login():
 
     return render_template('login.html')
 
-
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -3555,16 +3554,16 @@ def paymongo_webhook():
 
 @app.route("/verify_otp", methods=["GET", "POST"])
 def verify_otp():
-    if request.method == "POST":
-        # read and concatenate 6 OTP fields
-        otp_1 = request.form.get("otp_1", "")
-        otp_2 = request.form.get("otp_2", "")
-        otp_3 = request.form.get("otp_3", "")
-        otp_4 = request.form.get("otp_4", "")
-        otp_5 = request.form.get("otp_5", "")
-        otp_6 = request.form.get("otp_6", "")
+    # Prevent accessing OTP page if there is no active OTP session
+    if "otp" not in session or "otp_expiry" not in session:
+        flash("No OTP session found. Please log in again.", "warning")
+        return redirect(url_for("login"))
 
-        entered_otp = otp_1 + otp_2 + otp_3 + otp_4 + otp_5 + otp_6
+    if request.method == "POST":
+        # Concatenate all six OTP fields
+        entered_otp = "".join([
+            request.form.get(f"otp_{i}", "") for i in range(1, 7)
+        ])
 
         if len(entered_otp) != 6 or not entered_otp.isdigit():
             flash("Invalid OTP format. Please enter the 6-digit code.", "danger")
@@ -3575,7 +3574,6 @@ def verify_otp():
 
         if not saved_otp or not expiry:
             flash("Session expired or no OTP found. Please request a new code.", "danger")
-            # If user was in reset flow, send them back to forgot_password, otherwise login
             if session.get("reset_email"):
                 return redirect(url_for("forgot_password"))
             return redirect(url_for("login"))
@@ -3586,7 +3584,6 @@ def verify_otp():
             expiry_dt = None
 
         if expiry_dt and datetime.now() > expiry_dt:
-            # clear expired OTP
             session.pop("otp", None)
             session.pop("otp_expiry", None)
             flash("OTP has expired. Please request a new one.", "danger")
@@ -3594,14 +3591,15 @@ def verify_otp():
                 return redirect(url_for("forgot_password"))
             return redirect(url_for("login"))
 
+        # OTP validated
         if entered_otp == saved_otp:
-            # Clear OTP regardless of flow
+            # Always clear OTP data after validation
             session.pop("otp", None)
             session.pop("otp_expiry", None)
 
-            # Login flow (user pending)
+            # Handle login verification
             pending = session.pop("pending_user", None)
-            if pending:
+            if pending and "username" in pending and "role" in pending:
                 session["loggedin"] = True
                 session["username"] = pending["username"]
                 session["role"] = pending["role"]
@@ -3609,13 +3607,12 @@ def verify_otp():
                 flash(f"Welcome back, {pending['username']}!", "success")
                 return redirect(url_for("dashboard"))
 
-            # Forgot-password / reset flow
+            # Handle password reset verification
             if session.get("reset_email"):
-                # keep reset_email in session for reset_password page, just redirect
                 flash("OTP verified. You may now reset your password.", "success")
                 return redirect(url_for("reset_password"))
 
-            # Unknown flow
+            # Default fallback for unexpected flow
             flash("OTP verified, but no action found. Please log in again.", "info")
             return redirect(url_for("login"))
         else:
@@ -3623,51 +3620,6 @@ def verify_otp():
             return redirect(url_for("verify_otp"))
 
     return render_template("verify_otp.html")
-
-from flask import request, redirect, url_for, flash
-from datetime import datetime, timedelta
-import random
-
-@app.route('/resend_otp', methods=['GET', 'POST']) # <--- ADDED 'GET' HERE
-def resend_otp():
-    """Regenerate a new OTP and resend it to the user's email"""
-    # ... (Your existing logic is fine) ...
-    user = session.get('pending_user')
-
-    if not user:
-        flash("Your session has expired. Please sign up or log in again.", "danger")
-        return redirect(url_for("login"))
-    
-    # Check if a POST request was actually made (or run the logic if it was a GET request from a button/link)
-    # The logic below proceeds with generating the OTP whether it's GET or POST.
-
-    # Generate new OTP valid for 5 minutes
-    new_otp = str(random.randint(100000, 999999))
-    expiry = (datetime.now() + timedelta(minutes=5)).strftime("%Y-%m-%d %H:%M:%S")
-
-    # Save to session
-    session['otp'] = new_otp
-    session['otp_expiry'] = expiry
-
-    # Attempt to send email
-    user_email = user.get('email')
-    if not user_email:
-        flash("Unable to find your email in the session. Please log in again.", "danger")
-        return redirect(url_for('login'))
-
-    try:
-        # Placeholder for your actual send_email function
-        # send_email(
-        #     user_email,
-        #     "Your new OTP code",
-        #     f"Your new OTP is: {new_otp}\n\nThis code will expire in 5 minutes."
-        # )
-        flash("✅ A new OTP has been sent to your email. It will expire in 5 minutes.", "success")
-    except Exception as e:
-        print("Email sending error:", e)
-        flash("⚠️ Failed to send OTP. Please try again later.", "danger")
-
-    return redirect(url_for('verify_otp'))
 
 @app.route('/forceassigntask', methods=['POST'])
 def forceassigntask():
