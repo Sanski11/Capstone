@@ -193,8 +193,8 @@
 
         <!-- Back Button -->
         {% if session.get('role') in ['admin', 'manager', 'supervisor', 'staff'] %}
-          <a href="{{ url_for('show_roomGuest') }}" class="btn btn-back px-4 py-2">
-            <i class="ri-arrow-left-line me-2"></i>Back to Check-in/Checkout
+          <a href="{{ url_for('view_bookings') }}" class="btn btn-back px-4 py-2">
+            <i class="ri-arrow-left-line me-2"></i>Back to Bookings
           </a>
         {% else %}
           <a href="{{ url_for('dashboard') }}" class="btn btn-back px-4 py-2">

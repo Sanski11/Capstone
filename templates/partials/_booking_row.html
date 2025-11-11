@@ -2,18 +2,26 @@
   <td>{{ booking.last_name }}, {{ booking.first_name }}</td>
   <td>{{ booking.room_type }}</td>
   <td>{{ booking.room_number }}</td>
-  <td>{{ booking.exp_check_in }}</td>
-  <td>{{ booking.exp_check_out }}</td>
+  <td>{{ booking.exp_check_in }}<br>{{ booking.exp_check_out }}</td>
+  <td>
+    {{ booking.actual_check_in.strftime('%Y-%m-%d %H:%M') if booking.actual_check_in else 'None' }}<br>
+    {{ booking.actual_check_out.strftime('%Y-%m-%d %H:%M') if booking.actual_check_out else 'None' }}
+  </td>
   <td>
     <span class="badge bg-{{ 'success' if booking.status == 'Checked-in' else 'danger' if booking.status == 'Checked-out' else 'warning' if booking.status == 'Pending' else 'primary' }}">
       {{ booking.status }}
-    </span>
+  </span>
   </td>
   <td>{{ booking.random_booking_ref }}</td>
   <td>{{ booking.last_update }} / {{ booking.timestamp }}</td>
   <td>
     {% if role in ['admin', 'manager'] %}
-      {% if booking.status == "Confirmed" %}
+      {% if booking.status|lower in ['checked-in', 'checked-out'] %}
+        <a href="{{ url_for('view_bill', booking_id=booking.booking_id) }}" class="btn btn-sm btn-info-light btn-wave">
+          View Bill/<br>Payment
+        </a>
+      {% endif %}
+      {% if booking.status|lower == 'confirmed' %}
         <button class="btn btn-icon btn-sm btn-warning-transparent me-1"
                 onclick='openEditModal({{ booking | tojson | safe }})'
                 data-bs-toggle="modal" data-bs-target="#editBookingModal">
