@@ -2543,8 +2543,6 @@ def add_staff():
 #Called by STAFF Menu - edit a staff
 @app.route('/updateStaff', methods=['POST'])
 def updateStaff():
-    
-    #Get the values entered in the Edit Form
     staff_id = int(request.form['edit_staff_id'])
     first_name = request.form['edit_first_name']
     last_name = request.form['edit_last_name']
@@ -2553,49 +2551,83 @@ def updateStaff():
     phone = request.form['edit_phone']
     last_update = session['username']
     timestamp = datetime.now()
-    
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
-    
-    #Get old data
-    cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_id,)) #change table and field names
-    old_data = cursor.fetchone() 
 
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # --- 1. Try to find in staff table ---
+    cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_id,))
+    old_data = cursor.fetchone()
+
+    # --- 2. If not found, check users table ---
     if not old_data:
-        # Handle error: record not found
-        return "Staff not found", 404 #change message
-    
-    #Get new data 
+        cursor.execute("SELECT * FROM users WHERE user_id = %s", (staff_id,))
+        user_data = cursor.fetchone()
+
+        if not user_data:
+            cursor.close()
+            flash("Staff not found in users table.", "danger")
+            return redirect('/staff')
+
+        # --- Create staff from user data ---
+        cursor.execute("""
+            INSERT INTO staff (first_name, last_name, role, email, phone, last_update, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            first_name or user_data['username'],
+            last_name or '',
+            role or user_data.get('role', 'staff'),
+            email or user_data.get('email', ''),
+            phone or '',
+            last_update,
+            timestamp
+        ))
+        mysql.connection.commit()
+
+        # Get the newly created staff_id
+        cursor.execute("SELECT LAST_INSERT_ID() AS new_staff_id")
+        staff_id = cursor.fetchone()['new_staff_id']
+
+        # --- Remove old staff from users table ---
+        cursor.execute("DELETE FROM users WHERE user_id = %s", (user_data['user_id'],))
+        mysql.connection.commit()
+
+        flash("Staff updated and moved from users to staff successfully.", "success")
+        cursor.close()
+        return redirect('/staff')
+
+    # --- 3. If found in staff table, update normally ---
     new_data = old_data.copy()
-    new_data['staff_id'] = staff_id  #change ALL field names (should be similar to the table)
-    new_data['first_name'] = first_name
-    new_data['last_name'] = last_name
-    new_data['role'] = role
-    new_data['email'] = email
-    new_data['phone'] = phone
-    new_data['last_update'] = last_update
-    new_data['timestamp'] = timestamp
-    
-    cursor.execute(
-        """
+    new_data.update({
+        'first_name': first_name,
+        'last_name': last_name,
+        'role': role,
+        'email': email,
+        'phone': phone,
+        'last_update': last_update,
+        'timestamp': timestamp
+    })
+
+    cursor.execute("""
         UPDATE staff 
-        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s, last_update=%s, timestamp=%s
+        SET first_name = %s, last_name = %s, role = %s, email = %s, phone = %s,
+            last_update = %s, timestamp = %s
         WHERE staff_id = %s
-        """,
-        (first_name, last_name, role, email, phone, last_update, timestamp, staff_id)
-    )
+    """, (first_name, last_name, role, email, phone, last_update, timestamp, staff_id))
     mysql.connection.commit()
-    #Save logs
+
+    # Log the update
     log_audit_event(
         actor_id=session['username'],
         timestamp=timestamp,
-        table_name='staff',  #change table name
-        action_type='UPDATE', 
-        record_id=str(staff_id), #change field name
-        old_data=old_data, 
-        new_data=new_data 
+        table_name='staff',
+        action_type='UPDATE',
+        record_id=str(staff_id),
+        old_data=old_data,
+        new_data=new_data
     )
-    cursor.close()
 
+    cursor.close()
+    flash("Staff updated successfully.", "success")
     return redirect('/staff')
 
 #Called by STAFF Menu - delete a staff
