@@ -161,7 +161,7 @@
                     <td>{{ ms.name }}</td>
                     <td>{{ ms.description }}</td>
                     <td class="text-end">₱{{ "{:,.2f}".format(ms.price) }}</td>
-                    <td>{{ ms.last_update }}</td>
+                    <td>{{ ms.last_update }}/{{ ms.timestamp }}</td>
                     <td>
                       {% if role in ['admin', 'manager'] or department == "Massage" %}
                         <div class="btn-list">

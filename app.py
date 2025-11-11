@@ -1792,12 +1792,13 @@ def view_housekeeping():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN upper(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN upper(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
-        FROM requests
+            SUM(CASE WHEN upper(r.status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN upper(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN bookings b ON b.booking_id = r.booking_id
         WHERE service_id IN (
             SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
-        )
+        ) AND LOWER(b.status) = 'checked-in'
     """)
     housekeeping_stats = cursor.fetchone()
 
@@ -1837,12 +1838,13 @@ def view_laundry():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
-        FROM requests
+            SUM(CASE WHEN UPPER(r.status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
+        FROM requests r
+        JOIN bookings b ON b.booking_id = r.booking_id
         WHERE service_id IN (
             SELECT service_id FROM hotel_services WHERE category = 'Laundry'
-        )
+        ) AND lower(b.status)= 'checked-in'
     """)
     laundry_stats = cursor.fetchone() or {}
 
@@ -1880,12 +1882,13 @@ def view_dining():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
-            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
-        FROM requests
+            SUM(CASE WHEN UPPER(r.status) = 'PENDING' THEN 1 ELSE 0 END) AS pending_requests,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed_requests
+        FROM requests r
+        JOIN bookings b ON b.booking_id = r.booking_id
         WHERE item_id IN (
             SELECT item_id FROM food_items WHERE type = 'food'
-        )
+        ) AND lower(b.status) = 'checked-in'
     """)
     dining_stats = cursor.fetchone() or {}
 
@@ -1928,14 +1931,15 @@ def view_massage():
     cursor.execute("""
         SELECT 
             COUNT(*) AS total_requests,
-            SUM(CASE WHEN UPPER(status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN UPPER(status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
-        FROM requests
+            SUM(CASE WHEN UPPER(r.status) = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN bookings b ON b.booking_id = r.booking_id
         WHERE service_id IN (
             SELECT service_id 
             FROM hotel_services 
             WHERE category = 'Massage'
-        )
+        ) AND lower(b.status) = 'checked-in'
     """)
     spa_stats = cursor.fetchone() or {}
 
