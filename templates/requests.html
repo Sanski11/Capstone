@@ -160,6 +160,7 @@
                                         {% if session['role'] in ['admin', 'manager', 'supervisor'] %}
                                         <div class="d-flex flex-column gap-1">
                                             <div class="btn-list">
+                                                <!--
                                                 <button class="btn btn-icon btn-sm btn-warning-transparent btn-wave me-1"
                                                     onclick="openEditModal(this)"
                                                     data-request_id="{{ request.request_id }}"
@@ -181,6 +182,7 @@
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
+                                                -->
 
                                                 <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                     onclick="openCompletedModal('{{ request.request_id }}')"
