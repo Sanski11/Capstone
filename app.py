@@ -551,76 +551,78 @@ def dashboard():
     stats = {}
 
     # Housekeeping: totals, pending, completed, total services
-    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Housekeeping'")
-    stats['housekeeping_total_services'] = fetch_count(0)
-
     cursor.execute("""
         SELECT
             COUNT(*) AS count,
             SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
         FROM requests r
-        JOIN hotel_services s ON r.service_id = s.service_id
-        WHERE s.category = 'Housekeeping'
+        JOIN bookings b ON b.booking_id = r.booking_id
+        WHERE r.service_id IN (
+            SELECT service_id FROM hotel_services WHERE category = 'Housekeeping'
+        )
+        AND LOWER(b.status) = 'checked-in'
     """)
     row = cursor.fetchone() or {}
-    stats['housekeeping_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
-    stats['housekeeping_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
-    stats['housekeeping_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+    stats['housekeeping_total_requests'] = row.get('count', 0) or 0
+    stats['housekeeping_pending'] = row.get('pending', 0) or 0
+    stats['housekeeping_completed'] = row.get('completed', 0) or 0
 
     # Dining: total menu items, requests, pending, completed
-    cursor.execute("SELECT COUNT(*) AS count FROM food_items WHERE type = 'food'")
-    stats['dining_total_items'] = fetch_count(0)
-
-    cursor.execute("""
-        SELECT
-            COUNT(*) AS count,
-            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
-        FROM requests r
-        JOIN food_items f ON r.item_id = f.item_id
-        WHERE f.type = 'food'
-    """)
-    row = cursor.fetchone() or {}
-    stats['dining_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
-    stats['dining_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
-    stats['dining_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
-
     # Laundry
-    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Laundry'")
-    stats['laundry_total_services'] = fetch_count(0)
-
     cursor.execute("""
         SELECT
             COUNT(*) AS count,
             SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
         FROM requests r
-        JOIN hotel_services s ON r.service_id = s.service_id
-        WHERE s.category = 'Laundry'
+        JOIN bookings b ON b.booking_id = r.booking_id
+        WHERE r.service_id IN (
+            SELECT service_id FROM hotel_services WHERE category = 'Laundry'
+        )
+        AND LOWER(b.status) = 'checked-in'
     """)
     row = cursor.fetchone() or {}
-    stats['laundry_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
-    stats['laundry_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
-    stats['laundry_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+    stats['laundry_total_requests'] = row.get('count', 0) or 0
+    stats['laundry_pending'] = row.get('pending', 0) or 0
+    stats['laundry_completed'] = row.get('completed', 0) or 0
+
+    # Dining
+    cursor.execute("""
+        SELECT
+            COUNT(*) AS count,
+            SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
+        FROM requests r
+        JOIN bookings b ON b.booking_id = r.booking_id
+        WHERE r.item_id IN (
+            SELECT item_id FROM food_items WHERE type = 'food'
+        )
+        AND LOWER(b.status) = 'checked-in'
+    """)
+    row = cursor.fetchone() or {}
+    stats['dining_total_requests'] = row.get('count', 0) or 0
+    stats['dining_pending'] = row.get('pending', 0) or 0
+    stats['dining_completed'] = row.get('completed', 0) or 0
 
     # Massage / Spa
-    cursor.execute("SELECT COUNT(*) AS count FROM hotel_services WHERE category = 'Massage'")
-    stats['spa_total_services'] = fetch_count(0)
-
     cursor.execute("""
         SELECT
             COUNT(*) AS count,
             SUM(CASE WHEN UPPER(r.status) IN ('PENDING','PROCESSING') THEN 1 ELSE 0 END) AS pending,
             SUM(CASE WHEN UPPER(r.status) = 'COMPLETED' THEN 1 ELSE 0 END) AS completed
         FROM requests r
-        JOIN hotel_services s ON r.service_id = s.service_id
-        WHERE s.category = 'Massage'
+        JOIN bookings b ON b.booking_id = r.booking_id
+        WHERE r.service_id IN (
+            SELECT service_id FROM hotel_services WHERE category = 'Massage'
+        )
+        AND LOWER(b.status) = 'checked-in'
     """)
     row = cursor.fetchone() or {}
-    stats['spa_total_requests'] = int(row.get('count', 0) or 0) if isinstance(row, dict) else (row[0] or 0)
-    stats['spa_pending'] = int(row.get('pending', 0) or 0) if isinstance(row, dict) else (row[1] or 0)
-    stats['spa_completed'] = int(row.get('completed', 0) or 0) if isinstance(row, dict) else (row[2] or 0)
+    stats['spa_total_requests'] = row.get('count', 0) or 0
+    stats['spa_pending'] = row.get('pending', 0) or 0
+    stats['spa_completed'] = row.get('completed', 0) or 0
+
 
     # Global booking and user counts
     cursor.execute("SELECT COUNT(*) AS count FROM users WHERE status = 1")
