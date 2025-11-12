@@ -309,6 +309,33 @@ def reset_password():
 
     return render_template('reset_password.html')
 
+@app.route('/change_password', methods=['POST'])
+def change_password():
+    current_password = request.form['current_password']
+    new_password = request.form['new_password']
+    confirm_password = request.form['confirm_password']
+    username = session['username']
+
+    if new_password != confirm_password:
+        flash("New password and confirm password do not match.", "danger")
+        return redirect('/profile')
+
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT password FROM users WHERE username = %s", (username,))
+    user = cursor.fetchone()
+
+    if not user or user['password'] != current_password:
+        flash("Current password is incorrect.", "danger")
+        return redirect('/profile')
+
+    # Directly store the new password as plain text
+    cursor.execute("UPDATE users SET password = %s WHERE username = %s", (new_password, username))
+    mysql.connection.commit()
+    cursor.close()
+
+    flash("Password updated successfully.", "success")
+    return redirect('/profile')
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -1374,6 +1401,7 @@ def updateRoom():
     )
     
     cursor.close() #Close connection
+    flash('Room updated successfully', 'success')
     return redirect('/rooms') #Return to rooms
 
 #Called by ROOMS Menu - delete a room
@@ -1517,7 +1545,7 @@ def updateGuests():
 
     mysql.connection.commit() #Save to db
     cursor.close() #Close connection
-
+    flash('Guest updated successfully', 'success')
     return redirect('/guests')
 
 @app.route('/addRequest', methods=['POST'])
@@ -1684,7 +1712,7 @@ def update_request():
         new_data=new_data 
     )
     cursor.close()
-
+    flash('Request updated successfully', 'success')
     return redirect('/requests')
 
 @app.route('/deleteRequest/<int:request_id>', methods=['GET'])
@@ -2205,7 +2233,7 @@ def updateHousekeeping():
 
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
-
+    flash('Housekeeping item edited successfully', 'housekeeping')
     return redirect('/housekeeping')
 
 #Called by DINING Menu - edit a dining
@@ -2312,7 +2340,7 @@ def updateLaundry():
 
     mysql.connection.commit() #Save to db
     cursor.close() #Close db connection
-
+    flash('Laundry item updated successfully', 'laundry')
     return redirect('/laundry')
 
 #Called by MASSAGE Menu - edit a massage
@@ -2370,7 +2398,7 @@ def updateMassage():
     )
     
     cursor.close() #Close db connection
-
+    flash('Massage item updated successfully', 'massage')
     return redirect('/massage')
 
 #Called by HOUSEKEEPING Menu - delete a housekeeping
@@ -2941,6 +2969,7 @@ def updateBooking():
     )
 
     cursor.close()
+    flash('Booking updated successfully', 'success')
     return redirect('/bookings')
 
 #Called by BOOKINGS Menu - check if booking id is used in requests
@@ -3279,7 +3308,7 @@ def delete_user(user_id):
     cursor.close()
     
     flash('User deleted successfully', 'success')
-    return redirect(url_for('users'))
+    return redirect('/users')
 
 @app.route('/updateUser', methods=['POST'])
 def update_user():

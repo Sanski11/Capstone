@@ -47,16 +47,17 @@
 
         <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <div id="flashPopup" class="mb-4">
-            {% for category, message in messages %}
-              <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }}" role="alert">
-                {{ message }}
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% endwith %}
+                {% if messages %}
+                    <div class="mb-3">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'danger' else 'warning' }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% endwith %}
 
         <!-- Profile Section -->
         <div class="row">
@@ -89,13 +90,6 @@
                 <div class="summary-card">
                   <h6>Bookings Handled</h6>
                   <h3>{{ total_bookings or 0 }}</h3>
-                </div>
-              </div>
-              <!-- Guest/User Stats -->
-              <div class="col-md-12">
-                <div class="summary-card">
-                  <h6>Active Bookings</h6>
-                  <h3>{{ guest_bookings or 0 }}</h3>
                 </div>
               </div>
               {% endif %}
@@ -149,23 +143,35 @@
   </div>
 
   <!-- Change Password Modal -->
-  <div class="modal fade" id="changePasswordModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form method="POST" action="{{ url_for('reset_password') }}">
-          <div class="modal-header"><h5>Change Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-          <div class="modal-body">
-            <div class="mb-3"><label>Current Password</label><input type="password" name="current_password" class="form-control" required></div>
-            <div class="mb-3"><label>New Password</label><input type="password" name="new_password" class="form-control" required></div>
-            <div class="mb-3"><label>Confirm Password</label><input type="password" name="confirm_password" class="form-control" required></div>
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{{ url_for('change_password') }}">
+        <div class="modal-header">
+          <h5>Change Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label>Current Password</label>
+            <input type="password" name="current_password" class="form-control" required>
           </div>
-          <div class="modal-footer">
-            <button type="submit" class="btn btn-primary">Update Password</button>
+          <div class="mb-3">
+            <label>New Password</label>
+            <input type="password" name="new_password" class="form-control" required>
           </div>
-        </form>
-      </div>
+          <div class="mb-3">
+            <label>Confirm Password</label>
+            <input type="password" name="confirm_password" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Update Password</button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
 
   <!-- Delete Account Modal -->
   <div class="modal fade" id="deleteAccountModal" tabindex="-1">
@@ -187,6 +193,16 @@
   <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+     
+    document.addEventListener("DOMContentLoaded", function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(alert => {
+        setTimeout(() => {
+          const bsAlert = new bootstrap.Alert(alert);
+          bsAlert.close();
+        }, 4000);
+      });
+    });
   </script>
 </body>
 </html>
