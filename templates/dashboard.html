@@ -118,26 +118,6 @@
 
         <!-- GUEST / USER DASHBOARD -->
         {% if role in ['user','guest'] %}
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <div class="card custom-card text-center">
-              <div class="card-body">
-                <h5 class="fw-semibold">Your Active Bookings</h5>
-                <h3 class="text-primary">{{ stats.active_bookings or 0 }}</h3>
-                <a href="/bookings" class="btn btn-sm btn-warning mt-2">View Bookings</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="col-md-6">
-            <div class="card custom-card text-center">
-              <div class="card-body">
-                <h5 class="fw-semibold">Pending Requests</h5>
-                <h3 class="text-purple">{{ stats.pending_requests or 0 }}</h3>
-                <a href="/requests" class="btn btn-sm btn-warning mt-2">View Requests</a>
-              </div>
-            </div>
-          </div>
 
           <div class="col-12">
             <div class="card custom-card dashboard-banner-card overflow-hidden">
