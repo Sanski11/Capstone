@@ -176,13 +176,14 @@
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-pencil-line"></i>
                                                 </button>
+                                                -->
+
 
                                                 <button class="btn btn-icon btn-sm btn-danger-transparent btn-wave"
                                                     onclick="confirmDelete('{{ request.request_id }}')"
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
-                                                -->
 
                                                 <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                     onclick="openCompletedModal('{{ request.request_id }}')"
