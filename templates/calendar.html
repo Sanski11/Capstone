@@ -401,36 +401,49 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Delete flow using confirm modal ---
     document.getElementById('deleteEventButton').addEventListener('click', function() {
-        const id = this.dataset.eventId || (selectedEvent && selectedEvent.id);
-        if (!id) return;
-        // pass id to confirm button and show modal
-        document.getElementById('confirmDeleteEventBtn').dataset.eventId = id;
+        if (!selectedEvent) {
+            console.warn("⚠️ No selected event to delete.");
+            return;
+        }
+
+        // Store the ID for confirmation
+        document.getElementById('confirmDeleteEventBtn').dataset.eventId = selectedEvent.id;
         confirmDeleteModal.show();
     });
 
-    // confirmed delete
+    // --- Confirmed delete ---
     document.getElementById('confirmDeleteEventBtn').addEventListener('click', function() {
-        const id = this.dataset.eventId;
-        if (!id) return;
-        // hide confirm modal first
         confirmDeleteModal.hide();
 
-        // remove from calendar
-        const ev = calendar.getEventById(String(id));
-        if (ev) ev.remove();
+        if (!selectedEvent) {
+            console.warn("⚠️ No selected event during delete confirmation.");
+            return;
+        }
 
-        // persist removal from userEvents
-        userEvents = userEvents.filter(e => String(e.id) !== String(id));
+        const id = String(selectedEvent.id);
+
+        // Remove from calendar directly
+        selectedEvent.remove();
+
+        // Remove from localStorage
+        userEvents = userEvents.filter(e => String(e.id) !== id);
         localStorage.setItem('ezstay_events', JSON.stringify(userEvents));
 
-        // update storage/sidebar
         saveEventsToLocalStorage();
         updateUpcomingEvents();
 
-        // close viewer if open
-        try { eventModal.hide(); } catch (e) {}
+        // Reset and close
         selectedEvent = null;
+        try { eventModal.hide(); } catch (e) {}
+
+        // Success toast
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 m-3 alert alert-success fade show shadow-sm';
+        toast.textContent = '✅ Event deleted successfully';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
     });
+
 
     // --- Open edit modal from viewer ---
     document.getElementById('editEventButton').addEventListener('click', function() {
