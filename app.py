@@ -3192,8 +3192,8 @@ def add_user():
     last_update = session['username']
     timestamp = datetime.now()
 
-    # Set department to None if user is admin/supervisor
-    if role in ['admin', 'supervisor']:
+    # Set department to None if user is admin/manager
+    if role in ['admin', 'manager']:
         department = None
 
     # ✅ Hash the password before saving

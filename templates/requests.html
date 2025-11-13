@@ -184,7 +184,7 @@
                                                     {% if request.status|upper != 'PENDING' %}style="pointer-events:none;"{% endif %}>
                                                     <i class="ri-delete-bin-line"></i>
                                                 </button>
-
+                                                
                                                 <button class="btn btn-icon btn-sm btn-success-transparent btn-wave me-1"
                                                     onclick="openCompletedModal('{{ request.request_id }}')"
                                                     {% if request.status|upper != 'PENDING' or not request.staff_id %}style="pointer-events:none; opacity:0.5;"{% endif %}>
