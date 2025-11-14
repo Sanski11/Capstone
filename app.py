@@ -3831,7 +3831,7 @@ def _pick_least_loaded_staff(cursor, target_role):
     
     cursor.execute("""
         SELECT s.staff_id,
-                COALESCE(SUM(CASE WHEN r.status <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
+                COALESCE(SUM(CASE WHEN lower(r.status) <> 'completed' THEN 1 ELSE 0 END), 0) AS load_now
         FROM staff s
         LEFT JOIN requests r ON r.staff_id = s.staff_id
         WHERE s.role = %s
