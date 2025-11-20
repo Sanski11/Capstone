@@ -3921,6 +3921,33 @@ def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old
         # Log but do not crash the app
         print(f"FATAL AUDIT FAILURE: {e}")
         
+                
+@app.route('/getBooking/<int:checkin_id>')
+def getBooking(checkin_id):
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT 
+            c.checkin_id,
+            c.booking_id,
+            c.room_number,
+            b.actual_check_in,
+            g.first_name,
+            g.last_name
+        FROM check_ins c
+        JOIN bookings b ON b.booking_id = c.booking_id
+        JOIN guest g ON g.guest_id = c.guest_id
+        WHERE c.checkin_id = %s
+    """, (checkin_id,))
+
+    booking = cursor.fetchone()
+    cursor.close()
+
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    return jsonify(booking)        
+        
 @app.route('/completedRequest', methods=['POST'])
 def completedRequest():
     request_id = request.form.get('completed_request_id')
