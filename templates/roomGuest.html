@@ -485,7 +485,13 @@
         
             qrReader.start(
                 { facingMode: "environment" },
-                { fps: 10, qrbox: 250 },
+                {
+                    fps: 10,
+                    qrbox: function(viewfinderWidth, viewfinderHeight) {
+                        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+                        return { width: minEdge * 0.7, height: minEdge * 0.7 }; // 70% of screen
+                    }
+                },
                 qrText => {
                     console.log("✅ QR detected:", qrText);
                     qrReader.stop();
