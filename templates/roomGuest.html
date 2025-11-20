@@ -493,6 +493,7 @@
                     qrActive = false;
         
                     document.getElementById("modal_qr_text").innerText = qrText;
+                    /* old QR code format
                     let match = qrText.match(/scan\/(\d+)\/html/);
                     if (!match) {
                         showModal("Invalid QR", "Invalid QR format", "warning");
@@ -514,7 +515,70 @@
                             document.getElementById("modal_actual_check_in").innerText = data.actual_check_in;
                             new bootstrap.Modal(document.getElementById('bookingInfoModal')).show();
                         });
-                },
+                        */
+
+                        // start of new QR code format
+                        let referenceNumber = null;
+                        let checkin_id = null;
+                        let endpoint = null;        
+                    
+                        // --- NEW LOGIC: Check for JSON format (referenceNumber) ---
+                        try {
+                            const qrData = JSON.parse(qrText);
+                            if (qrData.referenceNumber) {
+                                referenceNumber = qrData.referenceNumber;
+                                // Endpoint for the new format: /getBookingByRef/<referenceNumber>
+                                endpoint = `/getBookingByRef/${referenceNumber}`;
+                                console.log("JSON Format Detected. Using referenceNumber:", referenceNumber);
+                            }
+                        } catch (e) {
+                            // Not JSON, continue to old format check
+                            console.log("QR text is not JSON. Checking old URL format.");
+                        }
+
+                        // --- OLD LOGIC (Fallback): Check for URL format (checkin_id) ---
+                        if (!endpoint) {
+                            let match = qrText.match(/scan\/(\d+)\/html/); 
+                            if (match) {
+                                checkin_id = match[1];
+                                endpoint = `/getBooking/${checkin_id}`;
+                                console.log("Old URL Format Detected. Using checkin_id:", checkin_id);
+                            } else {
+                                showModal("Invalid QR", "QR code text format not recognized. Must be the old URL (e.g., scan/123/html) or the new JSON format.", "warning");
+                                return;
+                            }
+                        }
+
+                        // Proceed to fetch booking data using the determined endpoint
+                        if (endpoint) {
+                            // *** Full fetch logic inserted here as requested by user ***
+                            fetch(endpoint)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.error) {
+                                        showModal("Booking not found", `No record found for QR: ${qrText}. Error: ${data.error}`, "warning");
+                                        return;
+                                    }
+                                    // Populate modal fields
+                                    document.getElementById("modal_booking_id").innerText = data.booking_id;
+                                    document.getElementById("modal_first_name").innerText = data.first_name;
+                                    document.getElementById("modal_last_name").innerText = data.last_name;
+                                    document.getElementById("modal_room_number").innerText = data.room_number;
+                                    document.getElementById("modal_actual_check_in").innerText = data.actual_check_in;
+                                    
+                                    // Show modal
+                                    new bootstrap.Modal(document.getElementById('bookingInfoModal')).show();
+                                })
+                                .catch(error => {
+                                    console.error("Fetch Error:", error);
+                                    showModal("API Error", "Could not connect to the booking API.", "danger");
+                                });
+                        } else {
+                            // This should technically be caught by the prior logic, but as a safeguard:
+                            showModal("Error", "Could not determine booking identifier or API endpoint.", "danger");
+                        }
+                        // *** End of full fetch logic ***
+                    },
                 err => {} // ignore scan errors
             ).catch(err => console.error("Error starting QR:", err));
         }
