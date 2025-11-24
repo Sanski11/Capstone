@@ -74,7 +74,6 @@
   </div>
 </header>
     <!-- SIDEBAR -->
-    <!-- SIDEBAR -->
     {% include '_sidebar.html' %}
           
         <div class="main-content app-content">
@@ -316,7 +315,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.13/index.global.min.js"></script>
 
     <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('year').textContent = new Date().getFullYear();
 
     const addEventModal = new bootstrap.Modal(document.getElementById('addEvent'));
@@ -373,7 +372,9 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalEventName').textContent = selectedEvent.title || 'No title';
             document.getElementById('modalEventDescription').textContent = selectedEvent.extendedProps.description || '';
             const start = selectedEvent.start ? selectedEvent.start.toLocaleDateString('en-CA') : '';
-            const end = selectedEvent.end ? selectedEvent.end.toLocaleDateString('en-CA') : start;
+            const end = selectedEvent.end
+            ? new Date(selectedEvent.end.getTime() - 86400000).toLocaleDateString('en-CA')  // FIXED
+            : start;
             document.getElementById('modalEventStart').textContent = start;
             document.getElementById('modalEventEnd').textContent = end;
             // attach id to delete button
@@ -444,6 +445,12 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => toast.remove(), 2500);
     });
 
+    function addOneDay(dateStr) {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+}
 
     // --- Open edit modal from viewer ---
     document.getElementById('editEventButton').addEventListener('click', function() {
@@ -452,7 +459,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('edit_event_id').value = selectedEvent.id;
         document.getElementById('editEventName').value = selectedEvent.title || '';
         document.getElementById('editFromDate').value = selectedEvent.start ? selectedEvent.start.toISOString().slice(0,10) : '';
-        document.getElementById('editToDate').value = selectedEvent.end ? selectedEvent.end.toISOString().slice(0,10) : '';
+        document.getElementById('editToDate').value = selectedEvent.end
+        ? new Date(selectedEvent.end.getTime() - 86400000).toISOString().slice(0, 10)
+        : '';
         document.getElementById('editEventType').value = selectedEvent.classNames[0] || 'bg-event-bookings';
         document.getElementById('editEventDescription').value = selectedEvent.extendedProps.description || '';
         eventModal.hide();
@@ -478,7 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // fallback: update local storage if event not found
             userEvents = userEvents.map(u => {
                 if (String(u.id) === String(id)) {
-                    return { ...u, title, start: from, end: to, className: type, description: desc };
+                    return { ...u, title, start: from, end: addOneDay(to), className: type, description: desc };  // FIXED
                 }
                 return u;
             });
@@ -492,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // apply changes to the calendar event
         ev.setProp('title', title);
         try { ev.setStart(from); } catch (err) { /* ignore invalid date */ }
-        try { ev.setEnd(to); } catch (err) { /* ignore invalid date */ }
+        ev.setEnd(addOneDay(to));   // FIXED
         ev.setProp('className', type);
         ev.setExtendedProp('description', desc);
 
@@ -527,7 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
             id: String(++eventId),
             title: name,
             start: from,
-            end: to || from,
+            end: addOneDay(to || from),   // FIXED
             allDay: true,
             className: type,
             description: desc || "No description provided."
