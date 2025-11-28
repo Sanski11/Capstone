@@ -119,8 +119,8 @@
                     <td>{{ log.table_name }}</td>
                     <td>{{ log.action_type }}</td>
                     <td>{{ log.record_id }}</td>
-                    <td>{{ log.old_value or '-' }}</td>
-                    <td>{{ log.new_value or '-' }}</td>
+                    <td>{{ format_audit_values(log.old_value)|safe }}</td>
+                    <td>{{ format_audit_values(log.new_value)|safe }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>

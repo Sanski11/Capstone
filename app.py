@@ -134,6 +134,18 @@ def send_reset_otp(email):
     print(f"OTP for {email}: {otp}")  # for testing
     flash("A verification code has been sent to your email.", "info")
     
+def format_audit_values(value):
+    if not value or value == "-" or value == "null":
+        return "-"
+    try:
+        data = json.loads(value)
+        formatted = ""
+        for field, val in data.items():
+            formatted += f"<b>{field.replace('_', ' ').title()}</b>: {val}<br>"
+        return formatted
+    except:
+        return value
+    
 @app.context_processor
 def inject_user_details():
     return {
@@ -1297,7 +1309,7 @@ def view_auditlogs():
                    SELECT * FROM audit_log ORDER BY log_id DESC
                    """)
     logs = cursor.fetchall() #After executing sql, fetch results
-    return render_template('auditlogs.html', logs=logs) #pass the contents of logs to auditlogs.html
+    return render_template('auditlogs.html', logs=logs, format_audit_values=format_audit_values) #pass the contents of logs to auditlogs.html
 
 #Called by ROOMS Menu; Add a new room
 @app.route('/addRoom', methods=['POST'])
