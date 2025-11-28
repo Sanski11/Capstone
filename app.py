@@ -70,8 +70,6 @@ app.config['MYSQL_PORT'] = 17710
 app.config['MYSQL_USER'] = 'avnadmin'
 app.config['MYSQL_PASSWORD'] = 'AVNS_4XNIj2-qNxSTo-HJlgi'
 app.config['MYSQL_DB'] = 'staff_portal'
-app.jinja_env.filters['format_audit_values'] = 'format_audit_values'
-
 
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
@@ -136,52 +134,6 @@ def send_reset_otp(email):
     print(f"OTP for {email}: {otp}")  # for testing
     flash("A verification code has been sent to your email.", "info")
     
-# Define field mappings for tables with list-based audit logs
-TABLE_FIELD_MAP = {
-    "bookings": [
-        "Booking Id", "Some Field", "Room Type", "Guest Id", 
-        "Exp Check In", "Exp Check Out", "Field 7", "Field 8", 
-        "Status", "Random Booking Ref", "Created By", "Timestamp"
-    ],
-    "rooms": [
-        "Room Id", "Room Name", "Room Type", "Capacity", "Status"
-    ],
-    # Add more table mappings here as needed
-}
-
-def format_audit_values(value, table=None):
-    """
-    Formats old/new audit values for display.
-    Handles JSON objects, lists, or simple strings.
-    """
-    if not value or value == "-" or value == "null":
-        return "-"
-    
-    try:
-        data = json.loads(value)
-    except (json.JSONDecodeError, TypeError):
-        return value  # Return as-is if not JSON
-
-    formatted = ""
-    
-    # If it's a dictionary, use keys
-    if isinstance(data, dict):
-        for field, val in data.items():
-            formatted += f"<b>{field.replace('_',' ').title()}</b>: {val}<br>"
-    
-    # If it's a list, map to field names if table provided
-    elif isinstance(data, list):
-        fields = TABLE_FIELD_MAP.get(table, [])
-        for i, val in enumerate(data):
-            field_name = fields[i] if i < len(fields) else f"Item {i+1}"
-            formatted += f"<b>{field_name}</b>: {val}<br>"
-    
-    else:
-        # Fallback for any other type
-        formatted = str(data)
-    
-    return formatted
-
 @app.context_processor
 def inject_user_details():
     return {
@@ -1345,7 +1297,7 @@ def view_auditlogs():
                    SELECT * FROM audit_log ORDER BY log_id DESC
                    """)
     logs = cursor.fetchall() #After executing sql, fetch results
-    return render_template('auditlogs.html', logs=logs, format_audit_values=format_audit_values) #pass the contents of logs to auditlogs.html
+    return render_template('auditlogs.html', logs=logs) #pass the contents of logs to auditlogs.html
 
 #Called by ROOMS Menu; Add a new room
 @app.route('/addRoom', methods=['POST'])
