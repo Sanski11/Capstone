@@ -103,7 +103,7 @@
       <!-- Comment text -->
       <div class="mb-3">
         <label class="form-label">Please leave your comments/suggestions below:</label>
-        <textarea class="form-control" rows="3" placeholder="Enter text here" name="comment"></textarea>
+        <textarea class="form-control" rows="3" placeholder="Enter text here" name="comment" required></textarea>
       </div>
 
       <hr>
@@ -129,11 +129,18 @@
             </div>
         </div>
 
-        <!-- Send button, right aligned -->
-        <div class="d-flex justify-content-end">
-            <button type="submit" class="btn btn-success px-4">Send</button>
-        </div>
- 
+      <!-- Cancel + Send buttons, right aligned -->
+      <div class="d-flex justify-content-end gap-2">
+        <button type="button"
+                class="btn btn-outline-secondary"
+                onclick="window.location.href='{{ url_for('index') }}'">
+            Cancel
+        </button>
+
+        <button type="submit" class="btn btn-success px-4">
+            Send
+        </button>
+      </div> 
 
     </form>
   </div>

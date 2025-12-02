@@ -1006,7 +1006,7 @@ def edit_profile():
 @app.route('/logout')
 def logout():
     session.pop('username', None)
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 #Called by STAFF Menu - display staff
 @app.route('/staff')
