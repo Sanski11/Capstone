@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback</title>
+
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+
+  <!-- Bootstrap -->
+  <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="{{ url_for('static', filename='icons.css') }}" rel="stylesheet">
+
+  <!-- Vyzor Styles -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+
+  <style>
+    .rating-option input {
+      display: none;
+    }
+    .rating-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 3px solid;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto;
+      opacity: 0.4;
+      transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+    }
+    .rating-label {
+      margin-top: 4px;
+      font-size: 0.9rem;
+    }
+
+    .rating-excellent { border-color: #008000; color: #008000; }
+    .rating-good      { border-color: #7cb342; color: #7cb342; }
+    .rating-medium    { border-color: #ffb300; color: #ffb300; }
+    .rating-poor      { border-color: #ef5350; color: #ef5350; }
+    .rating-verybad   { border-color: #c62828; color: #c62828; }
+
+    .rating-option input:checked ~ .rating-circle {
+      opacity: 1;
+      transform: scale(1.08);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    }
+    .rating-option input:checked ~ .rating-label {
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body class="d-flex align-items-center justify-content-center" style="min-height:100vh; background-color: rgb(248, 249, 253);">
+
+  <div class="card shadow-lg p-4" style="width: 420px; border-radius: 1rem;">
+    <div class="d-flex align-items-center mb-3">
+      <h5 class="mb-0">Your feedback</h5>
+    </div>
+
+    <p class="mb-1">How is your overall stay experience with EzStay?</p>
+    <p class="fw-semibold mb-3"></p>
+
+    <form method="POST" action="/addFeedback">        
+      <!-- Opinion faces: 5 is highest (Excellent) -->
+      <div class="d-flex justify-content-between mb-4 text-center">
+        <label class="rating-option flex-fill">
+          <input type="radio" name="rating" value="5" checked>
+          <div class="rating-circle rating-excellent">😄</div>
+          <div class="rating-label text-success">Excellent</div>
+        </label>
+
+        <label class="rating-option flex-fill">
+          <input type="radio" name="rating" value="4">
+          <div class="rating-circle rating-good">😊</div>
+          <div class="rating-label" style="color:#7cb342;">Good</div>
+        </label>
+
+        <label class="rating-option flex-fill">
+          <input type="radio" name="rating" value="3">
+          <div class="rating-circle rating-medium">😐</div>
+          <div class="rating-label" style="color:#ffb300;">Medium</div>
+        </label>
+
+        <label class="rating-option flex-fill">
+          <input type="radio" name="rating" value="2">
+          <div class="rating-circle rating-poor">☹️</div>
+          <div class="rating-label" style="color:#ef5350;">Poor</div>
+        </label>
+
+        <label class="rating-option flex-fill">
+          <input type="radio" name="rating" value="1">
+          <div class="rating-circle rating-verybad">😫</div>
+          <div class="rating-label" style="color:#c62828;">Very Bad</div>
+        </label>
+      </div>
+
+      <!-- Comment text -->
+      <div class="mb-3">
+        <label class="form-label">Please leave your comments/suggestions below:</label>
+        <textarea class="form-control" rows="3" placeholder="Enter text here" name="comment"></textarea>
+      </div>
+
+      <hr>
+        <!-- Optional details header -->
+        <label class="form-label">Optional Details:</label>
+
+        <div class="row mb-3">
+            <div class="mb-2 d-flex align-items-center">
+                <label class="form-label mb-0 me-2" style="width:120px;">Guest Name</label>
+                <input type="text" name="guest_name" class="form-control"
+                        placeholder="Guest name" style="width:260px;">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Type of Service</label>
+                <select name="service_category" class="form-select">
+                    <option value="" selected disabled>Select a specific service</option>
+                    <option value="Housekeeping">Housekeeping</option>
+                    <option value="Dining">In-Room Dining</option>
+                    <option value="Massage">Massage</option>
+                    <option value="Laundry">Laundry</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Send button, right aligned -->
+        <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-success px-4">Send</button>
+        </div>
+ 
+
+    </form>
+  </div>
+
+
+    <!-- Thank-you Modal -->
+    <div class="modal fade" id="thankYouModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title">Thank you</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Thank you for your feedback.
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-success" id="thankYouOkBtn">
+                    OK
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+    {% if show_thank_modal %}
+        var modalEl = document.getElementById('thankYouModal');
+        var modal   = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // When OK clicked -> go to index
+        document.getElementById('thankYouOkBtn').addEventListener('click', function () {
+        modal.hide();
+        window.location.href = "{{ url_for('index') }}";  // home route
+        });
+
+        // If they close the modal with X or backdrop, also go to index
+        modalEl.addEventListener('hidden.bs.modal', function () {
+        window.location.href = "{{ url_for('index') }}";
+        });
+    {% endif %}
+    });
+    </script>
+
+</body>
+</html>

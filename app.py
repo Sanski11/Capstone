@@ -163,7 +163,7 @@ def inject_current_booking():
 
 @app.route('/')
 def home():
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -3996,6 +3996,73 @@ def completedRequest():
 
     flash("Request marked as completed successfully", "success")
     return redirect(url_for('show_requests'))
+
+@app.route('/index')
+def index():
+    # This function renders the HTML file you provided
+    return render_template('index.html') 
+# ------------------------------
+
+
+@app.route('/feedback')
+def feedback():
+    # This function renders the HTML file you provided
+    return render_template('feedback.html', show_thank_modal=False) 
+# ------------------------------
+
+
+@app.route('/addFeedback', methods=['POST'])
+def add_feedback():
+    # Get values from form
+    rating           = request.form.get('rating')          # 1–5
+    comment         = request.form.get('comment')
+    guest_name       = request.form.get('guest_name')
+    service_category = request.form.get('service_category')
+    created_at        = datetime.now()
+    try:
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+        cursor.execute("""
+            INSERT INTO feedback
+                (rating, comment, guest_name, service_category, created_at)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (rating, comment, guest_name, 
+              service_category, created_at))
+
+        new_feedback_id = cursor.lastrowid
+        mysql.connection.commit()
+
+        if new_feedback_id:
+            new_data_for_log = {
+                'rating': rating,
+                'comment': comment,
+                'guest_name': guest_name,
+                'service_category': service_category,
+                'created_at': created_at
+            }
+            log_audit_event(
+                actor_id='',
+                timestamp=created_at,
+                table_name='feedback',
+                action_type='INSERT',
+                record_id=str(new_feedback_id),
+                old_data=None,
+                new_data=new_data_for_log
+            )
+
+    except MySQLdb.Error as e:
+        mysql.connection.rollback()
+        flash('Error saving feedback. Please try again.', 'danger')
+        print("MySQL error:", e)
+
+    finally:
+        cursor.close()
+
+    if success:
+        # show modal, then redirect to index via JS
+        return render_template('feedback.html', show_thank_modal=True)
+    else:
+        return redirect(url_for('feedback_form'))
 
             
 if __name__ == '__main__':

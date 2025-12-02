@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to EzStay Portal</title>
+
+ <link rel="icon" href="{{ url_for('static', filename='images/brand-logos/favicon.ico') }}" type="image/x-icon">
+
+  <link href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
+  <style>
+    body {
+        background-color: rgb(248, 249, 253); 
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+    }
+    .main-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 90%;
+        max-width: 450px; /* Constrain width for a central, vertical stack */
+    }
+    .choice-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column; /* VERTICAL STACKING */
+        justify-content: center;
+        gap: 1.5rem; /* Space between the two large buttons */
+        padding: 1rem;
+    }
+    
+    /* Base style for both large buttons */
+    .choice-button {
+        text-align: center;
+        padding: 3rem 2rem;
+        border-radius: 1rem; 
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-grow: 1; 
+        text-decoration: none;
+    }
+
+    .choice-button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* GUEST FEEDBACK BUTTON (Primary Color) */
+    .feedback-button {
+        background-color: rgb(152,95,253); /* Primary/Accent Color */
+        color: white;
+    }
+    .feedback-button:hover {
+        background-color: #6a40d6;
+        color: white;
+    }
+
+    /* STAFF PORTAL BUTTON (Neutral/Card Color) */
+    .portal-button {
+        /* Adjusted to a slightly darker, more visible pink */
+        background-color: #f8bbd0; /* Slightly darker pink */
+        color: #343a40; /* Dark text for contrast */
+        border: 2px solid #f48fb1; /* A slightly darker pink border */
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08); 
+    }
+    .portal-button:hover {
+        /* On hover, transition to an even deeper, more saturated pink */
+        background-color: #f48fb1; 
+        color: #343a40; 
+        border-color: #f48fb1; 
+    }
+
+    .icon-large {
+        font-size: 3.5rem;
+        margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-wrapper">
+    <h1 class="text-center mb-5" style="color: rgb(152,95,253);">Welcome to EzStay</h1>
+    
+    <div class="choice-container">
+    
+        <a href="{{ url_for('feedback') }}" class="choice-button feedback-button">
+            <i class="fas fa-comment-dots icon-large"></i>
+            <h2 class="mb-2 fw-bold text-white">Guest Feedback</h2>
+            <p class="lead text-white-50 mb-0">Tap here to share your stay experience — No Login Required</p>
+        </a>
+
+        <a href="{{ url_for('login') }}" class="choice-button portal-button">
+            <i class="fas fa-user-shield icon-large" style="color: rgb(152,95,253);"></i>
+            <h2 class="mb-2 fw-bold">Staff Portal</h2>
+            <p class="lead text-muted mb-0">Authorized personnel sign-in.</p>
+        </a>
+    </div>
+
+  </div>
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
