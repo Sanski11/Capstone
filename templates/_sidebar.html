@@ -113,6 +113,13 @@
         </li>
 
         <li class="slide">
+          <a href="{{ url_for('view_feedbacklist') }}" class="side-menu__item {% if request.path.startswith('/feedbacklist') %}active{% endif %}">
+            <i class="ri-file-list-line side-menu__icon"></i>
+            <span class="side-menu__label">Feedback</span>
+          </a>
+        </li>
+
+        <li class="slide">
           <a href="{{ url_for('view_auditlogs') }}" class="side-menu__item {% if request.path.startswith('/auditlogs') %}active{% endif %}">
             <i class="ri-file-list-line side-menu__icon"></i>
             <span class="side-menu__label">Audit Trail</span>

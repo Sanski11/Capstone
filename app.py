@@ -4064,6 +4064,17 @@ def add_feedback():
     else:
         return redirect(url_for('feedback_form'))
 
+#Feedback List
+@app.route('/feedbacklist')
+def view_feedbacklist():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+    
+    cursor.execute("""
+                   SELECT * FROM feedback ORDER BY feedback_id DESC
+                   """)
+    feedbacks = cursor.fetchall() #After executing sql, fetch results
+    return render_template('feedbacklist.html', feedbacks=feedbacks) #pass the contents of logs to auditlogs.html
+
             
 if __name__ == '__main__':
     app.run(debug=True)
