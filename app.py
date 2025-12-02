@@ -197,14 +197,19 @@ def unread_count():
 # mark all as read (AJAX POST)
 @app.route('/notifications/mark_read', methods=['POST'])
 def mark_read():
-    cur = mysql.connection.cursor()
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    # mark all unread as read
     cur.execute("UPDATE audit_log SET read_status = 1 WHERE read_status = 0")
     mysql.connection.commit()
-    # return new unread count (should be 0)
+
+    # get new unread count
     cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
     row = cur.fetchone()
     cur.close()
-    count = int(row['count'] if row and 'count' in row else 0)
+
+    count = row['count']
+
     return jsonify({'success': True, 'unread_count': count})
 
 BOOKING_LABELS = [
@@ -640,19 +645,23 @@ def dashboard():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-            SELECT log_id, timestamp, CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message
-            FROM audit_log
-            ORDER BY timestamp DESC
-            LIMIT 10
-        """)
-    
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
     notifications = cursor.fetchall()
-    
+
     # inside your dashboard route (or wherever you render template)
     cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
     cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
-    row = cur.fetchone()
-    unread_count = int(row['count']) if row and 'count' in row else 0
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
 
     # fetch user record, if missing redirect to login
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
