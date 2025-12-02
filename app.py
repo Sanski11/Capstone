@@ -75,15 +75,6 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 mysql = MySQL(app)
 
-# Folder for uploaded profile pictures
-UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads', 'profile_pics')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
-
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
 @login_manager.user_loader
 def load_user(user_id):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
@@ -164,6 +155,63 @@ def inject_current_booking():
 @app.route('/')
 def home():
     return redirect(url_for('index'))
+
+BOOKING_LABELS = [
+    "Booking Id",
+    "Room Number",
+    "Room Type",
+    "Guests",
+    "Exp Check In",
+    "Exp Check Out",
+    "Field 7",
+    "Field 8",
+    "Status",
+    "Random Booking Ref",
+    "Created By",
+    "Created At"
+]
+
+def format_value(value, list_labels=None):
+    """Formats a value, either dict, list, or plain text."""
+    if not value or value == "-":
+        return "-"
+
+    try:
+        parsed = json.loads(value)
+        if isinstance(parsed, dict):
+            html = ""
+            for k, v in parsed.items():
+                html += f"<b>{k.replace('_',' ').title()}:</b> {v}<br>"
+            return html
+        elif isinstance(parsed, list):
+            html = ""
+            for i, v in enumerate(parsed):
+                label = list_labels[i] if list_labels and i < len(list_labels) else f"Field {i}"
+                html += f"<b>{label}:</b> {v}<br>"
+            return html
+        else:
+            return str(parsed)
+    except Exception:
+        lines = value.split("\n")
+        html = ""
+        for line in lines:
+            if ":" in line:
+                key, val = line.split(":", 1)
+                html += f"<b>{key.strip()}:</b> {val.strip()}<br>"
+            else:
+                html += line + "<br>"
+        return html
+
+def format_audit(old_value, new_value=None, list_labels=None):
+    """Formats old and new values side by side; new_value is optional."""
+    old_html = format_value(old_value, list_labels=list_labels)
+    new_html = format_value(new_value, list_labels=list_labels) if new_value is not None else "-"
+    
+    return f"<div style='display:flex; gap:20px;'><div><b>Old Value:</b><br>{old_html}</div>" \
+           f"<div><b>New Value:</b><br>{new_html}</div></div>"
+
+# Register in Jinja
+app.jinja_env.globals.update(format_value=format_value)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

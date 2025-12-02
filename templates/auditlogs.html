@@ -119,8 +119,8 @@
                     <td>{{ log.table_name }}</td>
                     <td>{{ log.action_type }}</td>
                     <td>{{ log.record_id }}</td>
-                    <td>{{ format_audit_values(log.old_value)|safe }}</td>
-                    <td>{{ format_audit_values(log.new_value)|safe }}</td>
+                    <td>{{ format_value(log.old_value, list_labels=BOOKING_LABELS)|safe }}</td>
+                    <td>{{ format_value(log.new_value, list_labels=BOOKING_LABELS)|safe }}</td>
                   </tr>
                   {% endfor %}
                 </tbody>
