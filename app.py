@@ -156,6 +156,57 @@ def inject_current_booking():
 def home():
     return redirect(url_for('index'))
 
+# Fetch notifications for dropdown
+@app.route('/notifications_dropdown')
+def notifications_dropdown():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT log_id, timestamp, record_id, CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message
+        FROM audit_log
+        WHERE read_status = 0
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """)
+    notifications = cursor.fetchall()
+    cursor.close()
+    return notifications  # You can render via context or JSON for AJAX
+
+# View all notifications
+@app.route('/notifications')
+def notifications():
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT log_id, timestamp, record_id, CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message
+        FROM audit_log
+        ORDER BY timestamp DESC
+    """)
+    notifications = cursor.fetchall()
+    cursor.close()
+    return render_template('notifications.html', notifications=notifications)
+
+# return unread count
+@app.route('/notifications/unread_count')
+def unread_count():
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    row = cur.fetchone()
+    cur.close()
+    count = int(row['count'] if row and 'count' in row else 0)
+    return jsonify({'unread_count': count})
+
+# mark all as read (AJAX POST)
+@app.route('/notifications/mark_read', methods=['POST'])
+def mark_read():
+    cur = mysql.connection.cursor()
+    cur.execute("UPDATE audit_log SET read_status = 1 WHERE read_status = 0")
+    mysql.connection.commit()
+    # return new unread count (should be 0)
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    row = cur.fetchone()
+    cur.close()
+    count = int(row['count'] if row and 'count' in row else 0)
+    return jsonify({'success': True, 'unread_count': count})
+
 BOOKING_LABELS = [
     "Booking Id",
     "Room Number",
@@ -588,6 +639,20 @@ def dashboard():
     role = session['role']
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+            SELECT log_id, timestamp, CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message
+            FROM audit_log
+            ORDER BY timestamp DESC
+            LIMIT 10
+        """)
+    
+    notifications = cursor.fetchall()
+    
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    row = cur.fetchone()
+    unread_count = int(row['count']) if row and 'count' in row else 0
 
     # fetch user record, if missing redirect to login
     cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
@@ -859,7 +924,9 @@ def dashboard():
         service_data=service_data,
         staff_data=staff_data,
         current_booking_id=current_booking_id,
-        user=user
+        user=user,
+        notifications=notifications,
+        unread_count=unread_count
     )
 
 @app.route('/calendar')

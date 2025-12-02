@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-nav-layout="vertical" data-theme-mode="light"
+      data-header-styles="light" data-width="fullwidth" data-menu-styles="dark"
+      data-page-style="flat" data-toggled="close">
+<head>
+  <meta charset="UTF-8">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+  <title>ezStay - Notifications</title>
+
+  <!-- Core CSS -->
+  <link id="style" href="{{ url_for('static', filename='libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/simplebar/simplebar.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet">
+
+  <!-- DataTables -->
+  <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --ez-primary: #8a2be2;
+      --ez-light-primary: #f0f0ff;
+    }
+    .app-sidebar, .main-sidebar-header, .main-sidebar, .main-menu {
+      background-color: var(--ez-primary) !important;
+    }
+    .main-menu .slide a {
+      color: rgba(255, 255, 255, 0.85) !important;
+    }
+    .main-menu .slide a.active,
+    .main-menu .slide a:hover {
+      color: #fff !important;
+      background-color: rgba(255,255,255,0.15);
+    }
+    .text-fixed-white { color: white !important; }
+    table.dataTable thead th { background-color: var(--ez-primary); color: white; }
+    .btn-primary { background-color: var(--ez-primary); border-color: var(--ez-primary); }
+    .btn-primary:hover { background-color: #6a1aae; border-color: #6a1aae; }
+    .text-fixed-white { color: white !important; }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <!-- HEADER -->
+    <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+      <div class="container-fluid d-flex justify-content-end align-items-center">
+        <div class="dropdown">
+          <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown"
+             role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="fw-semibold">{{ session['username'] }}</span>
+            <i class="ri-arrow-down-s-line ms-1"></i>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="profileDropdown">
+            <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="ri-user-line me-2"></i>Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="ri-logout-box-line me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <!-- SIDEBAR -->
+    {% include '_sidebar.html' %}
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content app-content">
+      <div class="container-fluid page-container main-body-container mt-3">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h1 class="page-title fw-medium fs-20 mb-0">Notifications</h1>
+        </div>
+
+        <h1>Audit Log Notifications</h1>
+
+    <table id="auditlogsTable" class="table table-striped table-bordered" style="width:100%">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Message</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if notifications %}
+          {% for log in notifications %}
+            <tr>
+              <td>{{ log.timestamp }}</td>
+              <td>{{ log.message }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="2" class="text-center text-muted">No notifications found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <footer class="footer mt-auto py-3 text-center">
+      <div class="container-fluid">
+        <span class="text-muted">Copyright © <span id="year"></span> <b>ezStay</b>. All rights reserved.</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- JS Libraries -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+  <script src="{{ url_for('static', filename='libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Initialize DataTables
+    $(document).ready(function() {
+    $('#auditlogsTable').DataTable({
+      pageLength: 10,
+      order: [[0, 'desc']], // order by timestamp descending
+      responsive: true,
+      language: {
+        search: "_INPUT_",
+        searchPlaceholder: "Search logs..."
+      }
+    });
+  });
+  </script>
+</body>
+</html>
