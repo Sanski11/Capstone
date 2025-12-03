@@ -780,22 +780,30 @@ tabLinks.forEach(tab => {
 $('#markAllRead').click(function(e){
     e.preventDefault();
 
-    $.post("{{ url_for('mark_read') }}", {}, function(response){
-        if(response.status === 'success'){
-            // Update badge count
-            $('#notif-count').text(response.unread_count);
+    $.ajax({
+        url: "{{ url_for('mark_read') }}", // or mark_all_read if you created a separate route
+        method: "POST",
+        data: {}, // no log_id means mark all
+        success: function(response){
+            if(response.status === 'success'){ // <-- changed from response.success
 
-            // Remove all current notifications except the "View All" and divider
-            $('#notif-dropdown .notification-item').remove();
+                // Update badge count
+                $('#notif-count').text(response.unread_count);
 
-            // Add "No new notifications" above the divider
-            const divider = $('#notif-dropdown hr.dropdown-divider');
-            $('<li class="dropdown-item text-center text-muted notification-item">No new notifications</li>').insertBefore(divider);
-        } else {
+                // Remove all notifications
+                $('#notif-dropdown .notification-item').remove();
+
+                // Add "No new notifications"
+                $('#notif-dropdown').prepend(
+                    '<li class="dropdown-item text-center text-muted notification-item">No new notifications</li>'
+                );
+            } else {
+                alert('Failed to mark notifications as read.');
+            }
+        },
+        error: function(){
             alert('Failed to mark notifications as read.');
         }
-    }).fail(function(){
-        alert('Failed to mark notifications as read.');
     });
 });
 </script>
