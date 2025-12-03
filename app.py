@@ -1391,7 +1391,7 @@ def show_requests():
     notifications = cursor.fetchall()
 
     # Unread count for badge
-    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE username = %s AND read_status = 0")
+    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE username = %s AND read_status = 0", (session['username'],))
     unread_count = cursor.fetchone()['count']
 
     cursor.close()
