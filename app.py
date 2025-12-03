@@ -206,7 +206,10 @@ def mark_read():
 
     if log_id:
         # Mark single notification
-        cursor.execute("UPDATE audit_log SET read_status = 1 WHERE log_id = %s", (log_id,))
+        cursor.execute(
+        "UPDATE audit_log SET read_status = 1 WHERE log_id = %s AND username = %s",
+        (log_id, session['username'])
+    )
     else:
         # Mark all notifications for current user
         cursor.execute("UPDATE audit_log SET read_status = 1 WHERE username = %s AND read_status = 0", (session['username'],))
@@ -1233,6 +1236,24 @@ def editGuest(guest_id):
 def show_requests():
     # --- main cursor for requests and related data ---
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cursor.fetchone()['count']
+    
     selectedCategory = request.args.get('category', '')
     status_filter = request.args.get('status', 'all').lower()  # 'pending', 'completed', 'all'
 
@@ -1376,23 +1397,7 @@ def show_requests():
             FROM hotel_services
             ORDER BY category
         """)
-    service_category_list = cursor.fetchall()
-    
-    # Latest 5 unread notifications for current user
-    cursor.execute("""
-        SELECT log_id, timestamp,
-            CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
-            read_status
-        FROM audit_log
-        WHERE username = %s AND read_status = 0
-        ORDER BY timestamp DESC
-        LIMIT 5
-    """, (session['username'],))
-    notifications = cursor.fetchall()
-
-    # Unread count for badge
-    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE username = %s AND read_status = 0", (session['username'],))
-    unread_count = cursor.fetchone()['count']
+    service_category_list = cursor.fetchall()   
 
     cursor.close()
 
