@@ -77,25 +77,33 @@
 
     <table id="auditlogsTable" class="table table-striped table-bordered" style="width:100%">
       <thead>
-        <tr>
-          <th>Timestamp</th>
-          <th>Message</th>
-        </tr>
-      </thead>
-      <tbody>
+          <tr>
+            <th>Timestamp</th>
+            <th>Message</th>
+            <th>Action</th> <!-- New column -->
+          </tr>
+        </thead>
+        <tbody>
         {% if notifications %}
           {% for log in notifications %}
-            <tr>
+            <tr class="{% if log.read_status == 0 %}table-warning fw-bold{% endif %}">
               <td>{{ log.timestamp }}</td>
               <td>{{ log.message }}</td>
+              <td>
+                {% if log.read_status == 0 %}
+                  <button class="btn btn-sm btn-primary mark-read-btn" data-id="{{ log.log_id }}">Mark as Read</button>
+                {% else %}
+                  <span class="text-muted">Read</span>
+                {% endif %}
+              </td>
             </tr>
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="2" class="text-center text-muted">No notifications found.</td>
+            <td colspan="3" class="text-center text-muted">No notifications found.</td>
           </tr>
         {% endif %}
-      </tbody>
+        </tbody>
     </table>
 
     <footer class="footer mt-auto py-3 text-center">
@@ -116,16 +124,38 @@
 
     // Initialize DataTables
     $(document).ready(function() {
-    $('#auditlogsTable').DataTable({
+    var table = $('#auditlogsTable').DataTable({
       pageLength: 10,
-      order: [[0, 'desc']], // order by timestamp descending
+      order: [[0, 'desc']],
       responsive: true,
       language: {
         search: "_INPUT_",
         searchPlaceholder: "Search logs..."
       }
     });
-  });
+
+    // Use delegated event for dynamically generated buttons
+    $('#auditlogsTable tbody').on('click', '.mark-read-btn', function() {
+        var logId = $(this).data('id');
+        var btn = $(this);
+
+        $.ajax({
+            url: "{{ url_for('mark_read') }}",
+            method: "POST",
+            data: { log_id: logId },
+            success: function(response) {
+                if(response.status === 'success') {
+                    // Update row style and replace button
+                    var row = btn.closest('tr');
+                    row.removeClass('table-warning fw-bold');
+                    btn.replaceWith('<span class="text-muted">Read</span>');
+                } else {
+                    alert('Failed to mark as read.');
+                }
+            }
+        });
+    });
+});
   </script>
 </body>
 </html>

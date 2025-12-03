@@ -176,11 +176,14 @@ def notifications_dropdown():
 def notifications():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     cursor.execute("""
-        SELECT log_id, timestamp, record_id, CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message
-        FROM audit_log
-        ORDER BY timestamp DESC
-    """)
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    ORDER BY timestamp DESC
+""")
     notifications = cursor.fetchall()
+
     cursor.close()
     return render_template('notifications.html', notifications=notifications)
 
@@ -195,22 +198,27 @@ def unread_count():
     return jsonify({'unread_count': count})
 
 # mark all as read (AJAX POST)
-@app.route('/notifications/mark_read', methods=['POST'])
+@app.route('/mark_read', methods=['POST'])
 def mark_read():
-    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    log_id = request.form.get('log_id')
 
-    # mark all unread as read
-    cur.execute("UPDATE audit_log SET read_status = 1 WHERE read_status = 0")
+    cursor = mysql.connection.cursor()
+
+    if log_id:
+        # Mark single notification
+        cursor.execute("UPDATE audit_log SET read_status = 1 WHERE log_id = %s", (log_id,))
+    else:
+        # Mark all notifications for current user
+        cursor.execute("UPDATE audit_log SET read_status = 1 WHERE username = %s AND read_status = 0", (session['username'],))
+
     mysql.connection.commit()
 
-    # get new unread count
-    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
-    row = cur.fetchone()
-    cur.close()
+    # Count unread notifications
+    cursor.execute("SELECT COUNT(*) FROM audit_log WHERE username = %s AND read_status = 0", (session['username'],))
+    unread_count = cursor.fetchone()[0]
+    cursor.close()
 
-    count = row['count']
-
-    return jsonify({'success': True, 'unread_count': count})
+    return jsonify({'status': 'success', 'unread_count': unread_count})
 
 BOOKING_LABELS = [
     "Booking Id",
@@ -946,22 +954,39 @@ def calendar():
         flash("⚠️ You must be logged in to view the calendar.")
         return redirect(url_for('login'))
 
-    # 2. USER RETRIEVAL
-    # Fetch the user object from the database using the username from the session
-    cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
-    user = cursor.fetchone()  # <-- 'user' is now defined here
-    cursor.close()
+    # 2. FETCH USER & ROLE
+    with mysql.connection.cursor(MySQLdb.cursors.DictCursor) as cursor:
+        cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
+        user = cursor.fetchone()
+        if not user:
+            flash("⚠️ User data not found. Please log in again.")
+            return redirect(url_for('login'))
+        user_role = user.get('role', 'user')
 
-    if not user:
-        flash("⚠️ User data not found. Please log in again.")
-        return redirect(url_for('login'))
+        # 3. FETCH UNREAD NOTIFICATIONS
+        cursor.execute("""
+            SELECT log_id, timestamp,
+                   CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+                   read_status
+            FROM audit_log
+            WHERE read_status = 0
+            ORDER BY timestamp DESC
+            LIMIT 5
+        """)
+        notifications = cursor.fetchall()
 
-    # 3. USE RETRIEVED DATA AND RENDER
-    # Safely get user role using the retrieved 'user' dictionary/object
-    user_role = user.get('role', 'user') # Safely checks 'user' dictionary for 'role'
-    
-    return render_template('calendar.html', role=user_role, user=user)
+        # 4. FETCH UNREAD COUNT FOR BADGE
+        cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+        unread_count = cursor.fetchone()['count']
+
+    # 5. RENDER TEMPLATE
+    return render_template(
+        'calendar.html',
+        role=user_role,
+        user=user,
+        notifications=notifications,
+        unread_count=unread_count
+    )
 
 @app.route('/upcoming_events')
 def upcoming_events():
@@ -1090,6 +1115,25 @@ def view_staffs():
     selected_staff = request.args.get('staff_id', '')  # Get the id of the selected staff
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
+    
     department = session.get('department') or ''
     
     # Fetch staff from 'staff' table
@@ -1134,7 +1178,8 @@ def view_staffs():
     # Sort by last_name then first_name (optional since staff_table is already ordered)
     combined_staffs.sort(key=lambda x: (x['last_name'] or '', x['first_name']))
 
-    return render_template('staff.html', staffs=combined_staffs, selected_staff=selected_staff)
+    return render_template('staff.html', staffs=combined_staffs, selected_staff=selected_staff, notifications=notifications,
+        unread_count=unread_count)
 
 #Called by STAFF Menu - check if staff exist in requests
 @app.route('/checkStaff/<int:staff_id>')
@@ -1186,6 +1231,7 @@ def editGuest(guest_id):
 # Flask route: app.py
 @app.route("/requests")
 def show_requests():
+    # --- main cursor for requests and related data ---
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
     selectedCategory = request.args.get('category', '')
     status_filter = request.args.get('status', 'all').lower()  # 'pending', 'completed', 'all'
@@ -1331,6 +1377,22 @@ def show_requests():
             ORDER BY category
         """)
     service_category_list = cursor.fetchall()
+    
+    # Latest 5 unread notifications for current user
+    cursor.execute("""
+        SELECT log_id, timestamp,
+            CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+            read_status
+        FROM audit_log
+        WHERE username = %s AND read_status = 0
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """, (session['username'],))
+    notifications = cursor.fetchall()
+
+    # Unread count for badge
+    cursor.execute("SELECT COUNT(*) AS count FROM audit_log WHERE username = %s AND read_status = 0")
+    unread_count = cursor.fetchone()['count']
 
     cursor.close()
 
@@ -1345,20 +1407,41 @@ def show_requests():
         service_category_list=service_category_list,
         service_names=service_names,
         food_names=food_names,
-        status_filter=status_filter
+        status_filter=status_filter,
+        notifications=notifications,
+        unread_count=unread_count
     )
 
 #Called by ROOMS Menu - display list of rooms
 @app.route('/rooms')
 def view_rooms():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
+    
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
 
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
+    
     cursor.execute("""
         SELECT * FROM room ORDER BY room_number
     """)
 
     rooms = cursor.fetchall()  #After executing sql, fetch results
-    return render_template('rooms.html', rooms=rooms) #pass the contents of rooms to rooms.html
+    return render_template('rooms.html', rooms=rooms, notifications=notifications, unread_count=unread_count) #pass the contents of rooms to rooms.html
   
  
 #Called by GUESTS Menu - display list of guests
@@ -1366,12 +1449,31 @@ def view_rooms():
 def view_guests():
     selected_guest = request.args.get('guest_id', '')  #Get the id of the selected guest
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
+    
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
 
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
     cursor.execute("""
         SELECT * FROM guest ORDER BY last_name, first_name
     """)
     guests = cursor.fetchall() #After executing; fetch results
-    return render_template('guests.html', guests=guests) #pass the contents of guests to guests.html
+    return render_template('guests.html', guests=guests, notifications=notifications,
+        unread_count=unread_count) #pass the contents of guests to guests.html
 
 #Called by CHECKIN / CHECKOUT MENU - display bookings
 @app.route('/roomGuest')
@@ -1379,6 +1481,24 @@ def show_roomGuest():
     selected_room = request.args.get('room_id', '') #Get the roomid of the selected booking
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to db
 
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
     #Get all guests
     cursor.execute("SELECT * FROM guest")
     guests = cursor.fetchall()
@@ -1410,7 +1530,8 @@ def show_roomGuest():
         """)
     bookings = cursor.fetchall() #After executing sql; fetch results
     cursor.close() #Close db connection
-    return render_template('roomGuest.html', bookings=bookings, rooms=rooms,guests=guests) #Pass the contents of bookings to roomGuest.html
+    return render_template('roomGuest.html', bookings=bookings, rooms=rooms,guests=guests, notifications=notifications,
+        unread_count=unread_count) #Pass the contents of bookings to roomGuest.html
 
 #Audit logs
 @app.route('/auditlogs')
@@ -1930,6 +2051,24 @@ def completed_request():
 def view_housekeeping():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)  # Connect to DB
 
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
     # Fetch housekeeping services
     cursor.execute("""
         SELECT *
@@ -1969,13 +2108,33 @@ def view_housekeeping():
     return render_template(
         'housekeeping.html',
         hotel_services=hotel_services,
-        housekeeping_stats=housekeeping_stats
+        housekeeping_stats=housekeeping_stats, notifications=notifications,
+        unread_count=unread_count
     )
 
 #Called by LAUNDRY Menu - display list of laundry
 @app.route('/laundry')
 def view_laundry():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
 
     # --- Fetch laundry services ---
     cursor.execute("""
@@ -2013,13 +2172,33 @@ def view_laundry():
         'laundry.html',
         laundry_services=laundry_services,
         laundry_stats=laundry_stats,
-        total_services=total_services
+        total_services=total_services, notifications=notifications,
+        unread_count=unread_count
     )
 
 #Called by DINING Menu - display list of dining
 @app.route('/dining')
 def view_dining():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
 
     # Retrieve dining items
     cursor.execute("""
@@ -2057,13 +2236,34 @@ def view_dining():
         'dining.html',
         dining_services=dining_services,
         dining_stats=dining_stats,
-        total_items=total_items
+        total_items=total_items,
+        notifications=notifications,
+        unread_count=unread_count
     )
 
 #Called by MASSAGE Menu - display list of massage
 @app.route('/massage')
 def view_massage():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT log_id, timestamp,
+            CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+            read_status
+        FROM audit_log
+        WHERE read_status = 0
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """)
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
 
     # ==============================
     # 1. Query for massage services
@@ -2110,7 +2310,8 @@ def view_massage():
         'massage.html',
         massage_services=massage_services,
         total_services=total_services,
-        spa_stats=spa_stats
+        spa_stats=spa_stats, notifications=notifications,
+        unread_count=unread_count
     )
 
 #Called by HOUSEKEEPING Menu - add new housekeeping
@@ -2947,6 +3148,24 @@ def view_bookings():
     selected_type = request.args.get('room_type', '')
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    cursor.execute("""
+        SELECT log_id, timestamp,
+            CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+            read_status
+        FROM audit_log
+        WHERE read_status = 0
+        ORDER BY timestamp DESC
+        LIMIT 5
+    """)
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
     cursor.execute("SELECT * FROM guest")
     guests = cursor.fetchall()
 
@@ -2974,7 +3193,8 @@ def view_bookings():
 
     cursor.close()
 
-    return render_template('bookings.html', bookings=bookings, guests=guests, rooms=rooms, selected_type=selected_type)
+    return render_template('bookings.html', bookings=bookings, guests=guests, rooms=rooms, selected_type=selected_type, notifications=notifications,
+        unread_count=unread_count)
 
 #Called by BOOKINGS Menu - add a new booking
 @app.route('/addBooking', methods=['POST'])
@@ -3034,7 +3254,8 @@ def add_booking():
         )
     cursor.close()
     flash('Booking added successfully', 'success')
-    return redirect('/bookings')
+    return redirect('/bookings', notifications=notifications,
+        unread_count=unread_count)
 
 #Called by BOOKINGS Menu - edit a booking
 @app.route('/updateBooking', methods=['POST'])
@@ -3267,6 +3488,25 @@ def users_page():
 
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
+    cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
+    
     # Search functionality
     cursor.execute("SELECT * FROM users ORDER BY user_id ASC")
     users = cursor.fetchall()
@@ -3296,7 +3536,8 @@ def users_page():
         total_users=total_users,
         active_users=active_users,
         inactive_users=inactive_users,
-        total_admins=total_admins,
+        total_admins=total_admins,notifications=notifications,
+        unread_count=unread_count,
         role=session['role']
     )
 
@@ -4194,10 +4435,30 @@ def view_feedbacklist():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor) #Connect to the database
     
     cursor.execute("""
+    SELECT log_id, timestamp,
+           CONCAT(username, ' ', action_type, ' record ', record_id, ' in ', table_name) AS message,
+           read_status
+    FROM audit_log
+    WHERE read_status = 0
+    ORDER BY timestamp DESC
+    LIMIT 5
+""")
+    notifications = cursor.fetchall()
+
+    # inside your dashboard route (or wherever you render template)
+    cur = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+    # unread count for badge
+    cur.execute("SELECT COUNT(*) AS count FROM audit_log WHERE read_status = 0")
+    unread_count = cur.fetchone()['count']
+
+    cur.close()
+
+    cursor.execute("""
                    SELECT * FROM feedback ORDER BY feedback_id DESC
                    """)
     feedbacks = cursor.fetchall() #After executing sql, fetch results
-    return render_template('feedbacklist.html', feedbacks=feedbacks) #pass the contents of logs to auditlogs.html
+    return render_template('feedbacklist.html', feedbacks=feedbacks, notifications=notifications,
+        unread_count=unread_count) #pass the contents of logs to auditlogs.html
 
             
 if __name__ == '__main__':

@@ -10,7 +10,7 @@
     <link href="{{ url_for('static', filename='libs/node-waves/waves.min.css') }}" rel="stylesheet"> 
     <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" >
     <link href="{{ url_for('static', filename='css/icons.css') }}" rel="stylesheet" >
-    
+    <link href="{{ url_for('static', filename='notif.css') }}" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     
     <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
@@ -55,7 +55,34 @@
   <div class="page">
     <header class="app-header navbar navbar-expand-lg navbar-light bg-light shadow-sm">
   <div class="container-fluid d-flex justify-content-end align-items-center">
-    <!-- Right: Profile Dropdown Only -->
+    <!-- Notifications Bell -->
+        <div class="dropdown me-3">
+          <a class="d-flex align-items-center text-dark text-decoration-none" href="notification" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="ri-notification-3-line fs-4"></i>
+            <span class="badge bg-danger rounded-circle ms-1" id="notif-count">{{ unread_count }}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" id="notif-dropdown">
+            {% for log in notifications[:5] %}
+            <li class="dropdown-item notification-item">
+                <small class="text-muted">{{ log.timestamp }}</small><br>
+                {{ log.message }}
+            </li>
+            {% else %}
+            <li class="dropdown-item text-center text-muted notification-item">No new notifications</li>
+            {% endfor %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item text-center" href="{{ url_for('notifications') }}">
+                View All Notifications
+              </a>
+            </li>
+            <li>
+            <a href="#" id="markAllRead" class="dropdown-item text-center text-primary">
+            Mark All as Read
+          </a>
+          </li>
+          </ul>
+        </div>
     <div class="dropdown">
       <a class="d-flex align-items-center text-dark text-decoration-none" href="#" id="profileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
         <span class="fw-semibold">{{ session['username'] }}</span>
@@ -354,6 +381,36 @@
       }, 4000); // 4000 ms = 4 seconds
     });
   });
+
+  $('#markAllRead').click(function(e){
+    e.preventDefault();
+
+    $.ajax({
+        url: "{{ url_for('mark_read') }}", // or mark_all_read if you created a separate route
+        method: "POST",
+        data: {}, // no log_id means mark all
+        success: function(response){
+            if(response.status === 'success'){ // <-- changed from response.success
+
+                // Update badge count
+                $('#notif-count').text(response.unread_count);
+
+                // Remove all notifications
+                $('#notif-dropdown .notification-item').remove();
+
+                // Add "No new notifications"
+                $('#notif-dropdown').prepend(
+                    '<li class="dropdown-item text-center text-muted notification-item">No new notifications</li>'
+                );
+            } else {
+                alert('Failed to mark notifications as read.');
+            }
+        },
+        error: function(){
+            alert('Failed to mark notifications as read.');
+        }
+    });
+});
     </script>
 </body>
 </html>

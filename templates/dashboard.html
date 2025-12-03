@@ -14,6 +14,7 @@
   <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/themify-icons@1.0.1/css/themify-icons.css">
+  <link href="{{ url_for('static', filename='notif.css') }}" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -29,70 +30,6 @@
     .dashboard-banner-card { background-color: #d8bfd8 !important; }
     .text-fixed-white { color: white !important; }
     .alert { transition: opacity 0.6s ease-out; }
-    /* Notification bell wrapper */
-#notifDropdown {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-/* Bell icon hover effect */
-#notifDropdown i {
-    transition: 0.2s;
-}
-#notifDropdown:hover i {
-    transform: scale(1.1);
-    color: #8a2be2;
-}
-
-/* Badge styling */
-#notif-count {
-    background: #ff3b3b !important;
-    color: white !important;
-    font-size: 11px;
-    font-weight: bold;
-    min-width: 20px;
-    height: 20px;
-    line-height: 20px;
-    text-align: center;
-    padding: 0 6px;
-    border-radius: 50%;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Dropdown container */
-#notif-dropdown {
-    width: 320px;
-    max-height: 400px;
-    overflow-y: auto;
-    border-radius: 10px;
-}
-
-/* Each notif item */
-.notification-item {
-    padding: 10px 15px;
-    border-bottom: 1px solid #f1f1f1;
-    transition: 0.25s;
-}
-
-/* Hover highlight */
-.notification-item:hover {
-    background-color: #f7f1ff;
-}
-
-/* Timestamp muted styling */
-.notification-item small {
-    font-size: 11px;
-    opacity: 0.7;
-}
-
-/* "Mark All as Read" hover */
-#markAllRead:hover {
-    background-color: #f1e4ff;
-    color: #8a2be2 !important;
-}
   </style>
 </head>
 
@@ -466,21 +403,24 @@ $('#markAllRead').click(function(e){
     e.preventDefault();
 
     $.ajax({
-        url: "{{ url_for('mark_read') }}",
+        url: "{{ url_for('mark_read') }}", // or mark_all_read if you created a separate route
         method: "POST",
+        data: {}, // no log_id means mark all
         success: function(response){
-            if(response.success){
+            if(response.status === 'success'){ // <-- changed from response.success
 
                 // Update badge count
                 $('#notif-count').text(response.unread_count);
 
-                // Remove all notifications (first 5 list items)
+                // Remove all notifications
                 $('#notif-dropdown .notification-item').remove();
 
                 // Add "No new notifications"
                 $('#notif-dropdown').prepend(
                     '<li class="dropdown-item text-center text-muted notification-item">No new notifications</li>'
                 );
+            } else {
+                alert('Failed to mark notifications as read.');
             }
         },
         error: function(){
@@ -488,7 +428,6 @@ $('#markAllRead').click(function(e){
         }
     });
 });
-
   </script>
 </body>
 </html>
