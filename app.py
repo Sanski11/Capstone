@@ -1893,6 +1893,7 @@ def update_request():
     notes = request.form['edit_notes']
     last_update = session['username']
     timestamp = datetime.now()
+    read_status = 0
 
       # Get the name value and parse it
     name_value = request.form.get('edit_name')  # e.g., "service_11" or "food_5"
@@ -1932,6 +1933,7 @@ def update_request():
     new_data['notes'] = notes
     new_data['last_update'] = last_update
     new_data['timestamp'] = timestamp
+    new_data['read_status'] = 0
 
     cursor.execute("""
     UPDATE requests
@@ -1945,9 +1947,10 @@ def update_request():
         request_time = %s,
         notes = %s,
         last_update = %s,
-        timestamp = %s
+        timestamp = %s,
+        read_status = %s
     WHERE request_id = %s
-""", (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, notes, last_update, timestamp, request_id))
+""", (booking_id, service_id, item_id, quantity, unit_cost, total_cost, status, request_time, notes, last_update, timestamp, read_status, request_id))
 
     mysql.connection.commit()
     
@@ -2044,8 +2047,8 @@ def completed_request():
         table_name='requests',  #change table name
         action_type='UPDATE', 
         record_id=str(request_id), #change field name
-        old_data=old_data, 
-        new_data=new_data 
+        old_data={},
+        new_data={'Completion Date': completion_time.isoformat()}
     )
     cursor.close()
 
@@ -4109,6 +4112,10 @@ def forceassigntask():
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     try:
+        #get old staff id
+        cursor.execute("SELECT staff_id FROM requests WHERE request_id = %s", (request_id,))
+        old_staff_id = cursor.fetchone()
+        
         # 1) Check if that id exists in staff table
         cursor.execute("SELECT * FROM staff WHERE staff_id = %s", (staff_candidate_id,))
         staff_row = cursor.fetchone()
@@ -4154,7 +4161,19 @@ def forceassigntask():
             WHERE request_id = %s
         """, (staff_candidate_id, request_id))
         mysql.connection.commit()
+        
+                # Optional: log audit for reassignment
+        log_audit_event(
+            actor_id=session.get('username'),
+            timestamp=datetime.now(),
+            table_name='requests',
+            action_type='update',
+            record_id=request_id,
+            old_data=old_staff_id,
+            new_data={'staff_id': staff_candidate_id}
+        )
 
+        
         flash("Staff assigned successfully", "success")
     except Exception as e:
         mysql.connection.rollback()
@@ -4274,15 +4293,16 @@ def assigntask():
 def log_audit_event(actor_id, timestamp, table_name, action_type, record_id, old_data=None, new_data=None):
     """Inserts a manual audit log entry into the MySQL audit_log table."""
     try:
+        read_status = 0
         old_value_json = json.dumps(old_data, default=str) if old_data else None
         new_value_json = json.dumps(new_data, default=str) if new_data else None
 
         cursor = mysql.connection.cursor()
         cursor.execute(
             """INSERT INTO audit_log 
-               (username, timestamp, table_name, action_type, record_id, old_value, new_value)
-               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-            (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json)
+               (username, timestamp, table_name, action_type, record_id, old_value, new_value, read_status)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (actor_id, timestamp, table_name, action_type, record_id, old_value_json, new_value_json, read_status)
         )
 
         mysql.connection.commit()
@@ -4362,6 +4382,18 @@ def completedRequest():
         WHERE request_id = %s
     """, (completion_time, request_id))
     mysql.connection.commit()
+    
+    # Optional: log audit for reassignment
+    log_audit_event(
+        actor_id=session.get('username'),
+        timestamp=datetime.now(),
+        table_name='requests',
+        action_type='update',
+        record_id=request_id,
+        old_data={},
+        new_data={'Completion Date': completion_time}
+    )
+    
     cursor.close()
 
     flash("Request marked as completed successfully", "success")
