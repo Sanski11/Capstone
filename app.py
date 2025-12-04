@@ -2045,7 +2045,7 @@ def completed_request():
         actor_id=session['username'],
         timestamp=timestamp,
         table_name='requests',  #change table name
-        action_type='UPDATE', 
+        action_type='UPDATE (Set Completion Date)', 
         record_id=str(request_id), #change field name
         old_data={},
         new_data={'Completion Date': completion_time.isoformat()}
@@ -3414,7 +3414,7 @@ def checkin():
         actor_id=session['username'],
         timestamp=timestamp,
         table_name='bookings',
-        action_type='UPDATE',
+        action_type='UPDATE (Set Checkin Date)',
         record_id=str(booking_id),
         old_data=old_data,
         new_data=new_data
@@ -3474,7 +3474,7 @@ def checkout():
         actor_id=session['username'],
         timestamp=timestamp,
         table_name='bookings',
-        action_type='UPDATE',
+        action_type='UPDATE (Set Checkout Date)',
         record_id=str(booking_id),
         old_data=old_data,
         new_data=new_data
@@ -4167,7 +4167,7 @@ def forceassigntask():
             actor_id=session.get('username'),
             timestamp=datetime.now(),
             table_name='requests',
-            action_type='update',
+            action_type='UPDATE (Assign Staff to Request)',
             record_id=request_id,
             old_data=old_staff_id,
             new_data={'staff_id': staff_candidate_id}
@@ -4280,7 +4280,7 @@ def assigntask():
         actor_id=session.get('username'),
         timestamp=datetime.now(),
         table_name='requests',
-        action_type='update',
+        action_type='UPDATE (Assign Staff to Request)',
         record_id=req_id,
         old_data={'staff_id': old_staff_id},
         new_data={'staff_id': staff['staff_id']}
@@ -4388,7 +4388,7 @@ def completedRequest():
         actor_id=session.get('username'),
         timestamp=datetime.now(),
         table_name='requests',
-        action_type='update',
+        action_type='UPDATE (Set Completion Date)',
         record_id=request_id,
         old_data={},
         new_data={'Completion Date': completion_time}
