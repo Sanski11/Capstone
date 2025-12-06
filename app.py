@@ -207,13 +207,15 @@ def mark_read():
     if log_id:
         # Mark single notification
         cursor.execute(
-        "UPDATE audit_log SET read_status = 1 WHERE log_id = %s AND username = %s",
-        (log_id, session['username'])
+        #"UPDATE audit_log SET read_status = 1 WHERE log_id = %s AND username = %s",
+        #(log_id, session['username'])
+        "UPDATE audit_log SET read_status = 1 WHERE log_id = %s",
+        (log_id,)
     )
     else:
         # Mark all notifications for current user
-        cursor.execute("UPDATE audit_log SET read_status = 1 WHERE username = %s AND read_status = 0", (session['username'],))
-
+        #cursor.execute("UPDATE audit_log SET read_status = 1 WHERE username = %s AND read_status = 0", (session['username'],))
+        cursor.execute("UPDATE audit_log SET read_status = 1 WHERE read_status = 0", ())
     mysql.connection.commit()
 
     # Count unread notifications
