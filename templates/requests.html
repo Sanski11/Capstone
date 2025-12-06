@@ -754,6 +754,7 @@
   });
 
 var table = $('#requestsTable').DataTable();
+const tabLinks = document.querySelectorAll('#requestTabs .nav-link');  // ← add this line
 
 tabLinks.forEach(tab => {
     tab.addEventListener('click', e => {
