@@ -3770,7 +3770,7 @@ def view_bill(booking_id):
         FROM requests r
         LEFT JOIN hotel_services s ON r.service_id = s.service_id
         LEFT JOIN food_items f ON r.item_id = f.item_id
-        WHERE r.booking_id = %s
+        WHERE r.booking_id = %s and lower(r.status) <> 'cancelled'
     """, (booking_id,))
     requests = cursor.fetchall()
 
@@ -3821,7 +3821,6 @@ def view_bill(booking_id):
 
     balance = round(max(total_bill - total_payment, 0), 2)
     has_requests = total_bill > 0
-
 
     cursor.close()
 
