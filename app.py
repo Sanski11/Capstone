@@ -4340,7 +4340,7 @@ def getBooking(checkin_id):
     return jsonify(booking)        
 
 @app.route('/getBookingByRef/<string:random_booking_ref>')
-def getBookingByRef(checkin_id):
+def getBookingByRef(random_booking_ref):
     cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
     cursor.execute("""
