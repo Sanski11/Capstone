@@ -27,5 +27,6 @@
             "username": "avnadmin",
             "database": "staff_portal"
         }
-    ]
+    ],
+    "compile-hero.disable-compile-files-on-did-save-code": false
 }
